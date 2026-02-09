@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+// App.jsx
+import { Routes, Route } from 'react-router-dom';
 import Header from './components/Header.jsx';
 import Footer from './components/Footer.jsx';
 import Home from './pages/Home.jsx';
@@ -10,23 +11,21 @@ import Success from "./pages/Success.jsx";
 
 export default function App() {
   return (
-    <Router>
-      <div className="min-h-screen flex flex-col bg-[#F7F9FC]">
-        <Header />
+    <div className="min-h-screen flex flex-col bg-[#F7F9FC]">
+      <Header />
 
-        <main className="pt-20 flex-1">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/trainings" element={<Trainings />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/success" element={<Success />} />
-          </Routes>
-        </main>
+      <main className="pt-20 flex-1">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/trainings" element={<Trainings />} />
+          <Route path="/services" element={<Services />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/success" element={<Success />} />
+        </Routes>
+      </main>
 
-        <Footer />
-      </div>
-    </Router>
+      <Footer />
+    </div>
   );
 }
