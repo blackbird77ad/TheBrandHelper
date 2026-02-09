@@ -34,10 +34,10 @@ export default function Services() {
                 Professional, reliable support tailored to your business goals and growth stage.
               </p>
 
-              {/* Link to Contact page with service name as query param */}
+              {/* Dynamic source hidden via URL param */}
               <Link
-                to={`/contact?source=${encodeURIComponent(service)}`}
-                className="uppercase text-sm tracking-wide border-b border-black hover:text-[#E11D48] transition"
+                to={`/contact?source=${encodeURIComponent(service + " service")}`}
+                className="uppercase text-sm tracking-wide border-b border-black hover:text-[#FF3366] transition"
               >
                 Get Started →
               </Link>

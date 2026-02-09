@@ -49,6 +49,13 @@ export default function Contact() {
   return (
     <section className="min-h-screen bg-white px-6 py-20">
       <div className="max-w-2xl mx-auto">
+        <Helmet>
+        <title>Contact | The BrandHelper – Get in Touch</title>
+        <meta name="description" content="Contact The BrandHelper for training registration, business services, or partnerships. We’d love to hear from you." />
+        <meta property="og:title" content="Contact – The BrandHelper" />
+        <meta property="og:description" content="Reach out for training registration, business services, or inquiries." />
+        <meta property="og:image" content="/assets/og-contact.png" />
+      </Helmet>
         <section className="min-h-[50vh] flex items-center bg-[#F5F5F5] mb-10">
           <div className="max-w-5xl mx-auto px-6">
             <h1 className="text-5xl font-semibold mb-6">Get in Touch</h1>
