@@ -6,6 +6,18 @@
   </head>
   <body>
     <div id="root"></div>
+    <form
+  name="contact"
+  method="POST"
+  data-netlify="true"
+  action="/success"
+  hidden
+>
+  <input type="text" name="name" />
+  <input type="email" name="email" />
+  <textarea name="message"></textarea>
+</form>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
