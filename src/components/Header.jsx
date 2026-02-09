@@ -13,7 +13,7 @@ export default function Header() {
           to="/"
           className="text-lg font-semibold tracking-wide hover:opacity-80 transition"
         >
-          Brand<span className="text-[#E11D48]">Helper</span>
+        The Brand<span className="text-[#E11D48]">Helper</span>
         </Link>
 
         {/* Desktop Nav */}
