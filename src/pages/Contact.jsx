@@ -7,38 +7,34 @@ export default function Contact() {
   const source = searchParams.get("source") || "contact page";
 
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
+    fullName: "",
+    location: "",
+    call: "",
     whatsapp: "",
     message: "",
   });
 
   const navigate = useNavigate();
 
-  // Auto-copy phone to WhatsApp if empty
+  // Auto-copy call number to WhatsApp if empty
   useEffect(() => {
-    if (formData.phone && !formData.whatsapp) {
-      setFormData((prev) => ({ ...prev, whatsapp: prev.phone }));
+    if (formData.call && !formData.whatsapp) {
+      setFormData((prev) => ({ ...prev, whatsapp: prev.call }));
     }
-  }, [formData.phone]);
+  }, [formData.call]);
 
   const handleChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Encode data for Netlify
+    // Netlify SPA-friendly submission
     const encode = (data) =>
       Object.keys(data)
         .map(
-          (key) =>
-            encodeURIComponent(key) + "=" + encodeURIComponent(data[key])
+          (key) => encodeURIComponent(key) + "=" + encodeURIComponent(data[key])
         )
         .join("&");
 
@@ -47,9 +43,7 @@ export default function Contact() {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: encode({ "form-name": "contact", source, ...formData }),
     })
-      .then(() => {
-        navigate("/success");
-      })
+      .then(() => navigate("/success"))
       .catch((error) => alert(error));
   };
 
@@ -80,30 +74,30 @@ export default function Contact() {
 
           <input
             type="text"
-            name="name"
-            placeholder="Your Name"
+            name="fullName"
+            placeholder="Full Name"
             required
-            value={formData.name}
+            value={formData.fullName}
             onChange={handleChange}
             className="w-full border p-3 rounded"
           />
 
           <input
-            type="email"
-            name="email"
-            placeholder="Your Email"
+            type="text"
+            name="location"
+            placeholder="Location"
             required
-            value={formData.email}
+            value={formData.location}
             onChange={handleChange}
             className="w-full border p-3 rounded"
           />
 
           <input
             type="tel"
-            name="phone"
-            placeholder="Your Phone Number"
+            name="call"
+            placeholder="Call Number"
             required
-            value={formData.phone}
+            value={formData.call}
             onChange={handleChange}
             className="w-full border p-3 rounded"
           />
@@ -111,7 +105,8 @@ export default function Contact() {
           <input
             type="tel"
             name="whatsapp"
-            placeholder="Your WhatsApp Number (optional)"
+            placeholder="WhatsApp Number"
+            required
             value={formData.whatsapp}
             onChange={handleChange}
             className="w-full border p-3 rounded"
@@ -121,6 +116,7 @@ export default function Contact() {
             name="message"
             placeholder="Your Message"
             rows="5"
+            required
             value={formData.message}
             onChange={handleChange}
             className="w-full border p-3 rounded"
