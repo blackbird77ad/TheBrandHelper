@@ -7,7 +7,7 @@ export default function Services() {
     "Website Management",
     "Business Email Setup",
     "Ads Management",
-    "Brand Strategy"
+    "Brand Strategy",
   ];
 
   return (
@@ -16,40 +16,36 @@ export default function Services() {
       {/* HERO */}
       <section className="min-h-[60vh] flex items-center">
         <div className="max-w-6xl mx-auto px-6">
-          <h1 className="text-5xl font-semibold mb-6">
-            Business services
-          </h1>
+          <h1 className="text-5xl font-semibold mb-6">Business Services</h1>
           <p className="text-gray-300 text-lg max-w-2xl">
             For founders who want results without the learning curve.
           </p>
         </div>
       </section>
 
-      {/* SERVICES */}
+      {/* SERVICES GRID */}
       <section className="bg-white text-black py-20">
         <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-16">
 
           {services.map((service, i) => (
-            <div key={i}>
-              <h3 className="text-2xl font-semibold mb-4">
-                {service}
-              </h3>
+            <div key={i} className="border p-8 hover:shadow-lg transition">
+              <h3 className="text-2xl font-semibold mb-4">{service}</h3>
               <p className="text-gray-600 mb-6">
-                Professional, reliable support tailored to your
-                business goals and growth stage.
+                Professional, reliable support tailored to your business goals and growth stage.
               </p>
+
+              {/* Link to Contact page with service name as query param */}
               <Link
-                to="/contact"
-                className="uppercase text-sm tracking-wide border-b border-black"
+                to={`/contact?source=${encodeURIComponent(service)}`}
+                className="uppercase text-sm tracking-wide border-b border-black hover:text-[#E11D48] transition"
               >
-                Get started
+                Get Started →
               </Link>
             </div>
           ))}
 
         </div>
       </section>
-
     </div>
   );
 }

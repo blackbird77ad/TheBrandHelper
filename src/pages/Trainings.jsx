@@ -8,7 +8,7 @@ export default function Trainings() {
     "Shoe Making",
     "Soap & Skincare",
     "Importation",
-    "Ads & Digital Promotion"
+    "Ads & Digital Promotion",
   ];
 
   return (
@@ -17,12 +17,9 @@ export default function Trainings() {
       {/* HERO */}
       <section className="min-h-[60vh] flex items-center bg-[#F5F5F5]">
         <div className="max-w-6xl mx-auto px-6">
-          <h1 className="text-5xl font-semibold mb-6">
-            Skill trainings
-          </h1>
+          <h1 className="text-5xl font-semibold mb-6">Skill Trainings</h1>
           <p className="text-gray-600 text-lg max-w-2xl">
-            Practical programs designed to help you earn,
-            grow, and scale with confidence.
+            Practical programs designed to help you earn, grow, and scale with confidence.
           </p>
         </div>
       </section>
@@ -42,12 +39,12 @@ export default function Trainings() {
 
               <h3 className="text-xl font-semibold mb-4">{item}</h3>
               <p className="text-gray-600 mb-6">
-                Hands-on training focused on real-world income
-                and business application.
+                Hands-on training focused on real-world income and business application.
               </p>
 
+              {/* Link to Contact page with query param */}
               <Link
-                to="/contact"
+                to={`/contact?source=${encodeURIComponent(item)}`}
                 className="text-sm uppercase tracking-wide text-[#E11D48]"
               >
                 Register →
@@ -57,7 +54,6 @@ export default function Trainings() {
 
         </div>
       </section>
-
     </div>
   );
 }
