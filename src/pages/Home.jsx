@@ -1,11 +1,28 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
+
 
 export default function Home() {
   return (
     <div className="bg-white text-black">
+<Helmet>
+        <title>The Brand Helper | Training, Digital Skills & Business Growth</title>
 
-      {/* ================= HERO (90vh) ================= */}
+        <meta
+          name="description"
+          content="The Brand Helper provides digital skills training, brand development, and business support for individuals and startups."
+        />
+
+        <meta property="og:site_name" content="The Brand Helper" />
+        <meta property="og:title" content="The Brand Helper" />
+        <meta
+          property="og:description"
+          content="Training, digital skills, and business growth support."
+        />
+        <meta property="og:url" content="https://thebrandhelper.com" />
+      </Helmet>
+      {/* HERO (90vh)*/}
       <section className="min-h-[90vh] flex items-center bg-black text-white">
         <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
 
