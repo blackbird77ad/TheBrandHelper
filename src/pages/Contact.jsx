@@ -16,7 +16,7 @@ export default function Contact() {
 
   const navigate = useNavigate();
 
-  // Auto-copy call number to WhatsApp if empty
+  // Auto-copy call to WhatsApp if empty
   useEffect(() => {
     if (formData.call && !formData.whatsapp) {
       setFormData((prev) => ({ ...prev, whatsapp: prev.call }));
@@ -30,7 +30,6 @@ export default function Contact() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Netlify SPA-friendly submission
     const encode = (data) =>
       Object.keys(data)
         .map(
@@ -44,14 +43,12 @@ export default function Contact() {
       body: encode({ "form-name": "contact", source, ...formData }),
     })
       .then(() => navigate("/success"))
-      .catch((error) => alert(error));
+      .catch((err) => alert(err));
   };
 
   return (
     <section className="min-h-screen bg-white px-6 py-20">
       <div className="max-w-2xl mx-auto">
-
-        {/* HERO */}
         <section className="min-h-[50vh] flex items-center bg-[#F5F5F5] mb-10">
           <div className="max-w-5xl mx-auto px-6">
             <h1 className="text-5xl font-semibold mb-6">Get in Touch</h1>
@@ -61,17 +58,19 @@ export default function Contact() {
           </div>
         </section>
 
-        {/* FORM */}
         <form
           name="contact"
           method="POST"
           data-netlify="true"
+          netlify-honeypot="bot-field"
           onSubmit={handleSubmit}
           className="space-y-4"
         >
           <input type="hidden" name="form-name" value="contact" />
           <input type="hidden" name="source" value={source} />
+          <input type="hidden" name="bot-field" />
 
+          {/* ALL FIELDS MUST EXIST IN STATIC HTML */}
           <input
             type="text"
             name="fullName"
@@ -81,7 +80,6 @@ export default function Contact() {
             onChange={handleChange}
             className="w-full border p-3 rounded"
           />
-
           <input
             type="text"
             name="location"
@@ -91,7 +89,6 @@ export default function Contact() {
             onChange={handleChange}
             className="w-full border p-3 rounded"
           />
-
           <input
             type="tel"
             name="call"
@@ -101,7 +98,6 @@ export default function Contact() {
             onChange={handleChange}
             className="w-full border p-3 rounded"
           />
-
           <input
             type="tel"
             name="whatsapp"
@@ -111,7 +107,6 @@ export default function Contact() {
             onChange={handleChange}
             className="w-full border p-3 rounded"
           />
-
           <textarea
             name="message"
             placeholder="Your Message"
