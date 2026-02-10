@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function Contact() {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -11,6 +10,7 @@ export default function Contact() {
     message: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const navigate = useNavigate();
 
   const categories = ["Training", "Service", "Product"];
   const items = {
@@ -30,39 +30,47 @@ export default function Contact() {
       "Brand Strategy",
       "Consulting & Business Coaching",
     ],
-    Product: [], // user enters product name manually
+    Product: [],
   };
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
 
-    fetch(
-      "https://script.google.com/macros/s/AKfycby5AD0E1MbggKJt5nkNLcRBEg3_1LTcydt3WvFsR1mWhxjNFqJrZgT9RVzpH0DNdzLf3g/exec",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      }
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        setSubmitting(false);
+    const encode = (data) =>
+      Object.keys(data)
+        .map(
+          (key) => encodeURIComponent(key) + "=" + encodeURIComponent(data[key])
+        )
+        .join("&");
 
-        if (data.success) {
-          navigate("/success");
-        } else {
-          alert("Submission failed: " + (data.error || "Unknown error"));
+    try {
+      const res = await fetch(
+        "https://script.google.com/macros/s/AKfycbyvuU51OdLCXtO4MPO2Mg1jxrn7yVN0bWajXGZxB9ec/dev",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: encode(formData),
         }
-      })
-      .catch((err) => {
+      );
+
+      const result = await res.json();
+
+      if (result.success) {
         setSubmitting(false);
-        alert("Submission failed: " + err.message);
-      });
+        navigate("/success");
+      } else {
+        setSubmitting(false);
+        alert("Submission failed: " + (result.error || "unknown error"));
+      }
+    } catch (err) {
+      setSubmitting(false);
+      alert("Submission failed: " + err.message);
+    }
   };
 
   return (
@@ -73,7 +81,7 @@ export default function Contact() {
         <p className="text-gray-600 mb-6 text-sm">
           By submitting this form, you will be added to our general WhatsApp group.
           <span className="font-semibold text-red-600">
-            <br />⚠️ Beware of scammers and frauds — always communicate only with the admins!
+            <br />⚠️ Beware of scammers — communicate only with admins!
           </span>
           <br />
           You can also{" "}
