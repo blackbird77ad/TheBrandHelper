@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function Contact() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -10,7 +11,6 @@ export default function Contact() {
     message: "",
   });
   const [submitting, setSubmitting] = useState(false);
-  const navigate = useNavigate();
 
   const categories = ["Training", "Service", "Product"];
   const items = {
@@ -30,7 +30,7 @@ export default function Contact() {
       "Brand Strategy",
       "Consulting & Business Coaching",
     ],
-    Product: [],
+    Product: [], // user enters product name manually
   };
 
   const handleChange = (e) => {
@@ -41,24 +41,23 @@ export default function Contact() {
     e.preventDefault();
     setSubmitting(true);
 
-    const encode = (data) =>
-      Object.keys(data)
-        .map(
-          (key) =>
-            encodeURIComponent(key) + "=" + encodeURIComponent(data[key])
-        )
-        .join("&");
-
-    fetch("https://script.google.com/macros/s/AKfycbyaOYAfgFdreWScjDgwnqgCfEiKgCjfGdoPJpZzhGqEnK0Wa_WMvtnGiQ-k7umgMX2dfg/exec", {
-  method: "POST",
-  headers: { "Content-Type": "application/x-www-form-urlencoded" },
-  body: encode({ "form-name": "contact", ...formData }),
-})
+    fetch(
+      "https://script.google.com/macros/s/AKfycbypVD9Ic_6tgwuRHXiB_aM2444OHQH9T2S5GjxDPT0kgIZKlrLD7DR6cd7nI_YNL1mA7Q/exec",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      }
+    )
       .then((res) => res.json())
-      .then(() => {
+      .then((data) => {
         setSubmitting(false);
-        // Navigate to success page
-        navigate("/success");
+
+        if (data.success) {
+          navigate("/success");
+        } else {
+          alert("Submission failed: " + (data.error || "Unknown error"));
+        }
       })
       .catch((err) => {
         setSubmitting(false);
@@ -89,28 +88,84 @@ export default function Contact() {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input type="text" name="fullName" placeholder="Full Name" required value={formData.fullName} onChange={handleChange} className="w-full border p-3 rounded" />
-          <input type="email" name="email" placeholder="Email" required value={formData.email} onChange={handleChange} className="w-full border p-3 rounded" />
+          <input
+            type="text"
+            name="fullName"
+            placeholder="Full Name"
+            required
+            value={formData.fullName}
+            onChange={handleChange}
+            className="w-full border p-3 rounded"
+          />
 
-          <select name="category" value={formData.category} onChange={handleChange} required className="w-full border p-3 rounded">
+          <input
+            type="email"
+            name="email"
+            placeholder="Email"
+            required
+            value={formData.email}
+            onChange={handleChange}
+            className="w-full border p-3 rounded"
+          />
+
+          <select
+            name="category"
+            value={formData.category}
+            onChange={handleChange}
+            required
+            className="w-full border p-3 rounded"
+          >
             <option value="">Select Category</option>
-            {categories.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
+            {categories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
           </select>
 
           {formData.category && formData.category !== "Product" && (
-            <select name="item" value={formData.item} onChange={handleChange} required className="w-full border p-3 rounded">
+            <select
+              name="item"
+              value={formData.item}
+              onChange={handleChange}
+              required
+              className="w-full border p-3 rounded"
+            >
               <option value="">Select {formData.category}</option>
-              {items[formData.category].map((i) => <option key={i} value={i}>{i}</option>)}
+              {items[formData.category].map((i) => (
+                <option key={i} value={i}>
+                  {i}
+                </option>
+              ))}
             </select>
           )}
 
           {formData.category === "Product" && (
-            <input type="text" name="item" placeholder="Enter product name" required value={formData.item} onChange={handleChange} className="w-full border p-3 rounded" />
+            <input
+              type="text"
+              name="item"
+              placeholder="Enter product name"
+              required
+              value={formData.item}
+              onChange={handleChange}
+              className="w-full border p-3 rounded"
+            />
           )}
 
-          <textarea name="message" placeholder="Additional message" rows="4" value={formData.message} onChange={handleChange} className="w-full border p-3 rounded" />
+          <textarea
+            name="message"
+            placeholder="Additional message"
+            rows="4"
+            value={formData.message}
+            onChange={handleChange}
+            className="w-full border p-3 rounded"
+          />
 
-          <button type="submit" disabled={submitting} className="bg-black text-white px-6 py-3 rounded hover:bg-gray-800 transition">
+          <button
+            type="submit"
+            disabled={submitting}
+            className="bg-black text-white px-6 py-3 rounded hover:bg-gray-800 transition"
+          >
             {submitting ? "Submitting..." : "Submit"}
           </button>
         </form>
