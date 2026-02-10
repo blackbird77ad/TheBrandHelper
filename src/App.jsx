@@ -8,6 +8,7 @@ import Services from './pages/Services.jsx';
 import About from './pages/About.jsx';
 import Contact from './pages/Contact.jsx';
 import Success from "./pages/Success.jsx";
+import Store from './pages/Store.jsx';
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/success" element={<Success />} />
+           <Route path="/store" element={<Store />} />
         </Routes>
       </main>
 

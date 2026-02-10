@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 export default function Header() {
   const [open, setOpen] = useState(false);
 
+  const navItems = ["Home", "Trainings", "Services", "Store", "About", "Contact"];
+
   return (
     <header className="fixed top-0 left-0 w-full z-50 bg-black text-white">
       <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
@@ -13,12 +15,12 @@ export default function Header() {
           to="/"
           className="text-lg font-semibold tracking-wide hover:opacity-80 transition"
         >
-        The Brand<span className="text-[#E11D48]">Helper</span>
+          The Brand<span className="text-[#E11D48]">Helper</span>
         </Link>
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex gap-10 text-sm uppercase tracking-wide">
-          {["Home", "Trainings", "Services", "About", "Contact"].map((item) => (
+          {navItems.map((item) => (
             <Link
               key={item}
               to={item === "Home" ? "/" : `/${item.toLowerCase()}`}
@@ -52,7 +54,7 @@ export default function Header() {
       {/* Mobile Menu */}
       {open && (
         <div className="md:hidden bg-black border-t border-white/10 px-6 py-8 space-y-6 text-center">
-          {["Home", "Trainings", "Services", "About", "Contact"].map((item) => (
+          {navItems.map((item) => (
             <Link
               key={item}
               to={item === "Home" ? "/" : `/${item.toLowerCase()}`}

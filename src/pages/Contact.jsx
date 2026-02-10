@@ -1,27 +1,14 @@
-import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import React, { useState } from "react";
 
-export default function Contact() {
-  const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
-  const source = searchParams.get("source") || "contact page";
-
+export default function StoreContact() {
   const [formData, setFormData] = useState({
     fullName: "",
     location: "",
     call: "",
     whatsapp: "",
+    productOrTraining: "",
     message: "",
   });
-
-  const navigate = useNavigate();
-
-  // Auto-copy call to WhatsApp if empty
-  useEffect(() => {
-    if (formData.call && !formData.whatsapp) {
-      setFormData((prev) => ({ ...prev, whatsapp: prev.call }));
-    }
-  }, [formData.call]);
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -30,54 +17,31 @@ export default function Contact() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const encode = (data) =>
-      Object.keys(data)
-        .map(
-          (key) => encodeURIComponent(key) + "=" + encodeURIComponent(data[key])
-        )
-        .join("&");
+    const url = "https://script.google.com/macros/s/AKfycbx0z0Ex-dxJpdPEZOZ4_Z8pw2plTxWTXsRvOjLWLF1ehw-r1MdXqxXwj8AKvTEXIz76kA/exec";
 
-    fetch("/", {
+    fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: encode({ "form-name": "contact", source, ...formData }),
+      body: JSON.stringify(formData),
     })
-      .then(() => navigate("/success"))
-      .catch((err) => alert(err));
+      .then(() => {
+        // Redirect to WhatsApp group after submission
+        window.location.href = "https://chat.whatsapp.com/HpS3JYpWejM7L2sfVOSvek?mode=gi_t";
+      })
+      .catch((err) => alert("Something went wrong: " + err));
   };
 
   return (
     <section className="min-h-screen bg-white px-6 py-20">
       <div className="max-w-2xl mx-auto">
-        <Helmet>
-        <title>Contact | The BrandHelper – Get in Touch</title>
-        <meta name="description" content="Contact The BrandHelper for training registration, business services, or partnerships. We’d love to hear from you." />
-        <meta property="og:title" content="Contact – The BrandHelper" />
-        <meta property="og:description" content="Reach out for training registration, business services, or inquiries." />
-        <meta property="og:image" content="/assets/og-contact.png" />
-      </Helmet>
-        <section className="min-h-[50vh] flex items-center bg-[#F5F5F5] mb-10">
-          <div className="max-w-5xl mx-auto px-6">
-            <h1 className="text-5xl font-semibold mb-6">Get in Touch</h1>
-            <p className="text-gray-600 text-lg">
-              Questions, registrations, or partnerships — we’d love to hear from you.
-            </p>
-          </div>
-        </section>
+        <h1 className="text-4xl font-semibold mb-6 text-center">Join Our WhatsApp Group</h1>
+        <p className="text-gray-600 mb-10 text-center">
+          Fill in your details. After submission, you will be added to our WhatsApp group. 
+          <br />
+          <strong>⚠️ Talk to admins only — beware of scammers.</strong>
+        </p>
 
-        <form
-          name="contact"
-          method="POST"
-          data-netlify="true"
-          netlify-honeypot="bot-field"
-          onSubmit={handleSubmit}
-          className="space-y-4"
-        >
-          <input type="hidden" name="form-name" value="contact" />
-          <input type="hidden" name="source" value={source} />
-          <input type="hidden" name="bot-field" />
+        <form onSubmit={handleSubmit} className="space-y-4">
 
-          {/* ALL FIELDS MUST EXIST IN STATIC HTML */}
           <input
             type="text"
             name="fullName"
@@ -87,6 +51,7 @@ export default function Contact() {
             onChange={handleChange}
             className="w-full border p-3 rounded"
           />
+
           <input
             type="text"
             name="location"
@@ -96,6 +61,7 @@ export default function Contact() {
             onChange={handleChange}
             className="w-full border p-3 rounded"
           />
+
           <input
             type="tel"
             name="call"
@@ -105,6 +71,7 @@ export default function Contact() {
             onChange={handleChange}
             className="w-full border p-3 rounded"
           />
+
           <input
             type="tel"
             name="whatsapp"
@@ -114,11 +81,21 @@ export default function Contact() {
             onChange={handleChange}
             className="w-full border p-3 rounded"
           />
+
+          <input
+            type="text"
+            name="productOrTraining"
+            placeholder="Product or Training Name"
+            required
+            value={formData.productOrTraining}
+            onChange={handleChange}
+            className="w-full border p-3 rounded"
+          />
+
           <textarea
             name="message"
-            placeholder="Your Message"
+            placeholder="Your Message / Notes"
             rows="5"
-            required
             value={formData.message}
             onChange={handleChange}
             className="w-full border p-3 rounded"
@@ -126,9 +103,9 @@ export default function Contact() {
 
           <button
             type="submit"
-            className="bg-black text-white px-6 py-3 rounded hover:bg-gray-800 transition"
+            className="bg-black text-white px-6 py-3 rounded hover:bg-gray-800 transition w-full"
           >
-            Send Message
+            Join WhatsApp Group
           </button>
         </form>
       </div>
