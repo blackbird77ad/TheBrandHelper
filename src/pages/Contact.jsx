@@ -42,7 +42,7 @@ export default function Contact() {
     setSubmitting(true);
 
     fetch(
-      "https://script.google.com/macros/s/AKfycbypVD9Ic_6tgwuRHXiB_aM2444OHQH9T2S5GjxDPT0kgIZKlrLD7DR6cd7nI_YNL1mA7Q/exec",
+      "https://script.google.com/macros/s/AKfycby5AD0E1MbggKJt5nkNLcRBEg3_1LTcydt3WvFsR1mWhxjNFqJrZgT9RVzpH0DNdzLf3g/exec",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
