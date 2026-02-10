@@ -50,7 +50,7 @@ export default function Contact() {
 
     try {
       const res = await fetch(
-        "https://script.google.com/macros/s/AKfycbyvuU51OdLCXtO4MPO2Mg1jxrn7yVN0bWajXGZxB9ec/dev",
+        "https://script.google.com/macros/s/AKfycbycSClFv6_LwGfl9_T0LNFRGpQ0ze4AvgKQOznvTpK6q_Hn8mFpRuQosOw9HkOBJlRmpA/exec", 
         {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },

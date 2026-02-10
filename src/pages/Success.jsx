@@ -25,8 +25,7 @@ export default function Success() {
             className="text-[#E11D48] hover:text-[#FF3366] font-semibold"
           >
             contact an admin directly
-          </a>
-          .
+          </a>.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
