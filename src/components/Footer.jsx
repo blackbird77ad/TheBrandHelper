@@ -10,7 +10,7 @@ export default function Footer() {
         {/* Brand */}
         <div>
           <h3 className="text-lg font-semibold mb-6">
-            Brand<span className="text-[#E11D48]">Helper</span>
+            Brand<span className="text-[#E11D48]">The Helper</span>
           </h3>
           <p className="text-gray-400 text-sm leading-relaxed">
             Skills, services, and systems designed
