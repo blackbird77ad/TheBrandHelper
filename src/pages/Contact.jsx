@@ -36,7 +36,7 @@ export default function Contact() {
     try {
       // Send data to Apps Script
       await fetch(
-        "https://script.google.com/macros/s/AKfycbxVQ4bpjy0IZ8896DWpSrYk1x_nATnVPzQbOX3rAQR7e7yUk9YoloWmWMwhxcOxmVgymQ/exec",
+        "https://script.google.com/macros/s/AKfycbwcL-pEQvT4XxPGhUncdtz1sBxNH6wk3VjH_BOJ3Z-tfCYGtOAdycqO6nqZdEDfdbbkpg/exec",
         {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
