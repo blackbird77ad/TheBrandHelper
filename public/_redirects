@@ -1,6 +1,0 @@
-/* /index.html 200
-# Force non-www
-https://www.thebrandhelper.com/* https://thebrandhelper.com/:splat 301!
-
-# SPA fallback (React Router)
- /* /index.html 200
