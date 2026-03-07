@@ -1,5 +1,6 @@
 // App.jsx
 import { Routes, Route } from 'react-router-dom';
+import { Helmet } from 'react-helmet'; // ← Add this line
 import Header from './components/Header.jsx';
 import Footer from './components/Footer.jsx';
 import Home from './pages/Home.jsx';
@@ -13,6 +14,10 @@ import Store from './pages/Store.jsx';
 export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-[#F7F9FC]">
+      <Helmet>
+        <meta name="google-adsense-account" content="ca-pub-8623456276380303" />
+      </Helmet>
+
       <Header />
 
       <main className="pt-20 flex-1">
@@ -23,7 +28,7 @@ export default function App() {
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/success" element={<Success />} />
-           <Route path="/store" element={<Store />} />
+          <Route path="/store" element={<Store />} />
         </Routes>
       </main>
 
