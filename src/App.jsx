@@ -1,49 +1,51 @@
-import { Routes, Route, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
-import { Helmet } from 'react-helmet';
-import Header from './components/Header.jsx';
-import Footer from './components/Footer.jsx';
-import Home from './pages/Home.jsx';
-import Trainings from './pages/Trainings.jsx';
-import Services from './pages/Services.jsx';
-import About from './pages/About.jsx';
-import Contact from './pages/Contact.jsx';
-import Success from "./pages/Success.jsx";
-import Store from './pages/Store.jsx';
-import WebsiteCalc from './pages/WebsiteCalc.jsx';
-import ClientRequirements from './pages/ClientRequirements.jsx';
+import React from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
 
-export default function App() {
-  const location = useLocation();
-  const isPrivate = ['/calc', '/requirements'].includes(location.pathname);
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [location.pathname]);
+import Home               from "./pages/Home";
+import About              from "./pages/About";
+import Services           from "./pages/Services";
+import Portfolio          from "./pages/Portfolio";
+import Contact            from "./pages/Contact";
+import ClientRequirements from "./pages/ClientRequirements";
+import WebsiteCalc        from "./pages/WebsiteCalc";
+import Success            from "./pages/Success";
+import Admin              from "./pages/Admin";
+
+function Layout() {
+  const { pathname } = useLocation();
+  const isAdmin = pathname === "/admin";
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F7F9FC]">
-      <Helmet>
-        <meta name="google-adsense-account" content="ca-pub-8623456276380303" />
-      </Helmet>
-
-      {!isPrivate && <Header />}
-
-      <main className={!isPrivate ? 'pt-20 flex-1' : 'flex-1'}>
+    <>
+      {!isAdmin && <Navbar />}
+      <div style={{ paddingTop: isAdmin ? 0 : 64 }}>
         <Routes>
-          <Route path="/"             element={<Home />}               />
-          <Route path="/trainings"    element={<Trainings />}          />
-          <Route path="/services"     element={<Services />}           />
-          <Route path="/about"        element={<About />}              />
-          <Route path="/contact"      element={<Contact />}            />
-          <Route path="/success"      element={<Success />}            />
-          <Route path="/store"        element={<Store />}              />
-          <Route path="/calc"         element={<WebsiteCalc />}        />
+          <Route path="/"             element={<Home />} />
+          <Route path="/about"        element={<About />} />
+          <Route path="/services"     element={<Services />} />
+          <Route path="/portfolio"    element={<Portfolio />} />
+          <Route path="/contact"      element={<Contact />} />
+          <Route path="/contact/:tab" element={<Contact />} />
           <Route path="/requirements" element={<ClientRequirements />} />
+          <Route path="/calc"         element={<WebsiteCalc />} />
+          <Route path="/success"      element={<Success />} />
+          <Route path="/admin"        element={<Admin />} />
+          <Route path="*"             element={<Navigate to="/" replace />} />
         </Routes>
-      </main>
+      </div>
+      {!isAdmin && <Footer />}
+    </>
+  );
+}
 
-      {!isPrivate && <Footer />}
-    </div>
+export default function App() {
+  return (
+    <HelmetProvider>
+      <Layout />
+    </HelmetProvider>
   );
 }

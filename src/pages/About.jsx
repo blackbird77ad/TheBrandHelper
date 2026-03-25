@@ -1,186 +1,200 @@
 import React from "react";
+import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 
-// Images
-import storyImg from "../photos/close-up-hands-of-a-professional-seamstress-female-2025-04-06-07-35-25-utc_1.webp";
-import missionImg from "../photos/perfecthero.png";
+import storyImg    from "../photos/building-website.jpg";
+import missionImg  from "../photos/perfecthero.png";
 
-// Trainings
-import sewingImg from "../photos/sewingcard.jpg";
-import shoeImg from "../photos/shoe mat and tools.png";
-import soapImg from "../photos/soap.jpg";
-import brandingImg from "../photos/branding-hero.jpeg";
-import moreToComeImg from "../photos/etc-more-to-come.jpg";
+const WHATSAPP = "https://wa.me/233501657205";
+const EMAIL    = "mailto:davida@thebrandhelper.com";
+const CALENDLY = "https://calendly.com/blackbird77ad/free-consultation";
 
-// Services
-import websiteImg from "../photos/website-page-inner-hero-img-1.webp";
-import adsImg from "../photos/Facebook-Ads.webp";
-import emailImg from "../photos/custom-domain-email-mailbox-1.jpg";
+const values = [
+  { icon: "⚡", title: "Execution Over Theory",     desc: "We don't just advise , we build, manage, and deliver. Every engagement ends with something real and working." },
+  { icon: "🔍", title: "Transparency Always",       desc: "No hidden costs, no fake timelines, no promises we can't keep. You always know exactly where things stand." },
+  { icon: "📈", title: "Results-Focused",           desc: "Everything we build is tied to a business outcome , more clients, more visibility, more revenue." },
+  { icon: "🤝", title: "Long-Term Partnership",     desc: "We're not a one-and-done agency. We stay involved, iterate, and grow with the businesses we work with." },
+  { icon: "🌍", title: "Built for African Markets", desc: "We understand the local context , pricing, platforms, payment methods, and what actually works here." },
+  { icon: "🎯", title: "Clarity First",             desc: "Before we build anything, we make sure we're building the right thing. Strategy always comes before execution." },
+];
+
+const capabilities = [
+  { category: "Web",       items: ["Website Design & Development", "Website Management", "Business Email Setup", "Domain & Hosting"] },
+  { category: "Marketing", items: ["Facebook & Instagram Ads", "Google Ads", "Brand Strategy", "Social Media Setup"] },
+  { category: "Support",   items: ["AI Tools & Automation", "Technical Writing", "Translation & Transcription", "Customer Support Setup", "Project Support"] },
+  { category: "Strategy",  items: ["Business Consulting", "Digital Strategy", "Growth Coaching", "Brand Positioning"] },
+];
 
 export default function About() {
-  const trainings = [
-    { title: "Sewing", img: sewingImg, desc: "Learn to make clothes and craft with precision." },
-    { title: "Shoe Making", img: shoeImg, desc: "Create footwear from scratch with expert guidance." },
-    { title: "Soap Making", img: soapImg, desc: "Handcraft artisanal soaps ready for sale." },
-    { title: "Branding", img: brandingImg, desc: "Design and develop your brand identity." },
-    { title: "More to Come", img: moreToComeImg, desc: "Exciting new trainings coming soon!" },
-  ];
-
-  const services = [
-    { title: "Website Development", img: websiteImg },
-    { title: "Professional Email", img: emailImg },
-    { title: "Ads Running", img: adsImg },
-    { title: "More to Come", img: moreToComeImg },
-  ];
-
   return (
-    <div className="bg-white text-black">
+    <div className="bg-white text-black overflow-x-hidden">
+      <Helmet>
+        <title>About | The Brand Helper , Digital Agency</title>
+        <meta name="description" content="The Brand Helper is a digital agency helping businesses grow online through websites, ads, brand strategy, and technical support." />
+      </Helmet>
 
-      {/* HERO */}
-      <section className="min-h-[75vh] flex items-center bg-black text-white px-6">
-        <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-            Welcome to Brand Helper
+      {/* - HERO - */}
+      <section className="min-h-[70vh] flex items-center bg-black text-white px-6">
+        <div className="max-w-5xl mx-auto py-20 w-full">
+          <p className="text-red-500 text-xs font-bold uppercase tracking-widest mb-5">About Us</p>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight mb-7 max-w-3xl">
+            We Build Digital Businesses.<br />
+            <span className="text-red-600">Properly.</span>
           </h1>
-          <p className="text-gray-300 text-lg md:text-xl max-w-3xl mx-auto mb-10">
-            We empower individuals and small businesses to acquire practical skills, grow income, 
-            and build sustainable ventures — with the right guidance every step of the way.
+          <p className="text-gray-300 text-lg md:text-xl max-w-2xl leading-relaxed mb-10">
+            The Brand Helper is a digital agency helping founders, startups, and growing businesses establish a credible, effective online presence.
           </p>
-          <a
-            href="/contact"
-            className="inline-block bg-[#E11D48] px-8 py-3 rounded text-white uppercase tracking-wide hover:opacity-90 transition"
-          >
-            Get Started
-          </a>
+          <div className="flex flex-wrap gap-3">
+            <Link to="/contact/requirements"
+              className="bg-red-600 text-white px-7 py-3 text-sm font-bold uppercase tracking-wide hover:opacity-90 transition rounded">
+              Start a Project
+            </Link>
+            <Link to="/portfolio"
+              className="border border-white/40 text-white px-7 py-3 text-sm font-bold uppercase tracking-wide hover:bg-white hover:text-black transition rounded">
+              See Our Work
+            </Link>
+            <a href={WHATSAPP} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-2 bg-green-500/20 border border-green-500/40 text-green-400 px-7 py-3 text-sm font-bold hover:bg-green-500 hover:text-white transition rounded">
+              💬 WhatsApp Us
+            </a>
+          </div>
         </div>
       </section>
 
-      {/* STORY */}
-      <section className="py-24">
-        <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
+      {/* - STORY - */}
+      <section className="py-20 md:py-28 bg-white">
+        <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 md:gap-16 items-center">
           <div>
-            <h2 className="text-4xl font-semibold mb-6">Our Story</h2>
-            <p className="text-gray-600 text-lg leading-relaxed">
-              Brand Helper was built to remove confusion from learning skills and growing businesses. 
-              <br /><br />
-              Many are sold motivation without practical structure. We provide clarity, action, and real results for every learner.
+            <p className="text-red-600 text-xs font-bold uppercase tracking-widest mb-4">Our Story</p>
+            <h2 className="text-3xl md:text-4xl font-semibold mb-6">Built to cut through the confusion</h2>
+            <p className="text-gray-600 text-base md:text-lg leading-relaxed mb-5">
+              The Brand Helper was built because too many businesses were sold motivation without structure , advice without execution. Founders were being told what to do, but nobody was actually doing it with them.
+            </p>
+            <p className="text-gray-600 text-base md:text-lg leading-relaxed mb-5">
+              We started as a hands-on agency focused on one thing: helping real businesses get online properly. Not templates. Not generic packages. Custom, considered work that ties back to business outcomes.
+            </p>
+            <p className="text-gray-600 text-base md:text-lg leading-relaxed">
+              Today we work with businesses across industries , e-commerce, food, consulting, health, education, and more , delivering websites, ad campaigns, brand strategy, and technical support that actually moves the needle.
             </p>
           </div>
-          <div className="w-full rounded-lg overflow-hidden flex items-center justify-center">
-            <img
-              src={storyImg}
-              alt="Our Story"
-              className="w-full max-h-[500px] object-cover object-center"
-            />
+          <div className="rounded-xl overflow-hidden order-first md:order-last">
+            <img src={storyImg} alt="Our Story" className="w-full h-[320px] md:h-[480px] object-cover object-center" />
           </div>
         </div>
       </section>
 
-      {/* WHAT WE DO */}
-      <section className="py-24 bg-[#FAFAFA]">
-        <div className="max-w-6xl mx-auto px-6 text-center">
-          <h2 className="text-3xl md:text-4xl font-semibold mb-12">What We Do</h2>
-
-          {/* Trainings */}
-          <h3 className="text-2xl font-semibold mb-6">Trainings We Teach</h3>
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-8 mb-12">
-            {trainings.map((item, idx) => (
-              <div key={idx} className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition transform hover:scale-105 flex flex-col">
-                <div className="h-[250px] w-full overflow-hidden">
-                  <img
-                    src={item.img}
-                    alt={item.title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="p-4 flex flex-col items-center">
-                  <h4 className="text-lg font-semibold mb-2">{item.title}</h4>
-                  <p className="text-gray-500 text-sm">{item.desc || ""}</p>
-                </div>
-              </div>
-            ))}
+      {/* - VALUES - */}
+      <section className="py-20 md:py-28 bg-[#F5F5F5]">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="mb-12 md:mb-16 text-center">
+            <p className="text-red-600 text-xs font-bold uppercase tracking-widest mb-3">What We Stand For</p>
+            <h2 className="text-3xl md:text-4xl font-semibold">How we work and why it matters</h2>
           </div>
-
-          {/* Services */}
-          <h3 className="text-2xl font-semibold mb-6">Services We Render</h3>
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-8">
-            {services.map((item, idx) => (
-              <div key={idx} className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition transform hover:scale-105 flex flex-col">
-                <div className="h-[250px] w-full overflow-hidden">
-                  <img
-                    src={item.img}
-                    alt={item.title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="p-4">
-                  <h4 className="text-lg font-semibold text-center">{item.title}</h4>
-                </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            {values.map(({ icon, title, desc }) => (
+              <div key={title} className="bg-white p-7 rounded-xl shadow-sm hover:shadow-md transition">
+                <div className="text-3xl mb-4">{icon}</div>
+                <h3 className="text-base font-semibold mb-3">{title}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">{desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* TRAINING OPPORTUNITIES */}
-      <section className="py-24">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-3xl font-semibold mb-6">Training Opportunities</h2>
-          <p className="text-gray-700 text-lg mb-8 leading-relaxed">
-            Weekly and monthly training sessions to kickstart your entrepreneurship journey. 
-            Can’t find the training you want? We’ll match you with the right trainer. 
-            Leave us a message and let’s explore your potential together.
-          </p>
-          <a
-            href="/contact"
-            className="inline-block bg-black px-8 py-3 rounded text-white uppercase tracking-wide hover:opacity-90 transition"
-          >
-            Contact Us
-          </a>
+      {/* - CAPABILITIES - */}
+      <section className="py-20 md:py-28 bg-black text-white">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="mb-12">
+            <p className="text-red-500 text-xs font-bold uppercase tracking-widest mb-3">What We Do</p>
+            <h2 className="text-3xl md:text-4xl font-semibold mb-3">Full-service capabilities</h2>
+            <p className="text-gray-400 max-w-xl">One agency. Everything your digital business needs to launch, grow, and operate professionally.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+            {capabilities.map(({ category, items }) => (
+              <div key={category}>
+                <div className="text-red-500 text-xs font-bold uppercase tracking-widest mb-4">{category}</div>
+                <ul className="flex flex-col gap-3">
+                  {items.map(item => (
+                    <li key={item} className="flex items-start gap-2 text-sm text-gray-300">
+                      <span className="text-red-500 mt-0.5 shrink-0">→</span>{item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Link to="/services"
+              className="bg-red-600 text-white px-7 py-3 text-sm font-bold uppercase tracking-wide hover:opacity-90 transition rounded">
+              View All Services
+            </Link>
+            <Link to="/contact"
+              className="border border-white/30 text-white px-7 py-3 text-sm font-bold uppercase tracking-wide hover:bg-white hover:text-black transition rounded">
+              Get in Touch
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* MISSION */}
-      <section className="py-24 bg-[#F5F5F5]">
-        <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
-          <div className="w-full rounded-lg overflow-hidden flex items-center justify-center">
-            <img
-              src={missionImg}
-              alt="Our Mission"
-              className="w-full max-h-[500px] object-cover object-center"
-            />
+      {/* - MISSION - */}
+      <section className="py-20 md:py-28 bg-white">
+        <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 md:gap-16 items-center">
+          <div className="rounded-xl overflow-hidden">
+            <img src={missionImg} alt="Our Mission" className="w-full h-[300px] md:h-[400px] object-cover object-center" />
           </div>
           <div>
-            <h2 className="text-3xl font-semibold mb-6">Our Mission</h2>
-            <p className="text-gray-600 text-lg leading-relaxed">
-              To make skill acquisition, business support, and digital growth accessible, practical, and trustworthy. 
-              <br /><br />
-              We work with individuals, creators, and small businesses who want real outcomes — not theory.
+            <p className="text-red-600 text-xs font-bold uppercase tracking-widest mb-4">Our Mission</p>
+            <h2 className="text-3xl md:text-4xl font-semibold mb-6">Make digital growth accessible, practical, and trustworthy</h2>
+            <p className="text-gray-600 text-base md:text-lg leading-relaxed mb-5">
+              We work with individuals, creators, and small businesses who want real outcomes , not theory. Our mission is to bridge the gap between business ambition and digital execution.
             </p>
-          </div>
-        </div>
-      </section>
-
-      {/* VALUES */}
-      <section className="py-24">
-        <div className="max-w-6xl mx-auto px-6 text-center">
-          <h2 className="text-3xl font-semibold mb-12">What We Stand For</h2>
-          <div className="grid md:grid-cols-3 gap-12">
-            <div>
-              <h3 className="text-xl font-semibold mb-3">Practical Skills</h3>
-              <p className="text-gray-600">Every training and service is designed to generate real income.</p>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold mb-3">Trust & Transparency</h3>
-              <p className="text-gray-600">No hidden costs, no fake promises, no shortcuts.</p>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold mb-3">Growth Mindset</h3>
-              <p className="text-gray-600">We build systems that scale with you, not against you.</p>
+            <p className="text-gray-600 text-base md:text-lg leading-relaxed mb-8">
+              Every project we take on is an opportunity to help a business reach more people, operate more professionally, and build something sustainable.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <a href={CALENDLY} target="_blank" rel="noopener noreferrer"
+                className="bg-black text-white px-6 py-3 text-sm font-bold uppercase tracking-wide hover:bg-red-600 transition rounded">
+                📅 Book a Free Call
+              </a>
+              <a href={EMAIL}
+                className="border-2 border-gray-200 text-black px-6 py-3 text-sm font-bold uppercase tracking-wide hover:border-black transition rounded">
+                📧 Email Us
+              </a>
             </div>
           </div>
         </div>
       </section>
 
+      {/* - CTA - */}
+      <section className="py-20 bg-red-600 text-white text-center px-6">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-extrabold mb-5">Ready to work together?</h2>
+          <p className="text-red-100 text-base md:text-lg mb-10 max-w-xl mx-auto">
+            Fill in the brief and let's figure out exactly what your business needs. Free consultation, no commitment.
+          </p>
+          <div className="flex flex-wrap gap-3 justify-center mb-6">
+            <Link to="/contact/requirements"
+              className="bg-white text-red-600 px-8 py-3.5 text-sm font-bold uppercase tracking-wide hover:bg-black hover:text-white transition rounded">
+              Start Your Project →
+            </Link>
+            <Link to="/portfolio"
+              className="border border-white/40 text-white px-8 py-3.5 text-sm font-bold uppercase tracking-wide hover:bg-white hover:text-red-600 transition rounded">
+              See Our Work
+            </Link>
+          </div>
+          <div className="flex flex-wrap gap-3 justify-center text-sm">
+            <a href={WHATSAPP} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-2 text-red-100 hover:text-white transition">
+              💬 +233 50 165 7205
+            </a>
+            <span className="text-red-300">·</span>
+            <a href={EMAIL} className="flex items-center gap-2 text-red-100 hover:text-white transition">
+              📧 davida@thebrandhelper.com
+            </a>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

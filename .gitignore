@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+../tbh-server/.env
+.env
+/tbh-server/.env
+.env-local
