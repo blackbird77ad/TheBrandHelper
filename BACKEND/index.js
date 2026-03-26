@@ -204,7 +204,7 @@ app.delete('/api/clients/:id',  auth, async (req, res) => {
 
 app.post('/api/projects',        auth, async (req, res) => {
   try {
-    const project = await Project.create(req.body);
+    const project = await Project.create(cleanIds(req.body));
     ok(res, project, 201);
   } catch (e) { err(res, e); }
 });
@@ -237,7 +237,7 @@ app.get('/api/projects/:id',     auth, async (req, res) => {
 
 app.put('/api/projects/:id',     auth, async (req, res) => {
   try {
-    const project = await Project.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const project = await Project.findByIdAndUpdate(req.params.id, cleanIds(req.body), { new: true });
     if (!project) return res.status(404).json({ error: 'Not found' });
     ok(res, project);
   } catch (e) { err(res, e); }
@@ -291,7 +291,7 @@ app.patch('/api/milestones/:id/toggle',            auth, async (req, res) => {
 
 app.post('/api/meetings',       auth, async (req, res) => {
   try {
-    const meeting = await Meeting.create(req.body);
+    const meeting = await Meeting.create(cleanIds(req.body));
     ok(res, meeting, 201);
   } catch (e) { err(res, e); }
 });
@@ -326,7 +326,7 @@ app.delete('/api/meetings/:id', auth, async (req, res) => {
 
 app.post('/api/notes',       auth, async (req, res) => {
   try {
-    const note = await Note.create(req.body);
+    const note = await Note.create(cleanIds(req.body));
     ok(res, note, 201);
   } catch (e) { err(res, e); }
 });
@@ -411,9 +411,17 @@ app.delete('/api/quotes/:id',  auth, async (req, res) => {
 // REMINDERS
 // ══════════════════════════════════════════════════════════════════════════════
 
+// Helper — converts empty string IDs to null to avoid ObjectId cast errors
+function cleanIds(body) {
+  const fields = ['lead_id','client_id','project_id','meeting_id'];
+  const cleaned = { ...body };
+  fields.forEach(f => { if (cleaned[f] === '' || cleaned[f] === undefined) cleaned[f] = null; });
+  return cleaned;
+}
+
 app.post('/api/reminders',        auth, async (req, res) => {
   try {
-    const r = await Reminder.create(req.body);
+    const r = await Reminder.create(cleanIds(req.body));
     ok(res, r, 201);
   } catch (e) { err(res, e); }
 });

@@ -490,33 +490,87 @@ function RemindersTab({ reminders, onAdd, onComplete, onDelete }) {
 // PORTFOLIO TAB
 // ══════════════════════════════════════════════════════════════════════════════
 function PortfolioTab({ items, onAdd, onEdit, onDelete, onToggleFeatured }) {
+  const featured = items.filter(i => i.featured).length;
   return (
     <div>
-      <div className="flex justify-between items-center mb-5 flex-wrap gap-3">
-        <h2 className="text-xl font-extrabold">Portfolio ({items.length})</h2>
+      <div className="flex justify-between items-center mb-3 flex-wrap gap-3">
+        <div>
+          <h2 className="text-xl font-extrabold">Portfolio ({items.length})</h2>
+          <p className="text-xs text-gray-400 mt-0.5">
+            <span className="text-green-600 font-bold">{featured} public</span>
+            {" · "}
+            <span className="text-gray-400">{items.length - featured} hidden</span>
+            {" · "}
+            <span className="text-gray-500">Toggle visibility with the PUBLIC/HIDDEN button on each card</span>
+          </p>
+        </div>
         <Btn onClick={onAdd}>+ Add Project</Btn>
       </div>
+
+      {/* Legend */}
+      <div className="flex gap-4 mb-5 text-xs flex-wrap">
+        <div className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-full bg-green-500 inline-block"/>
+          <span className="text-gray-500">PUBLIC — visible on Portfolio page</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-full bg-gray-300 inline-block"/>
+          <span className="text-gray-500">HIDDEN — not shown to visitors</span>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {items.map(item => (
-          <div key={item._id} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition">
-            <div className="h-40 bg-gray-100 flex items-center justify-center overflow-hidden relative">
-              {item.image ? <img src={item.image} alt={item.title} className="w-full h-full object-cover" /> : <span className="text-4xl">🖥️</span>}
-              {item.featured && <span className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">Featured</span>}
+          <div key={item._id} className={`bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition border-2 ${item.featured ? "border-green-400" : "border-gray-100"}`}>
+            {/* Visibility banner */}
+            <div className={`px-4 py-2 flex items-center justify-between ${item.featured ? "bg-green-50" : "bg-gray-50"}`}>
+              <div className="flex items-center gap-2">
+                <span className={`w-2.5 h-2.5 rounded-full ${item.featured ? "bg-green-500" : "bg-gray-300"}`}/>
+                <span className={`text-xs font-extrabold uppercase tracking-widest ${item.featured ? "text-green-700" : "text-gray-400"}`}>
+                  {item.featured ? "PUBLIC — shown on site" : "HIDDEN — not shown"}
+                </span>
+              </div>
+              <button
+                onClick={() => onToggleFeatured(item)}
+                className={`text-xs font-bold px-3 py-1 rounded-full transition
+                  ${item.featured
+                    ? "bg-gray-200 text-gray-600 hover:bg-red-100 hover:text-red-600"
+                    : "bg-green-500 text-white hover:bg-green-600"
+                  }`}>
+                {item.featured ? "Hide" : "Make Public"}
+              </button>
             </div>
+
+            <div className="h-36 bg-gray-100 flex items-center justify-center overflow-hidden relative">
+              {item.image
+                ? <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                : <span className="text-4xl">🖥️</span>
+              }
+            </div>
+
             <div className="p-4">
               <p className="text-red-600 text-xs font-bold uppercase tracking-widest">{item.category}</p>
-              <h3 className="font-semibold text-sm mt-1 mb-2 line-clamp-1">{item.title}</h3>
+              <h3 className="font-semibold text-sm mt-1 mb-1 line-clamp-1">{item.title}</h3>
               <p className="text-xs text-gray-400 line-clamp-2 mb-3">{item.description}</p>
               <div className="flex gap-2 flex-wrap">
                 <Btn small variant="outline" onClick={() => onEdit(item)}>Edit</Btn>
-                <Btn small variant={item.featured ? 'danger' : 'outline'} onClick={() => onToggleFeatured(item)}>{item.featured ? 'Unfeature' : 'Feature'}</Btn>
-                <Btn small variant="danger" onClick={() => onDelete(item._id)}>Del</Btn>
-                {item.link && <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg font-bold hover:bg-blue-100 transition">Live ↗</a>}
+                <Btn small variant="danger" onClick={() => onDelete(item._id)}>Delete</Btn>
+                {item.link && (
+                  <a href={item.link} target="_blank" rel="noopener noreferrer"
+                    className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg font-bold hover:bg-blue-100 transition">
+                    Live ↗
+                  </a>
+                )}
               </div>
             </div>
           </div>
         ))}
-        {items.length === 0 && <div className="col-span-3 bg-white rounded-2xl p-12 text-center text-gray-300"><p className="text-5xl mb-3">🖥️</p><p className="text-gray-400 font-semibold">No portfolio items</p></div>}
+        {items.length === 0 && (
+          <div className="col-span-3 bg-white rounded-2xl p-12 text-center text-gray-300">
+            <p className="text-5xl mb-3">🖥️</p>
+            <p className="text-gray-400 font-semibold">No portfolio items yet — add one above</p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -719,43 +773,120 @@ function ClientView({ data, onClose, onUpdate, onError }) {
 }
 
 function ProjectForm({ data, clients, onClose, onSave, onError }) {
-  const [f, setF] = useState({ client_id:'', title:'', description:'', service_type:'', agreed_price:0, deposit_amount:0, deposit_paid:false, balance_amount:0, balance_paid:false, currency:'USD', start_date:'', deadline:'', status:'not_started', progress:0, notes:'', ...data, client_id: data?.client_id?._id||data?.client_id||'' });
+  const [f, setF] = useState({
+    client_id:'', client_name_manual:'', title:'', description:'', service_type:'',
+    agreed_price:0, deposit_amount:0, deposit_paid:false, deposit_date:'',
+    balance_amount:0, balance_paid:false, balance_date:'',
+    currency:'USD', start_date:'', deadline:'', delivered_date:'',
+    status:'not_started', progress:0, notes:'',
+    ...data,
+    client_id: data?.client_id?._id || data?.client_id || '',
+  });
   const [saving, setSaving] = useState(false);
   const set = (k,v) => setF(p=>({...p,[k]:v}));
-  useEffect(()=>{ const dep=Math.round(f.agreed_price*0.3); setF(p=>({...p,deposit_amount:dep,balance_amount:f.agreed_price-dep})); },[f.agreed_price]);
+
+  // Auto-calc deposit and balance when price changes
+  useEffect(() => {
+    const dep = Math.round(f.agreed_price * 0.3);
+    setF(p => ({ ...p, deposit_amount: dep, balance_amount: f.agreed_price - dep }));
+  }, [f.agreed_price]);
+
   const save = async () => {
-    if (!f.client_id||!f.title) return;
+    if (!f.title) return;
+    // Client is required either from list or typed manually
+    if (!f.client_id && !f.client_name_manual) { onError("Select a client or type a client name"); return; }
     setSaving(true);
-    try { if (data?._id) await api.updateProject(data._id,f); else await api.createProject(f); onSave(); }
+    try {
+      const payload = { ...f };
+      // If typed manually with no client_id, clear client_id so server doesn't get empty string
+      if (!payload.client_id) delete payload.client_id;
+      if (data?._id) await api.updateProject(data._id, payload);
+      else           await api.createProject(payload);
+      onSave();
+    }
     catch(e) { onError(e.message); } finally { setSaving(false); }
   };
+
   return (
-    <Modal title={data?'Edit Project':'New Project'} onClose={onClose} wide>
+    <Modal title={data ? "Edit Project" : "New Project"} onClose={onClose} wide>
       <div className="flex flex-col gap-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div><Lbl req>Client</Lbl><select className={sel} value={f.client_id} onChange={e=>set('client_id',e.target.value)}><option value="">Select client...</option>{clients.map(c=><option key={c._id} value={c._id}>{c.name}{c.business_name?` — ${c.business_name}`:''}</option>)}</select></div>
-          <div><Lbl req>Project Title</Lbl><input className={inp} value={f.title} onChange={e=>set('title',e.target.value)} placeholder="e.g. Website Design"/></div>
+
+        {/* Client */}
+        <div>
+          <Lbl req>Client</Lbl>
+          <select className={sel} value={f.client_id} onChange={e => { set("client_id", e.target.value); if (e.target.value) set("client_name_manual",""); }}>
+            <option value="">— Type name below if not in list —</option>
+            {clients.map(c => <option key={c._id} value={c._id}>{c.name}{c.business_name ? ` — ${c.business_name}` : ""}</option>)}
+          </select>
+          {!f.client_id && (
+            <input className={`${inp} mt-2`} value={f.client_name_manual} onChange={e => set("client_name_manual", e.target.value)}
+              placeholder="Type client name if not in list above..." />
+          )}
         </div>
-        <div><Lbl>Description</Lbl><textarea className={`${inp} resize-none`} rows={2} value={f.description} onChange={e=>set('description',e.target.value)}/></div>
+
+        {/* Title + Service */}
+        <div className="grid grid-cols-2 gap-3">
+          <div><Lbl req>Project Title</Lbl><input className={inp} value={f.title} onChange={e=>set("title",e.target.value)} placeholder="e.g. Website Design"/></div>
+          <div><Lbl>Service Type</Lbl><select className={sel} value={f.service_type} onChange={e=>set("service_type",e.target.value)}>
+            <option value="">Select...</option>
+            {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
+          </select></div>
+        </div>
+
+        <div><Lbl>Description</Lbl><textarea className={`${inp} resize-none`} rows={3} value={f.description} onChange={e=>set("description",e.target.value)} placeholder="What are we building, scope, deliverables..."/></div>
+
+        {/* Financials */}
+        <div className="bg-gray-50 rounded-2xl p-4">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Financials</p>
+          <div className="grid grid-cols-3 gap-3 mb-3">
+            <div><Lbl>Agreed Price</Lbl><input className={inp} type="number" value={f.agreed_price} onChange={e=>set("agreed_price",Number(e.target.value))}/></div>
+            <div><Lbl>Deposit (auto 30%)</Lbl><input className={inp} type="number" value={f.deposit_amount} onChange={e=>set("deposit_amount",Number(e.target.value))}/></div>
+            <div><Lbl>Balance</Lbl><input className={inp} type="number" value={f.balance_amount} onChange={e=>set("balance_amount",Number(e.target.value))}/></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="flex items-center gap-2 text-sm cursor-pointer mb-2">
+                <input type="checkbox" checked={f.deposit_paid} onChange={e=>set("deposit_paid",e.target.checked)} className="w-4 h-4 accent-green-500"/>
+                <span className="font-bold">Deposit Paid</span>
+              </label>
+              {f.deposit_paid && <input className={inp} type="date" value={f.deposit_date?f.deposit_date.split("T")[0]:""} onChange={e=>set("deposit_date",e.target.value)} placeholder="Date paid"/>}
+            </div>
+            <div>
+              <label className="flex items-center gap-2 text-sm cursor-pointer mb-2">
+                <input type="checkbox" checked={f.balance_paid} onChange={e=>set("balance_paid",e.target.checked)} className="w-4 h-4 accent-green-500"/>
+                <span className="font-bold">Balance Paid</span>
+              </label>
+              {f.balance_paid && <input className={inp} type="date" value={f.balance_date?f.balance_date.split("T")[0]:""} onChange={e=>set("balance_date",e.target.value)} placeholder="Date paid"/>}
+            </div>
+          </div>
+        </div>
+
+        {/* Dates */}
         <div className="grid grid-cols-3 gap-3">
-          <div><Lbl>Agreed Price</Lbl><input className={inp} type="number" value={f.agreed_price} onChange={e=>set('agreed_price',Number(e.target.value))}/></div>
-          <div><Lbl>Deposit (30%)</Lbl><input className={inp} type="number" value={f.deposit_amount} onChange={e=>set('deposit_amount',Number(e.target.value))}/></div>
-          <div><Lbl>Balance</Lbl><input className={inp} type="number" value={f.balance_amount} onChange={e=>set('balance_amount',Number(e.target.value))}/></div>
+          <div><Lbl>Start Date</Lbl><input className={inp} type="date" value={f.start_date?f.start_date.split("T")[0]:""} onChange={e=>set("start_date",e.target.value)}/></div>
+          <div><Lbl>Deadline</Lbl><input className={inp} type="date" value={f.deadline?f.deadline.split("T")[0]:""} onChange={e=>set("deadline",e.target.value)}/></div>
+          <div><Lbl>Delivered</Lbl><input className={inp} type="date" value={f.delivered_date?f.delivered_date.split("T")[0]:""} onChange={e=>set("delivered_date",e.target.value)}/></div>
         </div>
-        <div className="flex gap-6">
-          <label className="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" checked={f.deposit_paid} onChange={e=>set('deposit_paid',e.target.checked)} className="w-4 h-4 accent-green-500"/>Deposit Paid</label>
-          <label className="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" checked={f.balance_paid} onChange={e=>set('balance_paid',e.target.checked)} className="w-4 h-4 accent-green-500"/>Balance Paid</label>
-        </div>
+
+        {/* Status + Progress */}
         <div className="grid grid-cols-2 gap-3">
-          <div><Lbl>Start Date</Lbl><input className={inp} type="date" value={f.start_date?f.start_date.split('T')[0]:''} onChange={e=>set('start_date',e.target.value)}/></div>
-          <div><Lbl>Deadline</Lbl><input className={inp} type="date" value={f.deadline?f.deadline.split('T')[0]:''} onChange={e=>set('deadline',e.target.value)}/></div>
+          <div><Lbl>Status</Lbl>
+            <select className={sel} value={f.status} onChange={e=>set("status",e.target.value)}>
+              {PROJECT_STATUSES.map(s=><option key={s} value={s}>{s.replace(/_/g," ")}</option>)}
+            </select>
+          </div>
+          <div>
+            <Lbl>Progress — {f.progress}%</Lbl>
+            <input type="range" min={0} max={100} value={f.progress} onChange={e=>set("progress",Number(e.target.value))} className="w-full mt-3 accent-red-600"/>
+          </div>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div><Lbl>Status</Lbl><select className={sel} value={f.status} onChange={e=>set('status',e.target.value)}>{PROJECT_STATUSES.map(s=><option key={s} value={s}>{s.replace(/_/g,' ')}</option>)}</select></div>
-          <div><Lbl>Progress ({f.progress}%)</Lbl><input type="range" min={0} max={100} value={f.progress} onChange={e=>set('progress',Number(e.target.value))} className="w-full mt-3 accent-red-600"/></div>
+
+        <div><Lbl>Notes</Lbl><textarea className={`${inp} resize-none`} rows={3} value={f.notes} onChange={e=>set("notes",e.target.value)} placeholder="Any internal notes, client requests, context..."/></div>
+
+        <div className="flex gap-3 pt-2">
+          <Btn onClick={save} disabled={!f.title||saving}>{saving?"Saving...":"Save Project"}</Btn>
+          <Btn variant="outline" onClick={onClose}>Cancel</Btn>
         </div>
-        <div><Lbl>Notes</Lbl><textarea className={`${inp} resize-none`} rows={2} value={f.notes} onChange={e=>set('notes',e.target.value)}/></div>
-        <div className="flex gap-3 pt-2"><Btn onClick={save} disabled={!f.client_id||!f.title||saving}>{saving?'Saving...':'Save Project'}</Btn><Btn variant="outline" onClick={onClose}>Cancel</Btn></div>
       </div>
     </Modal>
   );
@@ -881,25 +1012,57 @@ function QuoteView({ data, onClose }) {
 }
 
 function ReminderForm({ data, leads, clients, projects, onClose, onSave, onError }) {
-  const [f, setF] = useState({ title:'', note:'', due_date:'', lead_id:'', client_id:'', project_id:'', ...data });
+  const [f, setF] = useState({ title:"", note:"", due_date:"", lead_id:"", client_id:"", project_id:"", ...data });
   const [saving, setSaving] = useState(false);
   const set = (k,v) => setF(p=>({...p,[k]:v}));
+
   const save = async () => {
-    if (!f.title||!f.due_date) return;
+    if (!f.title || !f.due_date) return;
     setSaving(true);
-    try { if(data?._id) await api.updateReminder(data._id,f); else await api.createReminder(f); onSave(); }
-    catch(e){onError(e.message);} finally{setSaving(false);}
+    try {
+      // Strip empty strings to null so MongoDB doesn't try to cast "" as ObjectId
+      const payload = { ...f };
+      ["lead_id","client_id","project_id"].forEach(k => { if (!payload[k]) payload[k] = null; });
+      if (data?._id) await api.updateReminder(data._id, payload);
+      else           await api.createReminder(payload);
+      onSave();
+    } catch(e) { onError(e.message); } finally { setSaving(false); }
   };
+
   return (
-    <Modal title="Add Reminder" onClose={onClose}>
+    <Modal title={data ? "Edit Reminder" : "Add Reminder"} onClose={onClose}>
       <div className="flex flex-col gap-4">
-        <div><Lbl req>Title</Lbl><input className={inp} value={f.title} onChange={e=>set('title',e.target.value)} placeholder="e.g. Follow up with Kofi"/></div>
-        <div><Lbl req>Due Date</Lbl><input className={inp} type="datetime-local" value={f.due_date} onChange={e=>set('due_date',e.target.value)}/></div>
-        <div><Lbl>Note</Lbl><textarea className={`${inp} resize-none`} rows={2} value={f.note} onChange={e=>set('note',e.target.value)} placeholder="What to do or say..."/></div>
-        <div><Lbl>Link to Lead</Lbl><select className={sel} value={f.lead_id} onChange={e=>set('lead_id',e.target.value)}><option value="">None</option>{leads.map(l=><option key={l._id} value={l._id}>{l.client_name}</option>)}</select></div>
-        <div><Lbl>Link to Client</Lbl><select className={sel} value={f.client_id} onChange={e=>set('client_id',e.target.value)}><option value="">None</option>{clients.map(c=><option key={c._id} value={c._id}>{c.name}</option>)}</select></div>
-        <div><Lbl>Link to Project</Lbl><select className={sel} value={f.project_id} onChange={e=>set('project_id',e.target.value)}><option value="">None</option>{projects.map(p=><option key={p._id} value={p._id}>{p.title}</option>)}</select></div>
-        <div className="flex gap-3 pt-2"><Btn onClick={save} disabled={!f.title||!f.due_date||saving}>{saving?'Saving...':'Save Reminder'}</Btn><Btn variant="outline" onClick={onClose}>Cancel</Btn></div>
+        <div><Lbl req>Title</Lbl><input className={inp} value={f.title} onChange={e=>set("title",e.target.value)} placeholder="e.g. Follow up with Kofi about quote"/></div>
+        <div><Lbl req>Due Date and Time</Lbl><input className={inp} type="datetime-local" value={f.due_date} onChange={e=>set("due_date",e.target.value)}/></div>
+        <div><Lbl>Note</Lbl><textarea className={`${inp} resize-none`} rows={3} value={f.note} onChange={e=>set("note",e.target.value)} placeholder="What to do, what to say, context..."/></div>
+
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Link to (optional)</p>
+
+        <div><Lbl>Lead</Lbl>
+          <select className={sel} value={f.lead_id} onChange={e=>set("lead_id",e.target.value)}>
+            <option value="">None</option>
+            {leads.map(l=><option key={l._id} value={l._id}>{l.client_name}{l.business_name ? ` — ${l.business_name}` : ""}</option>)}
+          </select>
+        </div>
+
+        <div><Lbl>Client</Lbl>
+          <select className={sel} value={f.client_id} onChange={e=>set("client_id",e.target.value)}>
+            <option value="">None</option>
+            {clients.map(c=><option key={c._id} value={c._id}>{c.name}{c.business_name ? ` — ${c.business_name}` : ""}</option>)}
+          </select>
+        </div>
+
+        <div><Lbl>Project</Lbl>
+          <select className={sel} value={f.project_id} onChange={e=>set("project_id",e.target.value)}>
+            <option value="">None</option>
+            {projects.map(p=><option key={p._id} value={p._id}>{p.title}</option>)}
+          </select>
+        </div>
+
+        <div className="flex gap-3 pt-2">
+          <Btn onClick={save} disabled={!f.title||!f.due_date||saving}>{saving ? "Saving..." : "Save Reminder"}</Btn>
+          <Btn variant="outline" onClick={onClose}>Cancel</Btn>
+        </div>
       </div>
     </Modal>
   );

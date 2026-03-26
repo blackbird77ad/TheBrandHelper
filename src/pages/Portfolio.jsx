@@ -25,7 +25,11 @@ export default function Portfolio() {
 
   useEffect(() => {
     getPortfolio()
-      .then(data => { if (data?.length) setProjects(data); })
+      .then(res => {
+        // API returns { success: true, data: [...] }
+        const items = res?.data || res;
+        if (Array.isArray(items) && items.length > 0) setProjects(items);
+      })
       .catch(() => { /* silently keep fallback */ })
       .finally(() => setLoading(false));
   }, []);
