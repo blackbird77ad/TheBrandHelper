@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { getProjects } from "../utils/api";
+import { getPortfolio } from "../utils/api";
 
 const WHATSAPP = "https://wa.me/233501657205";
 const EMAIL    = "mailto:davida@thebrandhelper.com";
@@ -24,7 +24,7 @@ export default function Portfolio() {
   const [selected,  setSelected]  = useState(null);
 
   useEffect(() => {
-    getProjects()
+    getPortfolio()
       .then(data => { if (data?.length) setProjects(data); })
       .catch(() => { /* silently keep fallback */ })
       .finally(() => setLoading(false));
