@@ -6,7 +6,7 @@ import { submitLead } from '../utils/api';
 const EMAILJS_SERVICE_ID  = 'service_3vfxg4e';
 const EMAILJS_TEMPLATE_ID = 'template_uvbqmun';
 const EMAILJS_PUBLIC_KEY  = '0VeNb5hN21304FM3_';
-const APPS_SCRIPT_URL     = 'https://script.google.com/macros/s/AKfycbxtjhLmlWKHa4FvDEWRYEbmTVbBUo1-4oKN2zFzZEEwhbZt4l6SX6wDgtwbMdyEvbNh1Q/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw_PrDQAe5o4TPxrpFdJfwg_BEghxmpBHJ5j1AwEQBxbTaJSscVUSwUl3URqYqgn1RlZQ/exec';
 
 const INDUSTRIES = [
   { key: 'food',         emoji: '🍽️', label: 'Food & Restaurant'     },

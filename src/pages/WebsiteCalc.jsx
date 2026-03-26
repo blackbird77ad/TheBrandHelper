@@ -6,7 +6,7 @@ import emailjs from '@emailjs/browser';
 const EMAILJS_SERVICE_ID  = 'service_3vfxg4e';
 const EMAILJS_TEMPLATE_ID = 'template_uvbqmun';
 const EMAILJS_PUBLIC_KEY  = '0VeNb5hN21304FM3_';
-const APPS_SCRIPT_URL     = 'https://script.google.com/macros/s/AKfycbxtjhLmlWKHa4FvDEWRYEbmTVbBUo1-4oKN2zFzZEEwhbZt4l6SX6wDgtwbMdyEvbNh1Q/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw_PrDQAe5o4TPxrpFdJfwg_BEghxmpBHJ5j1AwEQBxbTaJSscVUSwUl3URqYqgn1RlZQ/exec';
 // ──────────────────────────────────────────────────────────────────────────────
 
 const INDUSTRIES = [
@@ -209,7 +209,7 @@ export default function WebsiteCalc() {
         : `Estimate:  ${fmt(finalMin)}–${fmt(finalMax)} USD`,
       ``,
       `✅ Includes: domain, hosting, cloud storage & database`,
-      `💡 30% deposit to start — pay by bank, card, or mobile money`,
+      `💡 40% deposit to start — pay by bank, card, or mobile money`,
       ``,
       `Book a free call: https://calendly.com/blackbird77ad/free-consultation`,
       `WhatsApp: +233 50 165 7205`,
@@ -528,7 +528,7 @@ export default function WebsiteCalc() {
             <div className="bg-gray-50 rounded-2xl p-5 mb-6">
               <div className="font-bold text-sm mb-3">💰 How payment works</div>
               <div className="flex flex-col gap-2">
-                {['30% deposit to start — sent via Payoneer invoice', 'No Payoneer account needed — pay by bank, card, or mobile money. No extra charges.', 'Remaining balance paid when your site is ready and you approve it'].map((t, i) => (
+                {['40% deposit to start — sent via Payoneer invoice', 'No Payoneer account needed — pay by bank, card, or mobile money. No extra charges.', 'Remaining balance paid when your site is ready and you approve it'].map((t, i) => (
                   <div key={i} className="flex gap-3 text-xs text-gray-600">
                     <span className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-xs font-bold shrink-0">{i + 1}</span>
                     <span>{t}</span>

@@ -1,96 +1,60 @@
 /**
- * db.js — Simple JSON file database
- * Reads/writes to data/*.json files
- * Atomic writes prevent corruption on crash
+ * db.js — MongoDB models via Mongoose
+ * Replaces the JSON file database entirely
  */
 
-const fs   = require('fs');
-const path = require('path');
+const mongoose = require('mongoose');
 
-const DATA_DIR = path.join(__dirname, 'data');
+// ── Connect ───────────────────────────────────────────────────────────────────
+async function connect() {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) throw new Error('MONGODB_URI is not set in environment variables');
 
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+  await mongoose.connect(uri, {
+    dbName: 'thebrandhelperdb',
+  });
+
+  console.log('✅ MongoDB connected');
 }
 
-/**
- * Get the file path for a collection
- */
-function filePath(collection) {
-  return path.join(DATA_DIR, `${collection}.json`);
-}
+// ── Project Schema ────────────────────────────────────────────────────────────
+const projectSchema = new mongoose.Schema({
+  title:       { type: String, required: true, trim: true },
+  category:    { type: String, default: 'Other' },
+  description: { type: String, required: true, trim: true },
+  image:       { type: String, default: '' },
+  link:        { type: String, default: '' },
+  tags:        { type: [String], default: [] },
+  featured:    { type: Boolean, default: false },
+}, {
+  timestamps: true, // adds createdAt and updatedAt automatically
+});
 
-/**
- * Read all records from a collection
- * Returns [] if collection doesn't exist yet
- */
-function readAll(collection) {
-  const fp = filePath(collection);
-  if (!fs.existsSync(fp)) return [];
-  try {
-    const raw = fs.readFileSync(fp, 'utf8');
-    return JSON.parse(raw);
-  } catch (_) {
-    return [];
-  }
-}
+// ── Lead Schema ───────────────────────────────────────────────────────────────
+const leadSchema = new mongoose.Schema({
+  form_type:     { type: String, default: 'Unknown' },
+  client_name:   { type: String, default: '' },
+  business_name: { type: String, default: '' },
+  email:         { type: String, default: '' },
+  phone:         { type: String, default: '' },
+  industry:      { type: String, default: '' },
+  service:       { type: String, default: '' },
+  tier:          { type: String, default: '' },
+  budget:        { type: String, default: '' },
+  timeline:      { type: String, default: '' },
+  message:       { type: String, default: '' },
+  full_brief:    { type: String, default: '' },
+  submitted_at:  { type: String, default: '' },
+  status: {
+    type: String,
+    enum: ['new', 'contacted', 'in_progress', 'closed'],
+    default: 'new',
+  },
+}, {
+  timestamps: true,
+});
 
-/**
- * Write all records to a collection (atomic — writes to temp then renames)
- */
-function writeAll(collection, records) {
-  const fp  = filePath(collection);
-  const tmp = fp + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(records, null, 2), 'utf8');
-  fs.renameSync(tmp, fp);
-}
+const Project = mongoose.model('Project', projectSchema);
+const Lead    = mongoose.model('Lead',    leadSchema);
 
-/**
- * Find one record by id
- */
-function findById(collection, id) {
-  return readAll(collection).find(r => r.id === id) || null;
-}
-
-/**
- * Insert a record — id must already be set
- */
-function insert(collection, record) {
-  const records = readAll(collection);
-  records.unshift(record); // newest first
-  writeAll(collection, records);
-  return record;
-}
-
-/**
- * Update a record by id — merges fields
- */
-function update(collection, id, fields) {
-  const records = readAll(collection);
-  const idx     = records.findIndex(r => r.id === id);
-  if (idx === -1) return null;
-  records[idx] = { ...records[idx], ...fields, id, updated_at: new Date().toISOString() };
-  writeAll(collection, records);
-  return records[idx];
-}
-
-/**
- * Delete a record by id
- */
-function remove(collection, id) {
-  const records = readAll(collection);
-  const exists  = records.some(r => r.id === id);
-  if (!exists) return false;
-  writeAll(collection, records.filter(r => r.id !== id));
-  return true;
-}
-
-/**
- * Count records in a collection
- */
-function count(collection) {
-  return readAll(collection).length;
-}
-
-module.exports = { readAll, writeAll, findById, insert, update, remove, count };
+module.exports = { connect, Project, Lead };
