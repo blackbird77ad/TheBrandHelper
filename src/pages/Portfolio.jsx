@@ -41,8 +41,19 @@ export default function Portfolio() {
   return (
     <div className="bg-white text-black min-h-screen overflow-x-hidden">
       <Helmet>
-        <title>Portfolio | The Brand Helper — Our Work</title>
-        <meta name="description" content="Browse websites, brand projects, and ad campaigns built by The Brand Helper." />
+        <title>Portfolio | The BrandHelper — Websites and Projects We Have Built</title>
+        <meta name="description" content="Browse real websites, e-commerce platforms, and brand projects built by The BrandHelper for clients in Ghana, the USA, and beyond." />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href="https://thebrandhelper.com/portfolio" />
+        <meta property="og:type"        content="website" />
+        <meta property="og:url"         content="https://thebrandhelper.com/portfolio" />
+        <meta property="og:title"       content="Portfolio | The BrandHelper — Real Work for Real Businesses" />
+        <meta property="og:description" content="E-commerce stores, food ordering platforms, brand identities and more — built for clients across Ghana, New Jersey, and beyond." />
+        <meta property="og:image"       content="https://thebrandhelper.com/images/og-image.jpg" />
+        <meta name="twitter:card"        content="summary_large_image" />
+        <meta name="twitter:title"       content="Portfolio | The BrandHelper" />
+        <meta name="twitter:description" content="Real websites and platforms built for real businesses. See our work." />
+        <meta name="twitter:image"       content="https://thebrandhelper.com/images/og-image.jpg" />
       </Helmet>
 
       {/* ── HERO ── */}

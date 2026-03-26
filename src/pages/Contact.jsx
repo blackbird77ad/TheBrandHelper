@@ -6,11 +6,11 @@ import emailjs from '@emailjs/browser';
 const EMAILJS_SERVICE_ID  = 'service_3vfxg4e';
 const EMAILJS_TEMPLATE_ID = 'template_uvbqmun';
 const EMAILJS_PUBLIC_KEY  = '0VeNb5hN21304FM3_';
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw_PrDQAe5o4TPxrpFdJfwg_BEghxmpBHJ5j1AwEQBxbTaJSscVUSwUl3URqYqgn1RlZQ/exec';
+const APPS_SCRIPT_URL     = 'https://script.google.com/macros/s/AKfycbxtjhLmlWKHa4FvDEWRYEbmTVbBUo1-4oKN2zFzZEEwhbZt4l6SX6wDgtwbMdyEvbNh1Q/exec';
 
 const WHATSAPP = "https://wa.me/233501657205";
 const PHONE1   = "+233 50 165 7205";
-const PHONE2   = "+233 54 493 0276";
+const PHONE2   = "+233 54 889 4600";
 const EMAIL    = "davida@thebrandhelper.com";
 const EMAIL2   = "blackbird77ad@gmail.com";
 const CALENDLY = "https://calendly.com/blackbird77ad/free-consultation";
@@ -220,8 +220,19 @@ export default function Contact() {
   return (
     <div className="bg-white text-black min-h-screen">
       <Helmet>
-        <title>Contact | The Brand Helper</title>
-        <meta name="description" content="Get in touch with The Brand Helper. Start a project, get a quote, or send a quick inquiry." />
+        <title>Contact The BrandHelper | Start a Project or Get a Quote</title>
+        <meta name="description" content="Ready to build your business online? Fill a project brief, get a website quote, or send a quick inquiry. The BrandHelper responds within 24 hours." />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href="https://thebrandhelper.com/contact" />
+        <meta property="og:type"        content="website" />
+        <meta property="og:url"         content="https://thebrandhelper.com/contact" />
+        <meta property="og:title"       content="Contact The BrandHelper | Start a Project or Get a Quote" />
+        <meta property="og:description" content="Fill a project brief, use our pricing calculator, or send a quick message. We respond within 24 hours." />
+        <meta property="og:image"       content="https://thebrandhelper.com/images/og-image.jpg" />
+        <meta name="twitter:card"        content="summary_large_image" />
+        <meta name="twitter:title"       content="Contact The BrandHelper" />
+        <meta name="twitter:description" content="Start a project, get a quote, or send a quick inquiry. We respond within 24 hours." />
+        <meta name="twitter:image"       content="https://thebrandhelper.com/images/og-image.jpg" />
       </Helmet>
 
       {/* ── Hero ── */}

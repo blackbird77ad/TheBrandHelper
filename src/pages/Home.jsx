@@ -65,8 +65,21 @@ export default function Home() {
   return (
     <div className="bg-white text-black overflow-x-hidden">
       <Helmet>
-        <title>The Brand Helper | Web Agency — Websites, Ads & Brand Strategy</title>
-        <meta name="description" content="The Brand Helper is a digital web agency offering website design, ads management, brand strategy, and business support services." />
+        <title>The BrandHelper | Web Design, Ads & Brand Strategy — Ghana</title>
+        <meta name="description" content="The BrandHelper builds websites, manages ads, and crafts brand strategy for businesses ready to grow online. Based in Ghana. Working globally. Real work, real results." />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href="https://thebrandhelper.com/" />
+        <meta property="og:type"        content="website" />
+        <meta property="og:site_name"   content="The BrandHelper" />
+        <meta property="og:url"         content="https://thebrandhelper.com/" />
+        <meta property="og:title"       content="The BrandHelper | Web Design, Ads & Brand Strategy — Ghana" />
+        <meta property="og:description" content="The BrandHelper builds websites, manages ads, and crafts brand strategy for businesses ready to grow online. Based in Ghana. Working globally. Real work, real results." />
+        <meta property="og:image"       content="https://thebrandhelper.com/images/og-image.jpg" />
+        <meta property="og:image:alt"   content="The BrandHelper — Digital Agency" />
+        <meta name="twitter:card"        content="summary_large_image" />
+        <meta name="twitter:title"       content="The BrandHelper | Web Design, Ads & Brand Strategy — Ghana" />
+        <meta name="twitter:description" content="The BrandHelper builds websites, manages ads, and crafts brand strategy for businesses ready to grow online. Based in Ghana. Working globally. Real work, real results." />
+        <meta name="twitter:image"       content="https://thebrandhelper.com/images/og-image.jpg" />
       </Helmet>
 
       {/* ══════════════════════════════════════════════
