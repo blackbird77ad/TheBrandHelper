@@ -85,3 +85,12 @@ export const deletePortfolio   = (id)    => req(`/api/portfolio/${id}`, { method
 
 // ── STATS ─────────────────────────────────────────────────────────────────────
 export const getStats = () => req('/api/stats', { headers: A() });
+
+// ── PROSPECTS ─────────────────────────────────────────────────────────────────
+export const getProspects       = (params) => req(`/api/prospects${params ? `?${new URLSearchParams(params)}` : ''}`, { headers: A() });
+export const getProspect        = (id)     => req(`/api/prospects/${id}`, { headers: A() });
+export const createProspect     = (body)   => req('/api/prospects', { method: 'POST', headers: A(), body: JSON.stringify(body) });
+export const updateProspect     = (id, b)  => req(`/api/prospects/${id}`, { method: 'PUT', headers: A(), body: JSON.stringify(b) });
+export const deleteProspect     = (id)     => req(`/api/prospects/${id}`, { method: 'DELETE', headers: A() });
+export const bulkImportProspects= (arr)    => req('/api/prospects/bulk', { method: 'POST', headers: A(), body: JSON.stringify({ prospects: arr }) });
+export const convertProspect    = (id)     => req(`/api/prospects/${id}/convert`, { method: 'POST', headers: A() }); 

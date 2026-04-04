@@ -11,7 +11,7 @@ const bcrypt  = require('bcryptjs');
 const {
   connect, Lead, Client, Project,
   Milestone, Meeting, Note, Quote,
-  Reminder, Portfolio, Auth,
+  Reminder, Portfolio, Auth, Prospect,
 } = require('./db');
 
 const app    = express();
@@ -614,6 +614,92 @@ app.post('/api/auth/full-reset', auth, async (req, res) => {
   try {
     await Auth.deleteMany({});
     res.json({ success: true, message: 'Auth cleared. Setup required on next visit.' });
+  } catch (e) { err(res, e); }
+});
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PROSPECTS — Google Maps research leads with full outreach tracking
+// ══════════════════════════════════════════════════════════════════════════════
+
+app.post('/api/prospects', auth, async (req, res) => {
+  try {
+    const p = await Prospect.create(req.body);
+    ok(res, p, 201);
+  } catch (e) { err(res, e); }
+});
+
+app.get('/api/prospects', auth, async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.status)  filter.outreach_status = req.query.status;
+    if (req.query.tag)     filter.tag             = req.query.tag;
+    if (req.query.country) filter.country         = req.query.country;
+    if (req.query.website_status) filter.website_status = req.query.website_status;
+    const prospects = await Prospect.find(filter).sort({ createdAt: -1 });
+    res.json({ success: true, data: prospects, count: prospects.length });
+  } catch (e) { err(res, e); }
+});
+
+app.get('/api/prospects/:id', auth, async (req, res) => {
+  try {
+    const p = await Prospect.findById(req.params.id);
+    if (!p) return res.status(404).json({ error: 'Not found' });
+    ok(res, p);
+  } catch (e) { err(res, e); }
+});
+
+app.put('/api/prospects/:id', auth, async (req, res) => {
+  try {
+    const p = await Prospect.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!p) return res.status(404).json({ error: 'Not found' });
+    ok(res, p);
+  } catch (e) { err(res, e); }
+});
+
+app.delete('/api/prospects/:id', auth, async (req, res) => {
+  try {
+    await Prospect.findByIdAndDelete(req.params.id);
+    ok(res, { message: 'Deleted' });
+  } catch (e) { err(res, e); }
+});
+
+// Bulk import prospects from CSV/JSON array
+app.post('/api/prospects/bulk', auth, async (req, res) => {
+  try {
+    const { prospects } = req.body;
+    if (!Array.isArray(prospects) || prospects.length === 0) {
+      return res.status(400).json({ error: 'prospects array required' });
+    }
+    const inserted = await Prospect.insertMany(prospects, { ordered: false });
+    ok(res, { inserted: inserted.length }, 201);
+  } catch (e) { err(res, e); }
+});
+
+// Convert prospect to lead
+app.post('/api/prospects/:id/convert', auth, async (req, res) => {
+  try {
+    const prospect = await Prospect.findById(req.params.id);
+    if (!prospect) return res.status(404).json({ error: 'Prospect not found' });
+    const lead = await Lead.create({
+      source:        'manual',
+      form_type:     'Prospect Conversion',
+      client_name:   prospect.business_name,
+      business_name: prospect.business_name,
+      email:         prospect.email,
+      phone:         prospect.phone,
+      industry:      prospect.niche,
+      location:      prospect.location,
+      service:       'Website Design',
+      budget:        prospect.estimated_value,
+      notes:         prospect.comment,
+      status:        'new',
+    });
+    await Prospect.findByIdAndUpdate(req.params.id, {
+      outreach_status: 'converted',
+      lead_id: lead._id,
+    });
+    ok(res, lead, 201);
   } catch (e) { err(res, e); }
 });
 

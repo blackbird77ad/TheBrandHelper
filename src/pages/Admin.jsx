@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
 import AdminAuth, { LogoutButton } from "../components/AdminAuth";
+import ProspectTab from "../components/ProspectTab";
 import * as api from "../utils/api";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -145,6 +146,7 @@ function AdminInner({ onLogout }) {
     { key:'quotes',    icon:'📄', label:'Quotes'    },
     { key:'reminders', icon:'🔔', label:'Reminders' },
     { key:'portfolio', icon:'🖥️', label:'Portfolio' },
+    { key:'prospects', icon:'🔍', label:'Prospects' },
     { key:'stats',     icon:'📊', label:'Stats'     },
   ];
 
@@ -209,6 +211,7 @@ function AdminInner({ onLogout }) {
         {tab === 'quotes'    && <QuotesTab    quotes={quotes} onView={q => setModal({type:'quote_view',data:q})} onAdd={() => setModal({type:'quote_form',data:null})} onDelete={async id => { try { await api.deleteQuote(id); load('quotes'); } catch(e){E(e.message);} }} onStatus={async (id,s) => { try { await api.updateQuote(id,{status:s}); load('quotes'); } catch(e){E(e.message);} }} />}
         {tab === 'reminders' && <RemindersTab reminders={reminders} onAdd={() => setModal({type:'reminder_form',data:null})} onComplete={async id => { try { await api.completeReminder(id); load('reminders'); } catch(e){E(e.message);} }} onDelete={async id => { try { await api.deleteReminder(id); load('reminders'); } catch(e){E(e.message);} }} />}
         {tab === 'portfolio' && <PortfolioTab items={portfolio} onAdd={() => setModal({type:'portfolio_form',data:null})} onEdit={p => setModal({type:'portfolio_form',data:p})} onDelete={async id => { try { await api.deletePortfolio(id); load('portfolio'); } catch(e){E(e.message);} }} onToggleFeatured={async item => { try { await api.updatePortfolio(item._id,{featured:!item.featured}); load('portfolio'); } catch(e){E(e.message);} }} />}
+        {tab === 'prospects' && <ProspectTab onError={E} />}
         {tab === 'stats'     && <StatsTab     stats={stats} />}
       </div>
     </div>

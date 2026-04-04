@@ -225,6 +225,51 @@ const authSchema = new mongoose.Schema({
   master_hash: { type: String, required: true },
 }, { timestamps: true });
 
+
+// ── PROSPECT (Google Maps research leads) ─────────────────────────────────────
+const prospectSchema = new mongoose.Schema({
+  // Business info
+  business_name:  { type: String, required: true, trim: true },
+  niche:          { type: String, default: '' },
+  country:        { type: String, default: 'Ghana' },
+  location:       { type: String, default: '' },
+  address:        { type: String, default: '' },
+  what_they_do:   { type: String, default: '' },
+
+  // Contact
+  phone:          { type: String, default: '' },
+  email:          { type: String, default: '' },
+  website:        { type: String, default: '' },
+  maps_url:       { type: String, default: '' },
+  social:         { type: String, default: '' },
+
+  // Research data
+  google_rating:      { type: Number, default: null },
+  google_reviews:     { type: Number, default: 0 },
+  website_status:     { type: String, enum: ['no_website', 'has_website', 'broken', 'coming_soon', 'unknown'], default: 'unknown' },
+  google_added:       { type: String, default: '' },
+  estimated_value:    { type: String, default: '' },
+
+  // Outreach tracking
+  outreach_status: {
+    type: String,
+    enum: ['not_contacted', 'contacted', 'replied', 'call_booked', 'proposal_sent', 'converted', 'not_interested', 'no_response'],
+    default: 'not_contacted',
+  },
+  outreach_channel: { type: String, enum: ['whatsapp', 'email', 'call', 'in_person', 'linkedin', ''], default: '' },
+  outreach_date:    { type: Date, default: null },
+  follow_up_date:   { type: Date, default: null },
+  outcome:          { type: String, default: '' },
+  comment:          { type: String, default: '' },
+
+  // Organisation
+  tag:    { type: String, enum: ['this_week', 'this_month', 'this_year', 'backlog', ''], default: '' },
+  source_keyword: { type: String, default: '' },
+
+  // Link to lead if converted
+  lead_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Lead', default: null },
+}, { timestamps: true });
+
 // ── Export all models ─────────────────────────────────────────────────────────
 module.exports = {
   connect,
@@ -238,4 +283,5 @@ module.exports = {
   Reminder:  mongoose.model('Reminder',  reminderSchema),
   Portfolio: mongoose.model('Portfolio', portfolioSchema),
   Auth:      mongoose.model('Auth',      authSchema),
+  Prospect:  mongoose.model('Prospect',  prospectSchema),
 };
