@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 
 import storyImg    from "../photos/close-up-hands-of-a-professional-seamstress-female-2025-04-06-07-35-25-utc_1.webp";
-import missionImg  from "../photos/perfecthero.png";
+import missionImg  from "../photos/about1.png";
 
 const WHATSAPP = "https://wa.me/233501657205";
 const EMAIL    = "mailto:davida@thebrandhelper.com";
