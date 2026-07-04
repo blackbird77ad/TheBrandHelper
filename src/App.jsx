@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 
@@ -12,6 +12,7 @@ import Portfolio          from "./pages/Portfolio";
 import Contact            from "./pages/Contact";
 import ClientRequirements from "./pages/ClientRequirements";
 import WebsiteCalc        from "./pages/WebsiteCalc";
+import BlueprintBuilder   from "./pages/BlueprintBuilder";
 import Success            from "./pages/Success";
 import Admin              from "./pages/Admin";
 
@@ -30,6 +31,7 @@ function Layout() {
           <Route path="/portfolio"    element={<Portfolio />} />
           <Route path="/contact"      element={<Contact />} />
           <Route path="/contact/:tab" element={<Contact />} />
+          <Route path="/blueprint"    element={<BlueprintBuilder />} />
           <Route path="/requirements" element={<ClientRequirements />} />
           <Route path="/calc"         element={<WebsiteCalc />} />
           <Route path="/success"      element={<Success />} />

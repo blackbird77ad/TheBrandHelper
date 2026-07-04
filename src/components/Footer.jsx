@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { Link } from "react-router-dom";
 
 const WHATSAPP  = "https://wa.me/233501657205";
@@ -11,19 +11,17 @@ const PHONE2    = "+233 54 493 0276";
 export default function Footer() {
   return (
     <footer className="bg-[#0a0a0a] text-white">
-
-      {/* ── MINI CTA BAND ── */}
       <div className="bg-red-600 py-5 px-6">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="font-bold text-white text-sm md:text-base text-center sm:text-left">
-            Ready to build your business online? Let's talk — it's free.
+            Ready to map your project before development starts?
           </p>
           <div className="flex gap-3 shrink-0 flex-wrap justify-center">
             <Link
-              to="/contact/requirements"
+              to="/blueprint"
               className="bg-white text-red-600 px-5 py-2.5 text-xs font-bold uppercase tracking-wide hover:bg-black hover:text-white transition rounded"
             >
-              Start a Project
+              Build Blueprint
             </Link>
             <a
               href={CALENDLY} target="_blank" rel="noopener noreferrer"
@@ -35,10 +33,7 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* ── MAIN FOOTER ── */}
       <div className="max-w-6xl mx-auto px-6 py-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
-
-        {/* Brand */}
         <div className="sm:col-span-2 lg:col-span-1">
           <Link to="/" className="inline-block mb-4">
             <span className="text-xl font-extrabold">
@@ -60,7 +55,6 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Navigate */}
         <div>
           <h4 className="text-xs uppercase tracking-widest text-red-500 mb-5 font-bold">Navigate</h4>
           <ul className="flex flex-col gap-3 text-sm">
@@ -78,7 +72,6 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Services */}
         <div>
           <h4 className="text-xs uppercase tracking-widest text-red-500 mb-5 font-bold">Services</h4>
           <ul className="flex flex-col gap-3 text-sm">
@@ -99,27 +92,24 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Get Started */}
         <div>
           <h4 className="text-xs uppercase tracking-widest text-red-500 mb-5 font-bold">Get Started</h4>
           <ul className="flex flex-col gap-3 text-sm mb-8">
+            <li><Link to="/blueprint" className="text-gray-400 hover:text-white transition">🧭 Build Interactive Blueprint</Link></li>
             <li><Link to="/contact/requirements" className="text-gray-400 hover:text-white transition">📋 Fill Project Brief</Link></li>
-            <li><Link to="/contact/calc"         className="text-gray-400 hover:text-white transition">💰 Get a Quote</Link></li>
+            <li><Link to="/contact/calc" className="text-gray-400 hover:text-white transition">💰 Get a Quote</Link></li>
             <li><a href={CALENDLY} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition">📅 Book a Free Call</a></li>
-            <li><Link to="/contact"              className="text-gray-400 hover:text-white transition">✉️ Quick Inquiry</Link></li>
-            <li><Link to="/portfolio"            className="text-gray-400 hover:text-white transition">🖥️ View Our Work</Link></li>
+            <li><Link to="/contact" className="text-gray-400 hover:text-white transition">✉️ Quick Inquiry</Link></li>
           </ul>
 
           <h4 className="text-xs uppercase tracking-widest text-red-500 mb-4 font-bold">Call / WhatsApp</h4>
           <div className="flex flex-col gap-2">
-            <a href={`tel:${PHONE1}`}  className="text-sm text-gray-400 hover:text-white transition">{PHONE1}</a>
+            <a href={`tel:${PHONE1}`} className="text-sm text-gray-400 hover:text-white transition">{PHONE1}</a>
             <a href={WHATSAPP2} target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-white transition">{PHONE2}</a>
           </div>
         </div>
-
       </div>
 
-      {/* ── BOTTOM BAR ── */}
       <div className="border-t border-white/10 py-6 px-6">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
           <span>© {new Date().getFullYear()} The Brand Helper. All rights reserved.</span>
@@ -128,7 +118,6 @@ export default function Footer() {
             <Link to="/portfolio" className="hover:text-white transition">Portfolio</Link>
             <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" className="hover:text-green-400 transition">WhatsApp</a>
           </div>
-          {/* Built by credit — replaces dev email */}
           <span className="text-gray-600">
             Built by{" "}
             <a href="https://thebrandhelper.com" target="_blank" rel="noopener noreferrer"
@@ -138,7 +127,6 @@ export default function Footer() {
           </span>
         </div>
       </div>
-
     </footer>
   );
 }

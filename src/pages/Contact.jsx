@@ -3,10 +3,10 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import emailjs from '@emailjs/browser';
 
-const EMAILJS_SERVICE_ID  = 'service_3vfxg4e';
-const EMAILJS_TEMPLATE_ID = 'template_uvbqmun';
-const EMAILJS_PUBLIC_KEY  = '0VeNb5hN21304FM3_';
-const APPS_SCRIPT_URL     = 'https://script.google.com/macros/s/AKfycbxtjhLmlWKHa4FvDEWRYEbmTVbBUo1-4oKN2zFzZEEwhbZt4l6SX6wDgtwbMdyEvbNh1Q/exec';
+const EMAILJS_SERVICE_ID  = import.meta.env.VITE_EMAILJS_SERVICE_ID || '';
+const EMAILJS_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || '';
+const EMAILJS_PUBLIC_KEY  = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '';
+const APPS_SCRIPT_URL     = import.meta.env.VITE_CONTACT_APPS_SCRIPT_URL || import.meta.env.VITE_APPS_SCRIPT_URL || '';
 
 const WHATSAPP = "https://wa.me/233501657205";
 const PHONE1   = "+233 50 165 7205";
@@ -77,16 +77,20 @@ function InquiryForm() {
 
     // EmailJS
     try {
-      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, payload, EMAILJS_PUBLIC_KEY);
+      if (EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID && EMAILJS_PUBLIC_KEY) {
+        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, payload, EMAILJS_PUBLIC_KEY);
+      }
     } catch (e) { console.warn('EmailJS:', e); }
 
     // Google Sheet
     try {
-      await fetch(APPS_SCRIPT_URL, {
-        method: 'POST', mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      if (APPS_SCRIPT_URL) {
+        await fetch(APPS_SCRIPT_URL, {
+          method: 'POST', mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
     } catch (e) { console.warn('Sheets:', e); }
 
     setSubmitting(false);
@@ -266,7 +270,7 @@ export default function Contact() {
       </section>
 
       {/* ── Tabs ── */}
-      <div className="border-b border-gray-100 sticky top-0 z-40 bg-white shadow-sm">
+      <div className="border-b border-gray-100 sticky top-16 z-40 bg-white shadow-sm">
         <div className="max-w-5xl mx-auto px-6">
           <div className="flex overflow-x-auto">
             {TABS.map(({ key, label, desc }) => (

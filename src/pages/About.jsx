@@ -2,8 +2,8 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 
-import storyImg    from "../photos/building-website.jpg";
-import missionImg  from "../photos/about1.png";
+import storyImg    from "../photos/website-page-inner-hero-img-1.webp";
+import missionImg  from "../photos/perfecthero.png";
 
 const WHATSAPP = "https://wa.me/233501657205";
 const EMAIL    = "mailto:davida@thebrandhelper.com";

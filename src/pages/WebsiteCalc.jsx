@@ -3,10 +3,10 @@ import { Helmet } from 'react-helmet-async';
 import emailjs from '@emailjs/browser';
 
 // ─── CREDENTIALS ──────────────────────────────────────────────────────────────
-const EMAILJS_SERVICE_ID  = 'service_3vfxg4e';
-const EMAILJS_TEMPLATE_ID = 'template_uvbqmun';
-const EMAILJS_PUBLIC_KEY  = '0VeNb5hN21304FM3_';
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw_PrDQAe5o4TPxrpFdJfwg_BEghxmpBHJ5j1AwEQBxbTaJSscVUSwUl3URqYqgn1RlZQ/exec';
+const EMAILJS_SERVICE_ID  = import.meta.env.VITE_EMAILJS_SERVICE_ID || '';
+const EMAILJS_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || '';
+const EMAILJS_PUBLIC_KEY  = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '';
+const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL || '';
 // ──────────────────────────────────────────────────────────────────────────────
 
 const INDUSTRIES = [
@@ -235,16 +235,20 @@ export default function WebsiteCalc() {
 
     // EmailJS
     try {
-      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, payload, EMAILJS_PUBLIC_KEY);
+      if (EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID && EMAILJS_PUBLIC_KEY) {
+        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, payload, EMAILJS_PUBLIC_KEY);
+      }
     } catch (e) { console.warn('EmailJS:', e); }
 
     // Google Sheet
     try {
-      await fetch(APPS_SCRIPT_URL, {
-        method: 'POST', mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      if (APPS_SCRIPT_URL) {
+        await fetch(APPS_SCRIPT_URL, {
+          method: 'POST', mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
     } catch (e) { console.warn('Sheets:', e); }
 
     setSubmitting(false);

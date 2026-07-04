@@ -13,7 +13,6 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
 
-  // Close menu on route change
   useEffect(() => { setMenuOpen(false); }, [pathname]);
 
   const isActive = (to) =>
@@ -26,7 +25,6 @@ export default function Navbar() {
           position: "fixed",
           top: 0, left: 0, right: 0,
           zIndex: 200,
-          // Always solid dark — no transparency ever
           background: "rgba(10,10,10,0.98)",
           backdropFilter: "blur(16px)",
           WebkitBackdropFilter: "blur(16px)",
@@ -37,15 +35,12 @@ export default function Navbar() {
           maxWidth: 1200, margin: "0 auto", padding: "0 24px",
           height: 64, display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
-
-          {/* Logo */}
           <Link to="/" style={{ textDecoration: "none", flexShrink: 0 }}>
             <span style={{ color: "#fff", fontWeight: 900, fontSize: 17, letterSpacing: "-0.3px" }}>
               The Brand<span style={{ color: "#e11d48" }}>Helper</span>
             </span>
           </Link>
 
-          {/* Desktop links */}
           <div className="hidden md:flex" style={{ alignItems: "center", gap: 2 }}>
             {NAV_LINKS.map(({ label, to }) => (
               <Link
@@ -82,7 +77,7 @@ export default function Navbar() {
             ))}
 
             <Link
-              to="/contact/requirements"
+              to="/blueprint"
               style={{
                 marginLeft: 10,
                 background: "#e11d48",
@@ -106,11 +101,10 @@ export default function Navbar() {
                 e.currentTarget.style.transform = "translateY(0)";
               }}
             >
-              Start a Project
+              Build a Blueprint
             </Link>
           </div>
 
-          {/* Mobile hamburger */}
           <button
             className="md:hidden"
             onClick={() => setMenuOpen(o => !o)}
@@ -139,7 +133,6 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* Mobile menu */}
         <div
           className="md:hidden"
           style={{
@@ -168,7 +161,7 @@ export default function Navbar() {
             ))}
             <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
               <Link
-                to="/contact/requirements"
+                to="/blueprint"
                 style={{
                   display: "block", background: "#e11d48", color: "#fff",
                   textDecoration: "none", fontSize: 13, fontWeight: 700,
@@ -176,7 +169,7 @@ export default function Navbar() {
                   padding: "14px", borderRadius: 10, textAlign: "center",
                 }}
               >
-                Start a Project →
+                Build a Blueprint →
               </Link>
               <a
                 href="https://wa.me/233501657205"
@@ -197,8 +190,6 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Spacer — prevents content hiding under fixed nav */}
-      <div style={{ height: 64 }} />
     </>
   );
 }
