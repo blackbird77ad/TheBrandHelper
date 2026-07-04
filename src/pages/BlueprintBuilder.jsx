@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Link } from 'react-router-dom';
 import emailjs from '@emailjs/browser';
 import { submitLead } from '../utils/api';
 
@@ -302,6 +301,22 @@ const NEGOTIATION_OPTIONS = [
   { key: 'phased', label: 'Request Phased Build', sub: 'Split delivery into paid stages' },
 ];
 
+const REQUIREMENTS_CTA_URL = 'https://thebrandhelper.com/contact/requirements';
+const CALCULATOR_CTA_URL = 'https://thebrandhelper.com/contact/calc';
+
+const PREVIEW_DEVICES = [
+  { key: 'mobile', label: 'Mobile', width: 284, height: 430, sectionLimit: 3 },
+  { key: 'tablet', label: 'Tablet', width: 430, height: 420, sectionLimit: 4 },
+  { key: 'desktop', label: 'Desktop', width: 640, height: 380, sectionLimit: 6 },
+];
+
+const BLUEPRINT_GUIDE = [
+  { label: 'Pick the business', text: 'Tell us what kind of brand or product this is.' },
+  { label: 'Choose the feel', text: 'Select colors, mood, buttons, and spacing.' },
+  { label: 'Arrange the build', text: 'Choose the sections, actions, and features you want.' },
+  { label: 'Send it in', text: 'Share the blueprint, send requirements, or check pricing.' },
+];
+
 const STEP_TITLES = [
   'Business Type',
   'Brand Mood',
@@ -394,6 +409,23 @@ function readFileAsDataUrl(file) {
   });
 }
 
+async function writeClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', 'true');
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand('copy');
+  document.body.removeChild(textarea);
+}
+
 function reorder(items, key, direction) {
   const index = items.indexOf(key);
   if (index === -1) return items;
@@ -403,6 +435,16 @@ function reorder(items, key, direction) {
   const swap = clone[nextIndex];
   clone[nextIndex] = clone[index];
   clone[index] = swap;
+  return clone;
+}
+
+function moveItemTo(items, sourceKey, targetKey) {
+  const sourceIndex = items.indexOf(sourceKey);
+  const targetIndex = items.indexOf(targetKey);
+  if (sourceIndex === -1 || targetIndex === -1 || sourceIndex === targetIndex) return items;
+  const clone = [...items];
+  const [moved] = clone.splice(sourceIndex, 1);
+  clone.splice(targetIndex, 0, moved);
   return clone;
 }
 
@@ -640,7 +682,7 @@ function BadgePill({ children, tone = 'dark' }) {
   };
 
   return (
-    <span className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] ${tones[tone]}`}>
+    <span className={`inline-flex items-center rounded-md px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] ${tones[tone]}`}>
       {children}
     </span>
   );
@@ -651,7 +693,7 @@ function ChoiceCard({ selected, label, sub, onClick, accent = '#e11d48' }) {
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-[24px] border p-4 text-left transition-all ${selected ? 'shadow-lg' : 'hover:-translate-y-0.5 hover:shadow-md'}`}
+      className={`rounded-lg border p-3 text-left transition-all ${selected ? 'shadow-lg' : 'hover:-translate-y-0.5 hover:shadow-md'}`}
       style={{
         borderColor: selected ? accent : 'rgba(17,24,39,0.08)',
         background: selected ? 'rgba(255,255,255,0.98)' : 'rgba(255,255,255,0.92)',
@@ -659,18 +701,18 @@ function ChoiceCard({ selected, label, sub, onClick, accent = '#e11d48' }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-extrabold text-gray-950">{label}</div>
-          <div className="mt-1 text-xs leading-relaxed text-gray-500">{sub}</div>
+          <div className="text-[13px] font-extrabold text-gray-950">{label}</div>
+          <div className="mt-1 text-[11px] leading-relaxed text-gray-500">{sub}</div>
         </div>
         <span
-          className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full border text-xs font-black"
+          className="mt-0.5 flex h-5 min-w-5 items-center justify-center rounded-md border px-1 text-[9px] font-black"
           style={{
             borderColor: selected ? accent : 'rgba(17,24,39,0.12)',
             background: selected ? accent : 'transparent',
             color: selected ? '#fff' : 'rgba(17,24,39,0.32)',
           }}
         >
-          {selected ? '✓' : '+'}
+          {selected ? 'ON' : '+'}
         </span>
       </div>
     </button>
@@ -682,25 +724,26 @@ function ToggleChip({ selected, label, sub, onClick, accent = '#e11d48' }) {
     <button
       type="button"
       onClick={onClick}
-      className="rounded-[20px] border px-4 py-3 text-left transition-all"
+      className="rounded-lg border px-3 py-2.5 text-left transition-all"
       style={{
         borderColor: selected ? accent : 'rgba(17,24,39,0.08)',
         background: selected ? 'rgba(225,29,72,0.08)' : '#fff',
       }}
     >
-      <div className="text-sm font-bold text-gray-900">{label}</div>
-      <div className="mt-0.5 text-xs text-gray-500">{sub}</div>
+      <div className="text-[13px] font-bold text-gray-900">{label}</div>
+      <div className="mt-0.5 text-[11px] leading-snug text-gray-500">{sub}</div>
     </button>
   );
 }
 
-function DevicePreview({ label, scale, form, theme, previews }) {
+function DevicePreview({ device, form, theme, previews }) {
   const dashboardLike = ['crm', 'management_system', 'dashboard', 'admin_system', 'inventory_tracker', 'portal'].includes(form.projectType);
   const sectionData = form.sections
     .map((key) => SECTION_OPTIONS.find((item) => item.key === key))
     .filter(Boolean)
-    .slice(0, dashboardLike ? 5 : 6);
+    .slice(0, dashboardLike ? Math.min(4, device.sectionLimit) : device.sectionLimit);
   const logoText = form.businessName ? form.businessName.slice(0, 2).toUpperCase() : 'TB';
+  const previewGridClass = device.key === 'mobile' ? 'grid-cols-1' : 'grid-cols-2';
 
   const buttonRadius = {
     pill: '999px',
@@ -710,10 +753,10 @@ function DevicePreview({ label, scale, form, theme, previews }) {
   }[form.buttonStyle];
 
   const cardRadius = {
-    glass: '22px',
-    solid: '20px',
-    bordered: '18px',
-    soft: '26px',
+    glass: '8px',
+    solid: '8px',
+    bordered: '8px',
+    soft: '8px',
   }[form.cardStyle];
 
   const cardBackground = {
@@ -731,44 +774,50 @@ function DevicePreview({ label, scale, form, theme, previews }) {
   }[form.spacing];
 
   return (
-    <div className="rounded-[30px] border border-white/10 bg-black/20 p-3 shadow-2xl blueprint-float" style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}>
-      <div className="overflow-hidden rounded-[26px] border" style={{ borderColor: theme.edge, background: theme.canvas }}>
+    <div
+      className="blueprint-float mx-auto w-full rounded-xl border border-white/10 bg-black/20 p-3 shadow-2xl"
+      style={{ maxWidth: device.width }}
+    >
+      <div
+        className="overflow-hidden rounded-lg border"
+        style={{ borderColor: theme.edge, background: theme.canvas, aspectRatio: `${device.width} / ${device.height}` }}
+      >
         <div className="flex items-center justify-between border-b px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em]" style={{ borderColor: theme.edge, color: theme.muted }}>
-          <span>{label}</span>
+          <span>{device.label}</span>
           <span>Prototype Only</span>
         </div>
-        <div className={`relative flex h-[280px] flex-col overflow-hidden p-3 ${spacing}`}>
-          <div className="absolute inset-0 opacity-60" style={{ background: `radial-gradient(circle at top right, ${theme.accent}55, transparent 35%), radial-gradient(circle at bottom left, ${theme.soft}55, transparent 28%)` }} />
-          <div className="relative flex items-center justify-between rounded-[18px] px-3 py-2 text-[10px]" style={{ background: 'rgba(255,255,255,0.06)', color: theme.ink }}>
+        <div className={`relative flex h-[calc(100%_-_34px)] flex-col overflow-hidden p-3 ${spacing}`}>
+          <div className="absolute inset-0 opacity-60" style={{ background: `linear-gradient(135deg, ${theme.accent}33, transparent 42%, ${theme.soft}33)` }} />
+          <div className="relative flex items-center justify-between rounded-lg px-3 py-2 text-[10px]" style={{ background: 'rgba(255,255,255,0.06)', color: theme.ink }}>
             <div className="flex items-center gap-2">
               {previews.logoPreview ? (
-                <img src={previews.logoPreview} alt="Logo preview" className="h-6 w-6 rounded-full object-cover" />
+                <img src={previews.logoPreview} alt="Logo preview" className="h-6 w-6 rounded-md object-cover" />
               ) : (
-                <div className="flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-black" style={{ background: theme.accent, color: '#111' }}>
+                <div className="flex h-6 w-6 items-center justify-center rounded-md text-[9px] font-black" style={{ background: theme.accent, color: '#111' }}>
                   {logoText}
                 </div>
               )}
               <span>{form.businessName || 'Your Brand'}</span>
             </div>
             <div className="flex items-center gap-2">
-              {form.interactions.includes('sticky_navbar') && <span className="rounded-full px-2 py-1" style={{ background: 'rgba(255,255,255,0.08)' }}>Sticky</span>}
-              {form.features.includes('ecommerce') && <span className="rounded-full px-2 py-1" style={{ background: 'rgba(255,255,255,0.08)' }}>Cart</span>}
+              {form.interactions.includes('sticky_navbar') && <span className="rounded-md px-2 py-1" style={{ background: 'rgba(255,255,255,0.08)' }}>Sticky</span>}
+              {form.features.includes('ecommerce') && <span className="rounded-md px-2 py-1" style={{ background: 'rgba(255,255,255,0.08)' }}>Cart</span>}
             </div>
           </div>
 
           <div
-            className="relative overflow-hidden rounded-[24px] border px-4 py-4"
+            className="relative overflow-hidden rounded-lg border px-4 py-4"
             style={{
               borderColor: theme.edge,
               background: `linear-gradient(135deg, ${form.palette[0]}, ${form.palette[1]})`,
               color: theme.ink,
             }}
           >
-            <div className="max-w-[80%]">
+            <div className={device.key === 'mobile' ? 'max-w-full' : 'max-w-[80%]'}>
               <div className="text-[9px] uppercase tracking-[0.24em] opacity-80">{getBusiness(form.businessType).label}</div>
               <div className="mt-2 text-sm font-black leading-tight">{getProject(form.projectType).label} blueprint with {getMood(form.mood).label.toLowerCase()} energy.</div>
               <div className="mt-2 text-[10px] leading-relaxed opacity-85">
-                Responsive concept only. Previewing feel, structure, feature mix, and interaction direction.
+                A quick look at the layout, tone, and user flow.
               </div>
             </div>
             <div className="mt-3 flex gap-2">
@@ -782,20 +831,20 @@ function DevicePreview({ label, scale, form, theme, previews }) {
           </div>
 
           {dashboardLike ? (
-            <div className={`relative grid flex-1 grid-cols-2 ${spacing}`}>
-              <div className="rounded-[22px] border p-3" style={{ borderColor: theme.edge, background: cardBackground, borderRadius: cardRadius }}>
+            <div className={`relative grid flex-1 ${previewGridClass} ${spacing}`}>
+              <div className="rounded-lg border p-3" style={{ borderColor: theme.edge, background: cardBackground, borderRadius: cardRadius }}>
                 <div className="text-[9px] uppercase tracking-[0.2em]" style={{ color: theme.muted }}>Overview</div>
                 <div className="mt-2 text-xl font-black" style={{ color: theme.ink }}>84%</div>
-                <div className="mt-2 h-2 rounded-full bg-white/10">
-                  <div className="h-full rounded-full" style={{ width: '72%', background: theme.accent }} />
+                <div className="mt-2 h-2 rounded bg-white/10">
+                  <div className="h-full rounded" style={{ width: '72%', background: theme.accent }} />
                 </div>
                 <div className="mt-2 text-[10px]" style={{ color: theme.muted }}>Healthy engagement</div>
               </div>
-              <div className="rounded-[22px] border p-3" style={{ borderColor: theme.edge, background: cardBackground, borderRadius: cardRadius }}>
+              <div className="rounded-lg border p-3" style={{ borderColor: theme.edge, background: cardBackground, borderRadius: cardRadius }}>
                 <div className="text-[9px] uppercase tracking-[0.2em]" style={{ color: theme.muted }}>Active panels</div>
                 <div className="mt-3 space-y-2">
                   {[1, 2, 3].map((item) => (
-                    <div key={item} className="flex items-center justify-between rounded-2xl px-2 py-2 text-[10px]" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <div key={item} className="flex items-center justify-between rounded-md px-2 py-2 text-[10px]" style={{ background: 'rgba(255,255,255,0.05)' }}>
                       <span style={{ color: theme.ink }}>Module {item}</span>
                       <span style={{ color: theme.muted }}>Live</span>
                     </div>
@@ -804,7 +853,7 @@ function DevicePreview({ label, scale, form, theme, previews }) {
               </div>
             </div>
           ) : (
-            <div className={`relative grid flex-1 grid-cols-2 ${spacing}`}>
+            <div className={`relative grid flex-1 ${previewGridClass} ${spacing}`}>
               {sectionData.map((section) => (
                 <div
                   key={section.key}
@@ -820,8 +869,8 @@ function DevicePreview({ label, scale, form, theme, previews }) {
                   <div className="mt-2 text-[10px] leading-relaxed">
                     {section.sub}
                   </div>
-                  <div className="mt-3 h-1.5 rounded-full bg-white/10">
-                    <div className="h-full rounded-full blueprint-shine" style={{ width: `${Math.min(92, 28 + section.price)}%`, background: theme.accent }} />
+                  <div className="mt-3 h-1.5 rounded bg-white/10">
+                    <div className="h-full rounded blueprint-shine" style={{ width: `${Math.min(92, 28 + section.price)}%`, background: theme.accent }} />
                   </div>
                 </div>
               ))}
@@ -829,7 +878,7 @@ function DevicePreview({ label, scale, form, theme, previews }) {
           )}
 
           {form.interactions.includes('floating_whatsapp') && (
-            <div className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-green-500 text-sm font-black text-white shadow-xl">
+            <div className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-lg bg-green-500 text-sm font-black text-white shadow-xl">
               W
             </div>
           )}
@@ -843,6 +892,8 @@ function BlueprintBuilder() {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(DEFAULT_FORM);
   const [previewAssets, setPreviewAssets] = useState({ logoPreview: '', inspirationPreviews: [] });
+  const [draggingSection, setDraggingSection] = useState('');
+  const [previewDevice, setPreviewDevice] = useState('mobile');
   const [restoredMessage, setRestoredMessage] = useState('');
   const [savedAt, setSavedAt] = useState('');
   const [shareCopied, setShareCopied] = useState(false);
@@ -896,6 +947,7 @@ function BlueprintBuilder() {
   const summary = buildSummary(form, estimate, narration);
   const activeBusiness = getBusiness(form.businessType);
   const activeProject = getProject(form.projectType);
+  const activePreviewDevice = PREVIEW_DEVICES.find((item) => item.key === previewDevice) || PREVIEW_DEVICES[0];
   const shareLink = `${window.location.origin}/blueprint?blueprint=${encodeURIComponent(toBase64(JSON.stringify(form)))}`;
 
   const setField = (key, value) => {
@@ -907,6 +959,15 @@ function BlueprintBuilder() {
       ...prev,
       [key]: prev[key].includes(value) ? prev[key].filter((item) => item !== value) : [...prev[key], value],
     }));
+  };
+
+  const dropSectionOn = (targetKey) => {
+    if (!draggingSection || draggingSection === targetKey) return;
+    setForm((prev) => ({
+      ...prev,
+      sections: moveItemTo(prev.sections, draggingSection, targetKey),
+    }));
+    setDraggingSection('');
   };
 
   const applySuggestedStarter = () => {
@@ -947,15 +1008,23 @@ function BlueprintBuilder() {
   };
 
   const copyShareLink = async () => {
-    await navigator.clipboard.writeText(shareLink);
-    setShareCopied(true);
-    setTimeout(() => setShareCopied(false), 2200);
+    try {
+      await writeClipboard(shareLink);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2200);
+    } catch (error) {
+      console.warn('Clipboard:', error);
+    }
   };
 
   const copySummary = async () => {
-    await navigator.clipboard.writeText(summary);
-    setSummaryCopied(true);
-    setTimeout(() => setSummaryCopied(false), 2200);
+    try {
+      await writeClipboard(summary);
+      setSummaryCopied(true);
+      setTimeout(() => setSummaryCopied(false), 2200);
+    } catch (error) {
+      console.warn('Clipboard:', error);
+    }
   };
 
   const exportSummary = () => {
@@ -1026,15 +1095,17 @@ function BlueprintBuilder() {
     setSubmitted(true);
   };
 
-  const canAdvance = [
+  const stepChecks = [
     Boolean(form.businessType && form.projectType),
     Boolean(form.mood),
     form.sections.length >= 3,
-    true,
+    form.interactions.length > 0,
     form.features.length > 0,
-    true,
-    true,
-  ][step];
+    Boolean(form.deliveryPace && form.negotiationMode),
+    Boolean(form.clientName || form.businessName || form.email || form.phone || submitted),
+  ];
+  const canAdvance = stepChecks[step];
+  const completedSteps = stepChecks.filter(Boolean).length;
 
   return (
     <div className="min-h-screen bg-[#050505] text-white">
@@ -1046,67 +1117,104 @@ function BlueprintBuilder() {
         />
       </Helmet>
 
-      <section className="relative overflow-hidden border-b border-white/10 bg-black px-6 pb-14 pt-14 md:pt-20">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(225,29,72,0.24),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(245,158,11,0.22),transparent_26%)]" />
-        <div className="relative mx-auto max-w-7xl">
+      <section className="border-b border-white/10 bg-[#080808] px-6 py-7 md:py-9">
+        <div className="mx-auto grid max-w-7xl gap-5 lg:grid-cols-[1fr_380px] lg:items-start">
           <div className="max-w-4xl">
             <BadgePill tone="accent">Blueprint Builder</BadgePill>
-            <h1 className="mt-5 max-w-4xl text-4xl font-extrabold leading-tight md:text-6xl">
-              Plan the exact feel of your project before development starts.
+            <h1 className="mt-4 max-w-4xl text-3xl font-extrabold leading-tight md:text-5xl">
+              Build a clear project plan before we start designing.
             </h1>
-            <p className="mt-5 max-w-3xl text-base leading-relaxed text-gray-300 md:text-lg">
-              This builder helps you shape the mood, structure, interactions, features, and expected user journey for your website, store, portal, dashboard, CRM, or management system.
+            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-gray-300 md:text-base">
+              Choose what your website or system should look like, what pages it needs, what features should work, and how much the project may cost. The preview on the right updates while you make changes.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-5 flex flex-wrap gap-2">
               <BadgePill tone="subtle">Live responsive preview</BadgePill>
               <BadgePill tone="subtle">Auto narration</BadgePill>
               <BadgePill tone="subtle">Dynamic pricing</BadgePill>
               <BadgePill tone="subtle">Shareable blueprint link</BadgePill>
             </div>
-            <div className="mt-8 rounded-[28px] border border-amber-300/20 bg-amber-300/10 p-5">
-              <div className="text-sm font-extrabold text-amber-200">Important system rule</div>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <a href={REQUIREMENTS_CTA_URL} className="rounded-lg bg-red-600 px-4 py-2.5 text-xs font-extrabold uppercase tracking-wide text-white transition hover:bg-red-700">
+                Send Requirements
+              </a>
+              <a href={CALCULATOR_CTA_URL} className="rounded-lg border border-white/15 px-4 py-2.5 text-xs font-extrabold uppercase tracking-wide text-white transition hover:border-white/35">
+                Pricing Calculator
+              </a>
+            </div>
+            <div className="mt-5 rounded-lg border border-amber-300/20 bg-amber-300/10 p-4">
+              <div className="text-sm font-extrabold text-amber-200">Quick note</div>
               <p className="mt-2 max-w-3xl text-sm leading-relaxed text-amber-100/90">
-                This is a visual blueprint, prototype, and planning system only. It does not publish, host, deploy, connect domains, or go live. Every preview here is for alignment, pricing, and development briefing.
+                This is a planning preview. It helps us agree on the look, pages, features, and budget direction before real development begins.
               </p>
             </div>
             {restoredMessage && (
-              <div className="mt-5 rounded-[24px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-300">
+              <div className="mt-4 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-300">
                 {restoredMessage}
               </div>
             )}
+          </div>
+          <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">How it works</div>
+                <div className="mt-1 text-sm font-extrabold text-white">{completedSteps}/{STEP_TITLES.length} steps complete</div>
+              </div>
+              <BadgePill tone="subtle">Guide</BadgePill>
+            </div>
+            <div className="mt-3 h-1.5 rounded bg-white/10">
+              <div className="h-full rounded bg-red-600" style={{ width: `${(completedSteps / STEP_TITLES.length) * 100}%` }} />
+            </div>
+            <div className="mt-4 space-y-3">
+              {BLUEPRINT_GUIDE.map((item, index) => (
+                <div key={item.label} className="grid grid-cols-[24px_1fr] gap-3 text-sm">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-md bg-white/10 text-[11px] font-black text-white">{index + 1}</div>
+                  <div>
+                    <div className="text-xs font-extrabold text-white">{item.label}</div>
+                    <div className="mt-0.5 text-xs leading-relaxed text-gray-400">{item.text}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
       <div className="sticky top-0 z-40 border-b border-white/10 bg-black/85 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 overflow-x-auto px-6 py-4">
-          <div className="flex min-w-max gap-2">
+        <div className="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex gap-2 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-visible lg:pb-0">
             {STEP_TITLES.map((title, index) => (
               <button
                 key={title}
                 type="button"
-                onClick={() => index <= step && setStep(index)}
-                className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] transition ${index === step ? 'bg-white text-black' : index < step ? 'bg-red-600 text-white' : 'bg-white/10 text-white/60'}`}
+                onClick={() => setStep(index)}
+                className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] transition ${
+                  index === step
+                    ? 'bg-white text-black'
+                    : stepChecks[index]
+                      ? 'bg-red-600 text-white hover:bg-red-500'
+                      : 'bg-white/10 text-white/65 hover:bg-white/15 hover:text-white'
+                }`}
               >
+                <span className={`h-2 w-2 rounded-full ${stepChecks[index] ? 'bg-current' : 'bg-white/25'}`} />
                 {index + 1}. {title}
               </button>
             ))}
           </div>
-          <div className="shrink-0 text-right text-xs text-gray-400">
+          <div className="shrink-0 text-left text-[11px] text-gray-400 lg:text-right">
             <div>Auto-saved {savedAt ? `at ${savedAt}` : 'locally'}</div>
             <div>{formatMoney(estimate.min)}-{formatMoney(estimate.max)}</div>
           </div>
         </div>
       </div>
 
-      <div className="mx-auto grid max-w-7xl gap-8 px-6 py-8 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="space-y-6">
-          <div className="rounded-[32px] border border-white/10 bg-white/5 p-6 md:p-8">
+      <div className="mx-auto grid max-w-7xl gap-6 px-6 py-6 lg:grid-cols-[minmax(0,1fr)_430px] lg:items-start">
+        <div className="order-2 space-y-5 lg:order-1">
+          <div className="rounded-lg border border-white/10 bg-white/5 p-5 md:p-6">
             {step === 0 && (
               <div>
                 <div className="max-w-3xl">
                   <BadgePill tone="soft">Step 1</BadgePill>
-                  <h2 className="mt-4 text-3xl font-extrabold">Choose the business and project context.</h2>
+                  <h2 className="mt-4 text-2xl font-extrabold md:text-3xl">Choose the business and project context.</h2>
                   <p className="mt-3 text-sm leading-relaxed text-gray-400">
                     These two choices shape the suggested layout, baseline pricing, recommended features, and how the narration explains the user journey.
                   </p>
@@ -1145,17 +1253,17 @@ function BlueprintBuilder() {
                 </div>
 
                 <div className="mt-8 grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-                  <div className="rounded-[28px] border border-white/10 bg-black/20 p-5">
+                  <div className="rounded-lg border border-white/10 bg-black/20 p-5">
                     <div className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">Business purpose</div>
                     <textarea
                       value={form.businessGoal}
                       onChange={(event) => setField('businessGoal', event.target.value)}
                       rows={4}
-                      className="mt-3 w-full rounded-[22px] border border-white/10 bg-white/5 px-4 py-4 text-sm text-white outline-none transition placeholder:text-gray-500 focus:border-white/30"
+                      className="mt-3 w-full rounded-lg border border-white/10 bg-white/5 px-4 py-4 text-sm text-white outline-none transition placeholder:text-gray-500 focus:border-white/30"
                       placeholder="What should this project help the business do? Example: increase direct orders, look more premium, reduce WhatsApp confusion, or give staff a better dashboard."
                     />
                   </div>
-                  <div className="rounded-[28px] border border-white/10 bg-white/5 p-5">
+                  <div className="rounded-lg border border-white/10 bg-white/5 p-5">
                     <div className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">Suggested starter</div>
                     <div className="mt-3 text-xl font-extrabold">{activeBusiness.label} + {activeProject.label}</div>
                     <p className="mt-2 text-sm leading-relaxed text-gray-400">
@@ -1164,7 +1272,7 @@ function BlueprintBuilder() {
                     <button
                       type="button"
                       onClick={applySuggestedStarter}
-                      className="mt-4 rounded-full bg-white px-5 py-3 text-sm font-extrabold text-black transition hover:opacity-90"
+                      className="mt-4 rounded-lg bg-white px-4 py-2.5 text-sm font-extrabold text-black transition hover:opacity-90"
                     >
                       Use Suggested Starter
                     </button>
@@ -1176,7 +1284,7 @@ function BlueprintBuilder() {
             {step === 1 && (
               <div>
                 <BadgePill tone="soft">Step 2</BadgePill>
-                <h2 className="mt-4 text-3xl font-extrabold">Define the brand mood and visual direction.</h2>
+                <h2 className="mt-4 text-2xl font-extrabold md:text-3xl">Define the brand mood and visual direction.</h2>
                 <p className="mt-3 max-w-3xl text-sm leading-relaxed text-gray-400">
                   The preview updates instantly across desktop, tablet, and mobile so you can communicate taste, polish, spacing, and perceived value before development begins.
                 </p>
@@ -1199,7 +1307,7 @@ function BlueprintBuilder() {
 
                 <div className="mt-8 grid gap-5 md:grid-cols-3">
                   {form.palette.map((color, index) => (
-                    <label key={index} className="rounded-[24px] border border-white/10 bg-black/20 p-4">
+                    <label key={index} className="rounded-lg border border-white/10 bg-black/20 p-4">
                       <div className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">
                         {index === 0 ? 'Primary' : index === 1 ? 'Accent' : 'Soft tone'}
                       </div>
@@ -1212,7 +1320,7 @@ function BlueprintBuilder() {
                             next[index] = event.target.value;
                             setField('palette', next);
                           }}
-                          className="h-14 w-14 cursor-pointer rounded-2xl border border-white/10 bg-transparent"
+                          className="h-14 w-14 cursor-pointer rounded-lg border border-white/10 bg-transparent"
                         />
                         <div className="text-sm font-bold">{color}</div>
                       </div>
@@ -1304,17 +1412,17 @@ function BlueprintBuilder() {
                 </div>
 
                 <div className="mt-8 grid gap-5 md:grid-cols-2">
-                  <label className="rounded-[28px] border border-white/10 bg-black/20 p-5">
+                  <label className="rounded-lg border border-white/10 bg-black/20 p-5">
                     <div className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">Upload logo</div>
-                    <div className="mt-3 rounded-[22px] border border-dashed border-white/15 px-4 py-6 text-sm text-gray-300">
+                    <div className="mt-3 rounded-lg border border-dashed border-white/15 px-4 py-6 text-sm text-gray-300">
                       <input type="file" accept="image/*" onChange={handleLogoUpload} className="mb-3 block w-full text-xs text-gray-400" />
                       <div>{form.logoName || 'No logo uploaded yet'}</div>
                       <div className="mt-2 text-xs text-gray-500">Logo preview is used only inside this blueprint session.</div>
                     </div>
                   </label>
-                  <label className="rounded-[28px] border border-white/10 bg-black/20 p-5">
+                  <label className="rounded-lg border border-white/10 bg-black/20 p-5">
                     <div className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">Upload inspiration screenshots</div>
-                    <div className="mt-3 rounded-[22px] border border-dashed border-white/15 px-4 py-6 text-sm text-gray-300">
+                    <div className="mt-3 rounded-lg border border-dashed border-white/15 px-4 py-6 text-sm text-gray-300">
                       <input type="file" accept="image/*" multiple onChange={handleInspirationUpload} className="mb-3 block w-full text-xs text-gray-400" />
                       <div>{form.inspirationNames.join(', ') || 'No inspiration files uploaded yet'}</div>
                       <div className="mt-2 text-xs text-gray-500">We keep the file names in the brief and use previews only on this device.</div>
@@ -1327,9 +1435,9 @@ function BlueprintBuilder() {
             {step === 2 && (
               <div>
                 <BadgePill tone="soft">Step 3</BadgePill>
-                <h2 className="mt-4 text-3xl font-extrabold">Build the page or product structure.</h2>
+                <h2 className="mt-4 text-2xl font-extrabold md:text-3xl">Build the page or product structure.</h2>
                 <p className="mt-3 max-w-3xl text-sm leading-relaxed text-gray-400">
-                  Select the sections that should exist in the blueprint, then arrange them in order. Drag-and-drop can come later, but you can already control the structure now.
+                  Select the sections that should exist in the blueprint, then arrange them into the exact user journey.
                 </p>
 
                 <div className="mt-8 grid gap-4 md:grid-cols-2">
@@ -1345,7 +1453,7 @@ function BlueprintBuilder() {
                   ))}
                 </div>
 
-                <div className="mt-8 rounded-[28px] border border-white/10 bg-black/20 p-5">
+                <div className="mt-8 rounded-lg border border-white/10 bg-black/20 p-5">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <div className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">Current section order</div>
@@ -1354,18 +1462,42 @@ function BlueprintBuilder() {
                     <BadgePill tone="subtle">{form.sections.length} sections</BadgePill>
                   </div>
                   <div className="mt-5 flex flex-col gap-3">
+                    {form.sections.length === 0 && (
+                      <div className="rounded-lg border border-dashed border-white/15 bg-white/5 px-4 py-6 text-sm text-gray-400">
+                        Add at least three sections to shape the blueprint flow.
+                      </div>
+                    )}
                     {form.sections.map((key, index) => {
                       const section = SECTION_OPTIONS.find((item) => item.key === key);
+                      const isDragging = draggingSection === key;
+
                       return (
-                        <div key={key} className="flex items-center gap-3 rounded-[22px] border border-white/10 bg-white/5 px-4 py-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-xs font-black text-white">{index + 1}</div>
+                        <div
+                          key={key}
+                          draggable
+                          onDragStart={() => setDraggingSection(key)}
+                          onDragEnd={() => setDraggingSection('')}
+                          onDragOver={(event) => event.preventDefault()}
+                          onDrop={() => dropSectionOn(key)}
+                          className={`flex items-center gap-3 rounded-lg border px-4 py-3 transition ${
+                            isDragging ? 'border-red-400 bg-red-500/10 opacity-70' : 'border-white/10 bg-white/5 hover:border-white/25'
+                          }`}
+                        >
+                          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-white/10 text-xs font-black text-white">{index + 1}</div>
+                          <button
+                            type="button"
+                            className="grid h-9 w-6 cursor-grab place-items-center rounded-md text-gray-500 active:cursor-grabbing"
+                            aria-label={`Move ${section?.label || key}`}
+                          >
+                            <span className="text-lg leading-none">::</span>
+                          </button>
                           <div className="min-w-0 flex-1">
                             <div className="text-sm font-bold">{section?.label || key}</div>
-                            <div className="text-xs text-gray-500">{section?.sub}</div>
+                            <div className="truncate text-xs text-gray-500">{section?.sub}</div>
                           </div>
                           <div className="flex gap-2">
-                            <button type="button" onClick={() => setField('sections', reorder(form.sections, key, 'up'))} className="rounded-full border border-white/10 px-3 py-2 text-xs font-bold text-gray-300 transition hover:border-white/30">↑</button>
-                            <button type="button" onClick={() => setField('sections', reorder(form.sections, key, 'down'))} className="rounded-full border border-white/10 px-3 py-2 text-xs font-bold text-gray-300 transition hover:border-white/30">↓</button>
+                            <button type="button" onClick={() => setField('sections', reorder(form.sections, key, 'up'))} className="rounded-md border border-white/10 px-3 py-2 text-xs font-bold text-gray-300 transition hover:border-white/30">Up</button>
+                            <button type="button" onClick={() => setField('sections', reorder(form.sections, key, 'down'))} className="rounded-md border border-white/10 px-3 py-2 text-xs font-bold text-gray-300 transition hover:border-white/30">Down</button>
                           </div>
                         </div>
                       );
@@ -1378,7 +1510,7 @@ function BlueprintBuilder() {
             {step === 3 && (
               <div>
                 <BadgePill tone="soft">Step 4</BadgePill>
-                <h2 className="mt-4 text-3xl font-extrabold">Define the interaction behavior.</h2>
+                <h2 className="mt-4 text-2xl font-extrabold md:text-3xl">Define the interaction behavior.</h2>
                 <p className="mt-3 max-w-3xl text-sm leading-relaxed text-gray-400">
                   This is where the blueprint stops being a static moodboard and starts describing how the experience should feel to the end user.
                 </p>
@@ -1401,7 +1533,7 @@ function BlueprintBuilder() {
             {step === 4 && (
               <div>
                 <BadgePill tone="soft">Step 5</BadgePill>
-                <h2 className="mt-4 text-3xl font-extrabold">Select the feature engine.</h2>
+                <h2 className="mt-4 text-2xl font-extrabold md:text-3xl">Select the feature engine.</h2>
                 <p className="mt-3 max-w-3xl text-sm leading-relaxed text-gray-400">
                   Each feature updates the narration, pricing, developer expectations, and timeline estimate. Pick the business logic you actually need.
                 </p>
@@ -1424,32 +1556,32 @@ function BlueprintBuilder() {
             {step === 5 && (
               <div>
                 <BadgePill tone="soft">Step 6</BadgePill>
-                <h2 className="mt-4 text-3xl font-extrabold">Review pricing, timeline, and negotiation path.</h2>
+                <h2 className="mt-4 text-2xl font-extrabold md:text-3xl">Review pricing, timeline, and negotiation path.</h2>
                 <p className="mt-3 max-w-3xl text-sm leading-relaxed text-gray-400">
                   The estimate responds to structure, features, interaction depth, mood direction, and delivery pace. Upfront payment is always required before work begins.
                 </p>
 
                 <div className="mt-8 grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
-                  <div className="rounded-[28px] border border-white/10 bg-white/5 p-6">
+                  <div className="rounded-lg border border-white/10 bg-white/5 p-6">
                     <div className="text-xs font-bold uppercase tracking-[0.22em] text-gray-500">Estimated investment</div>
-                    <div className="mt-3 text-4xl font-extrabold">{formatMoney(estimate.min)}-{formatMoney(estimate.max)}</div>
+                    <div className="mt-3 text-3xl font-extrabold">{formatMoney(estimate.min)}-{formatMoney(estimate.max)}</div>
                     <div className="mt-2 text-sm text-gray-400">Required upfront payment: {formatMoney(estimate.deposit)}</div>
                     <div className="mt-6 grid gap-3 md:grid-cols-2">
-                      <div className="rounded-[22px] border border-white/10 bg-black/20 p-4">
+                      <div className="rounded-lg border border-white/10 bg-black/20 p-4">
                         <div className="text-xs uppercase tracking-[0.2em] text-gray-500">Complexity</div>
                         <div className="mt-2 text-lg font-extrabold">{estimate.complexity}</div>
                       </div>
-                      <div className="rounded-[22px] border border-white/10 bg-black/20 p-4">
+                      <div className="rounded-lg border border-white/10 bg-black/20 p-4">
                         <div className="text-xs uppercase tracking-[0.2em] text-gray-500">Timeline</div>
                         <div className="mt-2 text-lg font-extrabold">{estimate.timeline}</div>
                       </div>
                     </div>
                   </div>
-                  <div className="rounded-[28px] border border-white/10 bg-black/20 p-6">
+                  <div className="rounded-lg border border-white/10 bg-black/20 p-6">
                     <div className="text-xs font-bold uppercase tracking-[0.22em] text-gray-500">Breakdown</div>
                     <div className="mt-4 flex flex-col gap-3">
                       {estimate.lineItems.map((item) => (
-                        <div key={item.label} className="flex items-center justify-between rounded-[20px] border border-white/10 bg-white/5 px-4 py-3 text-sm">
+                        <div key={item.label} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm">
                           <span className="text-gray-400">{item.label}</span>
                           <span className="font-bold text-white">{item.value}</span>
                         </div>
@@ -1491,26 +1623,26 @@ function BlueprintBuilder() {
                 </div>
 
                 {form.negotiationMode === 'negotiate' && (
-                  <div className="mt-5 rounded-[28px] border border-white/10 bg-white/5 p-5">
+                  <div className="mt-5 rounded-lg border border-white/10 bg-white/5 p-5">
                     <div className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">Target budget or negotiation note</div>
                     <textarea
                       value={form.budgetNote}
                       onChange={(event) => setField('budgetNote', event.target.value)}
                       rows={3}
-                      className="mt-3 w-full rounded-[22px] border border-white/10 bg-black/20 px-4 py-4 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
+                      className="mt-3 w-full rounded-lg border border-white/10 bg-black/20 px-4 py-4 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
                       placeholder="Example: We are trying to stay near $1,200 if phase one can cover homepage, store, and checkout."
                     />
                   </div>
                 )}
 
                 {form.negotiationMode === 'phased' && (
-                  <div className="mt-5 rounded-[28px] border border-white/10 bg-white/5 p-5">
+                  <div className="mt-5 rounded-lg border border-white/10 bg-white/5 p-5">
                     <div className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">Preferred phase one scope</div>
                     <textarea
                       value={form.phaseRequest}
                       onChange={(event) => setField('phaseRequest', event.target.value)}
                       rows={3}
-                      className="mt-3 w-full rounded-[22px] border border-white/10 bg-black/20 px-4 py-4 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
+                      className="mt-3 w-full rounded-lg border border-white/10 bg-black/20 px-4 py-4 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
                       placeholder="Example: Phase one should include the public marketing site, WhatsApp conversion, and booking form. Admin dashboard can come later."
                     />
                   </div>
@@ -1521,55 +1653,55 @@ function BlueprintBuilder() {
             {step === 6 && (
               <div>
                 <BadgePill tone="soft">Step 7</BadgePill>
-                <h2 className="mt-4 text-3xl font-extrabold">Finalize the blueprint and submit it to the team.</h2>
+                <h2 className="mt-4 text-2xl font-extrabold md:text-3xl">Finalize the blueprint and submit it to the team.</h2>
                 <p className="mt-3 max-w-3xl text-sm leading-relaxed text-gray-400">
                   The summary below becomes the visual agreement, narration, estimate, and onboarding brief for The Brand Helper development team.
                 </p>
 
                 <div className="mt-8 grid gap-5 md:grid-cols-2">
-                  <div className="rounded-[28px] border border-white/10 bg-black/20 p-5">
+                  <div className="rounded-lg border border-white/10 bg-black/20 p-5">
                     <div className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">Client details</div>
                     <div className="mt-4 grid gap-4">
                       <input
                         value={form.clientName}
                         onChange={(event) => setField('clientName', event.target.value)}
-                        className="rounded-[20px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
+                        className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
                         placeholder="Your name"
                       />
                       <input
                         value={form.businessName}
                         onChange={(event) => setField('businessName', event.target.value)}
-                        className="rounded-[20px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
+                        className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
                         placeholder="Business name"
                       />
                       <input
                         value={form.email}
                         onChange={(event) => setField('email', event.target.value)}
-                        className="rounded-[20px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
+                        className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
                         placeholder="Email address"
                         type="email"
                       />
                       <input
                         value={form.phone}
                         onChange={(event) => setField('phone', event.target.value)}
-                        className="rounded-[20px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
+                        className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
                         placeholder="Phone / WhatsApp"
                       />
                     </div>
                   </div>
-                  <div className="rounded-[28px] border border-white/10 bg-white/5 p-5">
+                  <div className="rounded-lg border border-white/10 bg-white/5 p-5">
                     <div className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">Extra notes for the team</div>
                     <textarea
                       value={form.extraNotes}
                       onChange={(event) => setField('extraNotes', event.target.value)}
                       rows={7}
-                      className="mt-4 w-full rounded-[22px] border border-white/10 bg-black/20 px-4 py-4 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
+                      className="mt-4 w-full rounded-lg border border-white/10 bg-black/20 px-4 py-4 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
                       placeholder="Anything that should not be missed? Example: must feel trustworthy, mobile users matter most, team prefers WhatsApp handoff, admin should stay simple, etc."
                     />
                   </div>
                 </div>
 
-                <div className="mt-8 rounded-[30px] border border-white/10 bg-white/5 p-6">
+                <div className="mt-8 rounded-lg border border-white/10 bg-white/5 p-6">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <div className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">Blueprint summary actions</div>
@@ -1578,16 +1710,16 @@ function BlueprintBuilder() {
                     <BadgePill tone="green">Prototype Only</BadgePill>
                   </div>
                   <div className="mt-5 flex flex-wrap gap-3">
-                    <button type="button" onClick={copyShareLink} className="rounded-full bg-white px-5 py-3 text-sm font-extrabold text-black transition hover:opacity-90">
+                    <button type="button" onClick={copyShareLink} className="rounded-lg bg-white px-4 py-2.5 text-xs font-extrabold text-black transition hover:opacity-90">
                       {shareCopied ? 'Share Link Copied' : 'Copy Share Link'}
                     </button>
-                    <button type="button" onClick={copySummary} className="rounded-full border border-white/15 px-5 py-3 text-sm font-extrabold text-white transition hover:border-white/35">
+                    <button type="button" onClick={copySummary} className="rounded-lg border border-white/15 px-4 py-2.5 text-xs font-extrabold text-white transition hover:border-white/35">
                       {summaryCopied ? 'Summary Copied' : 'Copy Summary'}
                     </button>
-                    <button type="button" onClick={exportSummary} className="rounded-full border border-white/15 px-5 py-3 text-sm font-extrabold text-white transition hover:border-white/35">
+                    <button type="button" onClick={exportSummary} className="rounded-lg border border-white/15 px-4 py-2.5 text-xs font-extrabold text-white transition hover:border-white/35">
                       Export Brief
                     </button>
-                    <button type="button" onClick={() => window.print()} className="rounded-full border border-white/15 px-5 py-3 text-sm font-extrabold text-white transition hover:border-white/35">
+                    <button type="button" onClick={() => window.print()} className="rounded-lg border border-white/15 px-4 py-2.5 text-xs font-extrabold text-white transition hover:border-white/35">
                       Print / Save PDF
                     </button>
                   </div>
@@ -1598,16 +1730,19 @@ function BlueprintBuilder() {
                         type="button"
                         onClick={handleSubmit}
                         disabled={submitting}
-                        className="rounded-full bg-red-600 px-6 py-3 text-sm font-extrabold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="rounded-lg bg-red-600 px-5 py-2.5 text-sm font-extrabold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {submitting ? 'Submitting Blueprint...' : 'Submit Blueprint to The Brand Helper'}
                       </button>
-                      <Link to="/contact/requirements" className="rounded-full border border-white/15 px-5 py-3 text-sm font-extrabold text-white transition hover:border-white/35">
-                        Use Full Project Brief Instead
-                      </Link>
+                      <a href={REQUIREMENTS_CTA_URL} className="rounded-lg border border-white/15 px-4 py-2.5 text-sm font-extrabold text-white transition hover:border-white/35">
+                        Send Requirements Instead
+                      </a>
+                      <a href={CALCULATOR_CTA_URL} className="rounded-lg border border-white/15 px-4 py-2.5 text-sm font-extrabold text-white transition hover:border-white/35">
+                        Open Pricing Calculator
+                      </a>
                     </div>
                   ) : (
-                    <div className="mt-6 rounded-[24px] border border-green-400/20 bg-green-400/10 p-5">
+                    <div className="mt-6 rounded-lg border border-green-400/20 bg-green-400/10 p-5">
                       <div className="text-lg font-extrabold text-green-200">Blueprint received.</div>
                       <p className="mt-2 text-sm leading-relaxed text-green-100/90">
                         Your blueprint has been sent into the email + CRM intake flow. You can now share the link, export the brief, or message the summary on WhatsApp for faster alignment.
@@ -1617,7 +1752,7 @@ function BlueprintBuilder() {
                           href={`https://wa.me/233501657205?text=${encodeURIComponent(summary)}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="rounded-full bg-green-500 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-green-600"
+                          className="rounded-lg bg-green-500 px-4 py-2.5 text-sm font-extrabold text-white transition hover:bg-green-600"
                         >
                           Send Summary on WhatsApp
                         </a>
@@ -1625,7 +1760,7 @@ function BlueprintBuilder() {
                           href="https://calendly.com/blackbird77ad/free-consultation"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="rounded-full border border-white/15 px-5 py-3 text-sm font-extrabold text-white transition hover:border-white/35"
+                          className="rounded-lg border border-white/15 px-4 py-2.5 text-sm font-extrabold text-white transition hover:border-white/35"
                         >
                           Book Free Consultation
                         </a>
@@ -1642,7 +1777,7 @@ function BlueprintBuilder() {
               type="button"
               onClick={() => step > 0 && setStep(step - 1)}
               disabled={step === 0}
-              className="rounded-full border border-white/15 px-5 py-3 text-sm font-extrabold text-white transition hover:border-white/35 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-lg border border-white/15 px-4 py-2.5 text-sm font-extrabold text-white transition hover:border-white/35 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Back
             </button>
@@ -1650,7 +1785,7 @@ function BlueprintBuilder() {
               <button
                 type="button"
                 onClick={clearSaved}
-                className="rounded-full border border-white/15 px-5 py-3 text-sm font-extrabold text-white transition hover:border-white/35"
+                className="rounded-lg border border-white/15 px-4 py-2.5 text-sm font-extrabold text-white transition hover:border-white/35"
               >
                 Reset Blueprint
               </button>
@@ -1659,7 +1794,7 @@ function BlueprintBuilder() {
                   type="button"
                   onClick={() => canAdvance && setStep(step + 1)}
                   disabled={!canAdvance}
-                  className="rounded-full bg-white px-5 py-3 text-sm font-extrabold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-lg bg-white px-4 py-2.5 text-sm font-extrabold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Continue
                 </button>
@@ -1668,30 +1803,40 @@ function BlueprintBuilder() {
           </div>
         </div>
 
-        <div className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-          <div className="rounded-[32px] border border-white/10 bg-gradient-to-br from-white/8 to-white/4 p-5 shadow-2xl">
+        <div className="order-1 space-y-4 lg:sticky lg:top-20 lg:order-2 lg:self-start">
+          <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4 shadow-2xl">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">Live responsive preview</div>
-                <div className="mt-1 text-sm text-gray-400">A visual prototype, not a live website.</div>
+                <div className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">Live preview</div>
+                <div className="mt-1 text-xs text-gray-400">Default view is mobile. Switch screen size anytime.</div>
               </div>
               <BadgePill tone="subtle">{activeProject.label}</BadgePill>
             </div>
-            <div className="mt-5 grid gap-6 xl:grid-cols-3 xl:items-start">
-              <div className="xl:col-span-2">
-                <DevicePreview label="Desktop" scale={1} form={form} theme={theme} previews={previewAssets} />
-              </div>
-              <div className="space-y-5">
-                <DevicePreview label="Tablet" scale={0.82} form={form} theme={theme} previews={previewAssets} />
-                <DevicePreview label="Mobile" scale={0.72} form={form} theme={theme} previews={previewAssets} />
-              </div>
+            <div className="mt-4 flex gap-2 overflow-x-auto">
+              {PREVIEW_DEVICES.map((device) => (
+                <button
+                  key={device.key}
+                  type="button"
+                  onClick={() => setPreviewDevice(device.key)}
+                  className={`shrink-0 rounded-lg px-3 py-2 text-[11px] font-extrabold uppercase tracking-[0.12em] transition ${
+                    previewDevice === device.key
+                      ? 'bg-white text-black'
+                      : 'bg-white/10 text-white/65 hover:bg-white/15 hover:text-white'
+                  }`}
+                >
+                  {device.label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-4">
+              <DevicePreview device={activePreviewDevice} form={form} theme={theme} previews={previewAssets} />
             </div>
             {previewAssets.inspirationPreviews.length > 0 && (
-              <div className="mt-5">
+              <div className="mt-4">
                 <div className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">Inspiration snapshots</div>
                 <div className="mt-3 grid grid-cols-3 gap-3">
                   {previewAssets.inspirationPreviews.map((preview) => (
-                    <div key={preview} className="overflow-hidden rounded-[18px] border border-white/10 bg-white/5">
+                    <div key={preview} className="overflow-hidden rounded-lg border border-white/10 bg-white/5">
                       <img src={preview} alt="Inspiration preview" className="h-24 w-full object-cover" />
                     </div>
                   ))}
@@ -1700,44 +1845,52 @@ function BlueprintBuilder() {
             )}
           </div>
 
-          <div className="rounded-[32px] border border-white/10 bg-white/5 p-6">
+          <div className="rounded-lg border border-white/10 bg-white/5 p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">Live narration</div>
-                <div className="mt-1 text-sm text-gray-400">Generated from the selections you make.</div>
+                <div className="mt-1 text-xs text-gray-400">Plain summary from your choices.</div>
               </div>
               <BadgePill tone="soft">{estimate.complexity}</BadgePill>
             </div>
             <p className="mt-4 text-sm leading-relaxed text-gray-200">{narration}</p>
           </div>
 
-          <div className="rounded-[32px] border border-white/10 bg-black/20 p-6">
+          <div className="rounded-lg border border-white/10 bg-black/20 p-4">
             <div className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">Blueprint snapshot</div>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
                 <div className="text-xs text-gray-500">Business</div>
                 <div className="mt-1 text-sm font-extrabold">{activeBusiness.label}</div>
               </div>
-              <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
+              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
                 <div className="text-xs text-gray-500">Project</div>
                 <div className="mt-1 text-sm font-extrabold">{activeProject.label}</div>
               </div>
-              <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
+              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
                 <div className="text-xs text-gray-500">Sections</div>
                 <div className="mt-1 text-sm font-extrabold">{form.sections.length}</div>
               </div>
-              <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
+              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
                 <div className="text-xs text-gray-500">Features</div>
                 <div className="mt-1 text-sm font-extrabold">{form.features.length}</div>
               </div>
             </div>
-            <div className="mt-5 rounded-[24px] border border-white/10 bg-white/5 p-5">
+            <div className="mt-4 rounded-lg border border-white/10 bg-white/5 p-4">
               <div className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">Current estimate</div>
-              <div className="mt-2 text-3xl font-extrabold">{formatMoney(estimate.min)}-{formatMoney(estimate.max)}</div>
-              <div className="mt-2 text-sm text-gray-400">{estimate.timeline} · {estimate.pace.label}</div>
-              <div className="mt-4 h-2 rounded-full bg-white/10">
-                <div className="h-full rounded-full blueprint-shine" style={{ width: `${Math.min(96, estimate.score * 7)}%`, background: theme.accent }} />
+              <div className="mt-2 text-2xl font-extrabold">{formatMoney(estimate.min)}-{formatMoney(estimate.max)}</div>
+              <div className="mt-2 text-sm text-gray-400">{estimate.timeline} - {estimate.pace.label}</div>
+              <div className="mt-4 h-2 rounded bg-white/10">
+                <div className="h-full rounded blueprint-shine" style={{ width: `${Math.min(96, estimate.score * 7)}%`, background: theme.accent }} />
               </div>
+            </div>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <a href={REQUIREMENTS_CTA_URL} className="rounded-lg bg-red-600 px-3 py-2.5 text-center text-xs font-extrabold uppercase tracking-wide text-white transition hover:bg-red-700">
+                Send Requirements
+              </a>
+              <a href={CALCULATOR_CTA_URL} className="rounded-lg border border-white/15 px-3 py-2.5 text-center text-xs font-extrabold uppercase tracking-wide text-white transition hover:border-white/35">
+                Pricing Calculator
+              </a>
             </div>
           </div>
         </div>

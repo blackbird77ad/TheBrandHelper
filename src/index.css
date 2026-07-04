@@ -31,3 +31,29 @@ body {
 ::-webkit-scrollbar-track { background: #f1f1f1; }
 ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #999; }
+
+@keyframes blueprintFloat {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -4px; }
+}
+
+@keyframes blueprintShine {
+  0% { filter: brightness(0.9); }
+  50% { filter: brightness(1.16); }
+  100% { filter: brightness(0.9); }
+}
+
+.blueprint-float {
+  animation: blueprintFloat 7s ease-in-out infinite;
+}
+
+.blueprint-shine {
+  animation: blueprintShine 2.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blueprint-float,
+  .blueprint-shine {
+    animation: none;
+  }
+}
