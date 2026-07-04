@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: tbh-server
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ADMIN_SECRET
+        generateValue: true   # Render auto-generates a secure random value
+      - key: ALLOWED_ORIGINS
+        value: https://thebrandhelper.com,https://www.thebrandhelper.com
