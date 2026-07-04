@@ -4,15 +4,36 @@
 
 const mongoose = require('mongoose');
 
+mongoose.set('bufferCommands', false);
+
+const DB_STATES = {
+  0: 'disconnected',
+  1: 'connected',
+  2: 'connecting',
+  3: 'disconnecting',
+};
+
+let hasConnectAttempted = false;
+let lastConnectionError = '';
+
 async function connect() {
   const uri = process.env.MONGODB_URI;
-  if (!uri) throw new Error('MONGODB_URI is not set in environment variables');
+  hasConnectAttempted = true;
+
+  if (!uri) {
+    lastConnectionError = 'MONGODB_URI is not set in environment variables';
+    throw new Error(lastConnectionError);
+  }
   await mongoose.connect(uri, {
-    dbName: 'thebrandhelperdb',
-    serverSelectionTimeoutMS: 10000,
+    dbName: process.env.MONGODB_DB_NAME || 'thebrandhelperdb',
+    serverSelectionTimeoutMS: Number(process.env.MONGODB_SERVER_SELECTION_TIMEOUT_MS || 10000),
     socketTimeoutMS: 45000,
     family: 4,
+  }).catch((error) => {
+    lastConnectionError = error?.message || 'MongoDB connection failed';
+    throw error;
   });
+  lastConnectionError = '';
   console.log('✅ MongoDB connected');
 }
 
@@ -218,6 +239,88 @@ const portfolioSchema = new mongoose.Schema({
   featured:    { type: Boolean, default: false },
 }, { timestamps: true });
 
+const productSchema = new mongoose.Schema({
+  product_type: {
+    type: String,
+    enum: ['dataset', 'website', 'software', 'digital_product', 'ai_service', 'other'],
+    default: 'dataset',
+    index: true,
+  },
+  title:          { type: String, required: true, trim: true },
+  slug:           { type: String, default: '', trim: true, index: true },
+  category:       { type: String, default: '' },
+  data_type:      { type: String, default: '' },
+  language:       { type: String, default: '' },
+  locale:         { type: String, default: '' },
+  industry:       { type: String, default: '' },
+  description:    { type: String, default: '' },
+  scale:          { type: String, default: '' },
+  applications:   { type: [String], default: [] },
+  features:       { type: [String], default: [] },
+  status: {
+    type: String,
+    enum: ['available', 'limited', 'licensing', 'custom_collection', 'coming_soon', 'request_access', 'sold', 'unavailable'],
+    default: 'available',
+  },
+  price_label:    { type: String, default: '' },
+  image:          { type: String, default: '' },
+  demo_url:       { type: String, default: '' },
+  sample_url:     { type: String, default: '' },
+  enquiry_only:   { type: Boolean, default: true },
+  published:      { type: Boolean, default: true },
+  featured:       { type: Boolean, default: false },
+  tags:           { type: [String], default: [] },
+  internal_notes: { type: String, default: '' },
+}, { timestamps: true });
+
+const phase2RequestSchema = new mongoose.Schema({
+  request_type: {
+    type: String,
+    enum: [
+      'dataset_interest',
+      'ai_project',
+      'data_collection',
+      'talent_request',
+      'contributor_application',
+      'product_enquiry',
+      'general_phase2',
+    ],
+    required: true,
+    index: true,
+  },
+  source_product_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', default: null },
+  source_product:    { type: String, default: '' },
+  company:           { type: String, default: '' },
+  contact_name:      { type: String, default: '' },
+  email:             { type: String, default: '' },
+  phone:             { type: String, default: '' },
+  whatsapp:          { type: String, default: '' },
+  country:           { type: String, default: '' },
+  website:           { type: String, default: '' },
+  project_title:     { type: String, default: '' },
+  project_type:      { type: String, default: '' },
+  data_type:         { type: String, default: '' },
+  languages:         { type: [String], default: [] },
+  countries:         { type: [String], default: [] },
+  skills:            { type: [String], default: [] },
+  volume:            { type: String, default: '' },
+  contributors:      { type: String, default: '' },
+  timeline:          { type: String, default: '' },
+  budget:            { type: String, default: '' },
+  intended_use:      { type: String, default: '' },
+  message:           { type: String, default: '' },
+  metadata:          { type: mongoose.Schema.Types.Mixed, default: {} },
+  status: {
+    type: String,
+    enum: ['new', 'contacted', 'qualified', 'samples_requested', 'samples_shared', 'meeting_scheduled', 'negotiation', 'agreement_pending', 'won', 'lost'],
+    default: 'new',
+    index: true,
+  },
+  notes:             { type: String, default: '' },
+  follow_up_date:    { type: Date, default: null },
+  submitted_at:      { type: String, default: '' },
+}, { timestamps: true });
+
 
 // ── AUTH (PIN hashes — one document, singleton) ───────────────────────────────
 const authSchema = new mongoose.Schema({
@@ -271,8 +374,20 @@ const prospectSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // ── Export all models ─────────────────────────────────────────────────────────
+function getDatabaseStatus() {
+  const readyState = mongoose.connection.readyState;
+  return {
+    connected: readyState === 1,
+    readyState,
+    state: DB_STATES[readyState] || 'unknown',
+    attempted: hasConnectAttempted,
+    error: lastConnectionError || null,
+  };
+}
+
 module.exports = {
   connect,
+  getDatabaseStatus,
   Lead:      mongoose.model('Lead',      leadSchema),
   Client:    mongoose.model('Client',    clientSchema),
   Project:   mongoose.model('Project',   projectSchema),
@@ -282,6 +397,8 @@ module.exports = {
   Quote:     mongoose.model('Quote',     quoteSchema),
   Reminder:  mongoose.model('Reminder',  reminderSchema),
   Portfolio: mongoose.model('Portfolio', portfolioSchema),
+  Product:   mongoose.model('Product',   productSchema),
+  Phase2Request: mongoose.model('Phase2Request', phase2RequestSchema),
   Auth:      mongoose.model('Auth',      authSchema),
   Prospect:  mongoose.model('Prospect',  prospectSchema),
 };

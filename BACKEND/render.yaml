@@ -10,5 +10,7 @@ services:
         value: production
       - key: ADMIN_SECRET
         generateValue: true   # Render auto-generates a secure random value
+      - key: MONGODB_URI
+        sync: false
       - key: ALLOWED_ORIGINS
         value: https://thebrandhelper.com,https://www.thebrandhelper.com

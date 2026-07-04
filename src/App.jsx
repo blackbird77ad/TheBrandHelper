@@ -13,6 +13,7 @@ import Contact            from "./pages/Contact";
 import ClientRequirements from "./pages/ClientRequirements";
 import WebsiteCalc        from "./pages/WebsiteCalc";
 import BlueprintBuilder   from "./pages/BlueprintBuilder";
+import Phase2             from "./pages/Phase2";
 import Success            from "./pages/Success";
 import Admin              from "./pages/Admin";
 
@@ -29,6 +30,10 @@ function Layout() {
           <Route path="/about"        element={<About />} />
           <Route path="/services"     element={<Services />} />
           <Route path="/portfolio"    element={<Portfolio />} />
+          <Route path="/ai-data"      element={<Phase2 mode="data" />} />
+          <Route path="/ai-projects"  element={<Phase2 mode="projects" />} />
+          <Route path="/talent"       element={<Phase2 mode="talent" />} />
+          <Route path="/digital-products" element={<Phase2 mode="products" />} />
           <Route path="/contact"      element={<Contact />} />
           <Route path="/contact/:tab" element={<Contact />} />
           <Route path="/blueprint"    element={<BlueprintBuilder />} />

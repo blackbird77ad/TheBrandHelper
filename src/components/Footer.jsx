@@ -41,7 +41,7 @@ export default function Footer() {
             </span>
           </Link>
           <p className="text-gray-400 text-sm leading-relaxed mb-6">
-            A digital agency helping businesses grow online — through websites, ads, brand strategy, and technical support. Done for you, properly.
+            A technology and AI enablement company helping organizations access data, people, project support, and ready-built digital solutions.
           </p>
           <div className="flex flex-col gap-2">
             <a href={WHATSAPP} target="_blank" rel="noopener noreferrer"
@@ -60,6 +60,10 @@ export default function Footer() {
           <ul className="flex flex-col gap-3 text-sm">
             {[
               { label: "Home",      to: "/"          },
+              { label: "AI Data",   to: "/ai-data"   },
+              { label: "AI Projects", to: "/ai-projects" },
+              { label: "Talent",    to: "/talent"    },
+              { label: "Digital Products", to: "/digital-products" },
               { label: "About",     to: "/about"     },
               { label: "Services",  to: "/services"  },
               { label: "Portfolio", to: "/portfolio" },
@@ -76,6 +80,11 @@ export default function Footer() {
           <h4 className="text-xs uppercase tracking-widest text-red-500 mb-5 font-bold">Services</h4>
           <ul className="flex flex-col gap-3 text-sm">
             {[
+              "AI Training Datasets",
+              "Custom Data Collection",
+              "AI Project Teams",
+              "Talent Sourcing",
+              "Ready-Built Websites",
               "Website Design",
               "Ads Management",
               "Brand Strategy",

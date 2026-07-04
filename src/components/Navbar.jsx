@@ -3,9 +3,11 @@ import { Link, useLocation } from "react-router-dom";
 
 const NAV_LINKS = [
   { label: "Home",      to: "/"          },
-  { label: "About",     to: "/about"     },
+  { label: "AI Data",   to: "/ai-data"   },
+  { label: "AI Projects", to: "/ai-projects" },
+  { label: "Talent",    to: "/talent"    },
+  { label: "Products",  to: "/digital-products" },
   { label: "Services",  to: "/services"  },
-  { label: "Portfolio", to: "/portfolio" },
   { label: "Contact",   to: "/contact"   },
 ];
 

@@ -84,6 +84,15 @@ export const updatePortfolio   = (id, b) => req(`/api/portfolio/${id}`, { method
 export const deletePortfolio   = (id)    => req(`/api/portfolio/${id}`, { method: 'DELETE', headers: A() });
 
 // ── STATS ─────────────────────────────────────────────────────────────────────
+export const getPhase2Products = (params) => req(`/api/phase2/products${params ? `?${new URLSearchParams(params)}` : ''}`);
+export const submitPhase2Request = (body) => req('/api/phase2/requests', { method: 'POST', body: JSON.stringify(body) });
+export const getPhase2Requests = (params) => req(`/api/admin/phase2/requests${params ? `?${new URLSearchParams(params)}` : ''}`, { headers: A() });
+export const updatePhase2Request = (id, b) => req(`/api/admin/phase2/requests/${id}`, { method: 'PUT', headers: A(), body: JSON.stringify(b) });
+export const getAdminPhase2Products = (params) => req(`/api/admin/phase2/products${params ? `?${new URLSearchParams(params)}` : ''}`, { headers: A() });
+export const createPhase2Product = (body) => req('/api/admin/phase2/products', { method: 'POST', headers: A(), body: JSON.stringify(body) });
+export const updatePhase2Product = (id, b) => req(`/api/admin/phase2/products/${id}`, { method: 'PUT', headers: A(), body: JSON.stringify(b) });
+export const deletePhase2Product = (id) => req(`/api/admin/phase2/products/${id}`, { method: 'DELETE', headers: A() });
+
 export const getStats = () => req('/api/stats', { headers: A() });
 
 // ── PROSPECTS ─────────────────────────────────────────────────────────────────
@@ -93,4 +102,4 @@ export const createProspect     = (body)   => req('/api/prospects', { method: 'P
 export const updateProspect     = (id, b)  => req(`/api/prospects/${id}`, { method: 'PUT', headers: A(), body: JSON.stringify(b) });
 export const deleteProspect     = (id)     => req(`/api/prospects/${id}`, { method: 'DELETE', headers: A() });
 export const bulkImportProspects= (arr)    => req('/api/prospects/bulk', { method: 'POST', headers: A(), body: JSON.stringify({ prospects: arr }) });
-export const convertProspect    = (id)     => req(`/api/prospects/${id}/convert`, { method: 'POST', headers: A() }); 
+export const convertProspect    = (id)     => req(`/api/prospects/${id}/convert`, { method: 'POST', headers: A() });

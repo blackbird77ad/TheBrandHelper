@@ -11,7 +11,9 @@ const bcrypt  = require('bcryptjs');
 const {
   connect, Lead, Client, Project,
   Milestone, Meeting, Note, Quote,
-  Reminder, Portfolio, Auth, Prospect,
+  Reminder, Portfolio, Product, Phase2Request,
+  Auth, Prospect,
+  getDatabaseStatus,
 } = require('./db');
 
 const app    = express();
@@ -46,15 +48,52 @@ function auth(req, res, next) {
 // ── Helper ────────────────────────────────────────────────────────────────────
 const ok  = (res, data, status = 200) => res.status(status).json({ success: true, data });
 const err = (res, e, status = 500)    => res.status(status).json({ error: e?.message || e });
+const toArray = (value) => Array.isArray(value)
+  ? value
+  : String(value || '').split(',').map(item => item.trim()).filter(Boolean);
 
 // ── Health ────────────────────────────────────────────────────────────────────
+async function healthPayload() {
+  const database = getDatabaseStatus();
+  const payload = {
+    service: 'TBH CRM API',
+    status: database.connected ? 'running' : 'degraded',
+    database,
+    time: new Date().toISOString(),
+  };
+
+  if (database.connected) {
+    const [leads, clients, projects, portfolio] = await Promise.all([
+      Lead.countDocuments(), Client.countDocuments(),
+      Project.countDocuments(), Portfolio.countDocuments(),
+    ]);
+    Object.assign(payload, { leads, clients, projects, portfolio });
+  }
+
+  return payload;
+}
+
+function requireDb(req, res, next) {
+  const database = getDatabaseStatus();
+  if (!database.connected) {
+    return res.status(503).json({
+      error: 'Database unavailable',
+      database,
+      path: req.path,
+    });
+  }
+  next();
+}
+
 app.get('/', async (_req, res) => {
-  const [leads, clients, projects, portfolio] = await Promise.all([
-    Lead.countDocuments(), Client.countDocuments(),
-    Project.countDocuments(), Portfolio.countDocuments(),
-  ]);
-  res.json({ service: 'TBH CRM API', status: 'running', leads, clients, projects, portfolio, time: new Date().toISOString() });
+  res.json(await healthPayload());
 });
+
+app.get('/health', async (_req, res) => {
+  res.status(getDatabaseStatus().connected ? 200 : 503).json(await healthPayload());
+});
+
+app.use('/api', requireDb);
 
 // ══════════════════════════════════════════════════════════════════════════════
 // LEADS — public POST (from forms), admin for everything else
@@ -704,15 +743,130 @@ app.post('/api/prospects/:id/convert', auth, async (req, res) => {
 });
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
+app.get('/api/phase2/products', async (req, res) => {
+  try {
+    const filter = { published: true };
+    if (req.query.type) filter.product_type = req.query.type;
+    if (req.query.status) filter.status = req.query.status;
+    if (req.query.featured === 'true') filter.featured = true;
+    const products = await Product.find(filter).sort({ featured: -1, createdAt: -1 });
+    ok(res, products);
+  } catch (e) { err(res, e); }
+});
+
+app.get('/api/admin/phase2/products', auth, async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.type) filter.product_type = req.query.type;
+    if (req.query.published) filter.published = req.query.published === 'true';
+    const products = await Product.find(filter).sort({ createdAt: -1 });
+    res.json({ success: true, data: products, count: products.length });
+  } catch (e) { err(res, e); }
+});
+
+app.post('/api/admin/phase2/products', auth, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const product = await Product.create({
+      ...body,
+      applications: toArray(body.applications),
+      features: toArray(body.features),
+      tags: toArray(body.tags),
+    });
+    ok(res, product, 201);
+  } catch (e) { err(res, e); }
+});
+
+app.put('/api/admin/phase2/products/:id', auth, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const update = { ...body };
+    if (body.applications !== undefined) update.applications = toArray(body.applications);
+    if (body.features !== undefined) update.features = toArray(body.features);
+    if (body.tags !== undefined) update.tags = toArray(body.tags);
+    const product = await Product.findByIdAndUpdate(req.params.id, update, { new: true });
+    if (!product) return res.status(404).json({ error: 'Not found' });
+    ok(res, product);
+  } catch (e) { err(res, e); }
+});
+
+app.delete('/api/admin/phase2/products/:id', auth, async (req, res) => {
+  try {
+    await Product.findByIdAndDelete(req.params.id);
+    ok(res, { message: 'Deleted' });
+  } catch (e) { err(res, e); }
+});
+
+app.post('/api/phase2/requests', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const request = await Phase2Request.create({
+      ...body,
+      languages: toArray(body.languages),
+      countries: toArray(body.countries),
+      skills: toArray(body.skills),
+      submitted_at: body.submitted_at || new Date().toISOString(),
+    });
+
+    await Lead.create({
+      source: 'website',
+      form_type: `Phase 2 - ${request.request_type}`,
+      client_name: request.contact_name,
+      business_name: request.company,
+      email: request.email,
+      phone: request.phone || request.whatsapp,
+      industry: request.project_type || request.data_type,
+      service: request.source_product || request.request_type,
+      budget: request.budget,
+      timeline: request.timeline,
+      message: request.message,
+      full_brief: JSON.stringify(body, null, 2),
+      submitted_at: request.submitted_at,
+      status: 'new',
+    });
+
+    ok(res, request, 201);
+  } catch (e) { err(res, e); }
+});
+
+app.get('/api/admin/phase2/requests', auth, async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.type) filter.request_type = req.query.type;
+    if (req.query.status) filter.status = req.query.status;
+    const requests = await Phase2Request.find(filter).sort({ createdAt: -1 });
+    res.json({ success: true, data: requests, count: requests.length });
+  } catch (e) { err(res, e); }
+});
+
+app.put('/api/admin/phase2/requests/:id', auth, async (req, res) => {
+  try {
+    const request = await Phase2Request.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!request) return res.status(404).json({ error: 'Not found' });
+    ok(res, request);
+  } catch (e) { err(res, e); }
+});
+
 app.use((req, res) => res.status(404).json({ error: `${req.method} ${req.path} not found` }));
 app.use((e, _req, res, _next) => { console.error(e.message); res.status(500).json({ error: e.message }); });
 
 // ── Start ─────────────────────────────────────────────────────────────────────
-connect()
+/* Legacy crash-on-connect startup disabled.
+false && connect()
   .then(() => app.listen(PORT, () => {
     console.log(`\n🚀 TBH CRM Server — port ${PORT}`);
     console.log(`   ENV: ${process.env.NODE_ENV || 'development'}\n`);
   }))
   .catch(e => { console.error('❌ MongoDB:', e.message); process.exit(1); });
+
+*/
+app.listen(PORT, () => {
+  console.log(`\nTBH CRM Server - port ${PORT}`);
+  console.log(`   ENV: ${process.env.NODE_ENV || 'development'}\n`);
+});
+
+connect().catch(e => {
+  console.error('MongoDB unavailable at startup:', e.message);
+});
 
 module.exports = app;

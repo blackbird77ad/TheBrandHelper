@@ -90,25 +90,25 @@ export default function Home() {
 
           <div className="md:w-1/2 text-center md:text-left">
             <p className="text-red-500 text-xs font-bold uppercase tracking-widest mb-5">
-              Web Agency · Brand · Digital
+              AI Data · Talent · Technology
             </p>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight mb-6">
-              Your Business Deserves<br />
-              <span className="text-red-600">A Proper Online Presence.</span>
+              Data. Talent. Technology.<br />
+              <span className="text-red-600">Built Around What You Need.</span>
             </h1>
             <p className="text-gray-300 text-lg max-w-xl mb-8 leading-relaxed">
-              We design websites, run ads, and build brand strategies for businesses ready to grow — properly and professionally.
+              The BrandHelper helps companies access AI training data, multilingual contributors, skilled project teams, ready-built digital products, and custom technology solutions.
             </p>
 
             {/* Primary CTAs */}
             <div className="flex flex-wrap gap-3 justify-center md:justify-start mb-8">
-              <Link to="/contact/requirements"
+              <Link to="/ai-data"
                 className="bg-red-600 text-white px-7 py-3.5 text-sm font-bold uppercase tracking-wide hover:opacity-90 transition rounded">
-                Fill the Brief — It's Free
+                Explore AI Data
               </Link>
-              <Link to="/services"
+              <Link to="/ai-projects"
                 className="border border-white/40 text-white px-7 py-3.5 text-sm font-bold uppercase tracking-wide hover:bg-white hover:text-black transition rounded">
-                View Services
+                Request Project Support
               </Link>
             </div>
 
@@ -135,7 +135,7 @@ export default function Home() {
       ══════════════════════════════════════════════ */}
       <div className="bg-red-600 py-4 px-6 overflow-x-auto">
         <div className="max-w-6xl mx-auto flex flex-nowrap md:flex-wrap gap-x-8 gap-y-2 justify-start md:justify-between items-center min-w-max md:min-w-0">
-          {["Website Design", "Ads Management", "Brand Strategy", "Business Email", "Website Management", "Consulting", "AI Tools", "Translation"].map(label => (
+          {["AI Datasets", "Custom Data Collection", "AI Project Teams", "Talent Sourcing", "Ready-Built Websites", "Software Products", "Web Development", "Brand Strategy"].map(label => (
             <span key={label} className="text-white text-xs font-bold uppercase tracking-widest whitespace-nowrap opacity-90">
               {label}
             </span>
@@ -147,6 +147,32 @@ export default function Home() {
           3. CORE SERVICES — what we primarily do
           Tour guide: "here's what we offer, go deeper →"
       ══════════════════════════════════════════════ */}
+      <section className="py-16 md:py-24 bg-white px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-10">
+            <p className="text-red-600 text-xs font-bold uppercase tracking-widest mb-3">Phase 2 Platform</p>
+            <h2 className="text-3xl md:text-4xl font-semibold mb-4">Choose the kind of support you need</h2>
+            <p className="text-gray-500 max-w-2xl">
+              The BrandHelper now connects companies to proprietary datasets, AI project contributors, skilled talent, and ready-built digital products.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {[
+              { title: "AI Data", desc: "Datasets, licensing, samples, and custom data collection.", to: "/ai-data" },
+              { title: "AI Projects", desc: "Training, evaluation, annotation, QA, and vendor management.", to: "/ai-projects" },
+              { title: "Talent", desc: "Freelancers, contributors, linguists, developers, and managed teams.", to: "/talent" },
+              { title: "Digital Products", desc: "Ready-built websites, platforms, and software concepts.", to: "/digital-products" },
+            ].map((item) => (
+              <Link key={item.to} to={item.to} className="border border-gray-100 rounded-xl p-6 hover:border-red-600 hover:shadow-lg transition group">
+                <h3 className="text-lg font-semibold mb-3 group-hover:text-red-600 transition">{item.title}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed mb-5">{item.desc}</p>
+                <span className="text-xs font-bold uppercase tracking-widest text-black">Explore</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="py-20 md:py-28 bg-[#F5F5F5]">
         <div className="max-w-6xl mx-auto px-6">
           <div className="mb-12 md:mb-16">
