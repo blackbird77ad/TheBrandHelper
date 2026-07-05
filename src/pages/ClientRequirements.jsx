@@ -1,11 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import emailjs from '@emailjs/browser';
 import { submitLead } from '../utils/api';
+import formGuideImg from '../photos/fill-in-forms-use-this-by-the-side-of-a-form-which-has-no-images-yet.png';
 
-const EMAILJS_SERVICE_ID  = import.meta.env.VITE_EMAILJS_SERVICE_ID || '';
-const EMAILJS_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || '';
-const EMAILJS_PUBLIC_KEY  = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '';
 const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL || '';
 
 const INDUSTRIES = [
@@ -57,7 +54,7 @@ const STEPS = [
   { title: 'Review & Submit',    emoji: '✅' },
 ];
 
-/* ── Tiny shared UI components ── */
+/* -- Tiny shared UI components -- */
 const TIP = ({ children }) => (
   <div className="bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 mb-4">
     <p className="text-xs text-blue-700 leading-relaxed">💡 {children}</p>
@@ -91,7 +88,7 @@ const StuckModal = ({ onClose }) => (
   <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={onClose}>
     <div className="bg-white rounded-3xl p-7 max-w-sm w-full" onClick={e => e.stopPropagation()}>
       <div className="text-2xl mb-1">😊 No worries!</div>
-      <p className="text-gray-600 text-sm leading-relaxed mb-5">Fill in what you can — we'll go through the rest together.</p>
+      <p className="text-gray-600 text-sm leading-relaxed mb-5">Fill in what you can  -  we'll go through the rest together.</p>
       <div className="flex flex-col gap-3">
         <a href="https://wa.me/233501657205" target="_blank" rel="noopener noreferrer"
           className="flex items-center gap-3 p-4 rounded-2xl bg-green-50 border border-green-200 hover:bg-green-100 transition-all">
@@ -174,7 +171,7 @@ export default function ClientRequirements() {
   const buildSummary = () => {
     const ind = INDUSTRIES.find(i => i.key === industry);
     return [
-      `PROJECT BRIEF — The BrandHelper`,
+      `PROJECT BRIEF  -  The BrandHelper`,
       `Submitted by: ${name}`,
       ``,
       `━━━ CONTACT ━━━`,
@@ -195,7 +192,7 @@ export default function ClientRequirements() {
       `━━━ PAGES ━━━`,
       allPages.map(p => {
         const c = pageContent[p];
-        return `• ${p} — ${c === 'have' ? 'Content ready' : c === 'write' ? 'Please write it' : 'Not sure'}`;
+        return `• ${p}  -  ${c === 'have' ? 'Content ready' : c === 'write' ? 'Please write it' : 'Not sure'}`;
       }).join('\n'),
       ``,
       `━━━ LOOK & FEEL ━━━`,
@@ -220,18 +217,18 @@ export default function ClientRequirements() {
     ].filter(l => l !== null && l !== '').join('\n');
   };
 
-  // ── SINGLE SUBMIT: Sheet + EmailJS → reveal WhatsApp ─────────────────────
+  // -- SINGLE SUBMIT: backend lead + optional Sheet → reveal WhatsApp ---------------------
   const handleSubmit = async () => {
     setSubmitting(true);
     const ind = INDUSTRIES.find(i => i.key === industry);
     const payload = {
-      // ── EmailJS routing fields — REQUIRED for delivery ──
+      // -- Backend routing fields --
       to_email:     'davida@thebrandhelper.com',
       to_name:      'The BrandHelper Team',
       from_name:    name || 'New Lead',
       reply_to:     email || 'noreply@thebrandhelper.com',
-      subject:      `New Project Brief — ${bizName || name}`,
-      // ── Form data ──
+      subject:      `New Project Brief  -  ${bizName || name}`,
+      // -- Form data --
       form_type:    'Project Requirements Brief',
       client_name:  name,
       business_name: bizName,
@@ -251,12 +248,6 @@ export default function ClientRequirements() {
     };
 
     try {
-      if (EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID && EMAILJS_PUBLIC_KEY) {
-        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, payload, EMAILJS_PUBLIC_KEY);
-      }
-    } catch (e) { console.warn('EmailJS:', e); }
-
-    try {
       if (APPS_SCRIPT_URL) {
         await fetch(APPS_SCRIPT_URL, {
           method: 'POST', mode: 'no-cors',
@@ -266,7 +257,7 @@ export default function ClientRequirements() {
       }
     } catch (e) { console.warn('Sheets:', e); }
 
-    // Server — stores lead in leads.json
+    // Server  -  stores lead in leads.json
     try { await submitLead(payload); } catch (e) { console.warn('Server:', e); }
 
     setSubmitting(false);
@@ -311,10 +302,17 @@ export default function ClientRequirements() {
       <Helmet><title>Project Requirements | The BrandHelper</title></Helmet>
       {showStuck && <StuckModal onClose={() => setShowStuck(false)} />}
 
-      <div className="bg-black text-white px-6 py-10 text-center">
-        <p className="text-red-500 text-xs font-bold uppercase tracking-widest mb-2">Free — Takes 5 mins</p>
-        <h1 className="text-3xl md:text-4xl font-extrabold leading-tight mb-3">Tell Us About Your Project</h1>
-        <p className="text-gray-400 text-sm max-w-lg mx-auto">Fill this in so we understand exactly what you need. Don't worry about getting everything perfect — just share what you can.</p>
+      <div className="bg-black text-white px-6 py-10">
+        <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-[1fr_0.85fr] md:items-center">
+          <div className="text-center md:text-left">
+            <p className="text-red-500 text-xs font-bold uppercase tracking-widest mb-2">Free  -  Takes 5 mins</p>
+            <h1 className="text-3xl md:text-4xl font-extrabold leading-tight mb-3">Tell Us About Your Project</h1>
+            <p className="text-gray-400 text-sm max-w-lg mx-auto md:mx-0">Fill this in so we understand exactly what you need. Don't worry about getting everything perfect  -  just share what you can.</p>
+          </div>
+          <div className="hidden overflow-hidden rounded-2xl border border-white/10 bg-white/5 md:block">
+            <img src={formGuideImg} alt="Project brief form guide" className="h-44 w-full object-cover" />
+          </div>
+        </div>
       </div>
 
       {/* Progress */}
@@ -338,7 +336,7 @@ export default function ClientRequirements() {
 
       <div className="max-w-xl mx-auto px-4 py-8">
 
-        {/* ── STEP 0 ── */}
+        {/* -- STEP 0 -- */}
         {step === 0 && (
           <div className="flex flex-col gap-5">
             <h2 className="text-2xl font-extrabold mb-1">Let's start with you 👋</h2>
@@ -372,7 +370,7 @@ export default function ClientRequirements() {
             </div>
             <div>
               <Label required>Why do you need a website?</Label>
-              <TIP>Pick all that apply — no wrong answers!</TIP>
+              <TIP>Pick all that apply  -  no wrong answers!</TIP>
               <div className="flex flex-wrap gap-2">
                 {WHY_WEBSITE.map(w => (
                   <CheckPill key={w.key} label={w.label} checked={whyNeeds.includes(w.key)} onChange={() => toggleArr(whyNeeds, setWhyNeeds, w.key)} />
@@ -386,11 +384,11 @@ export default function ClientRequirements() {
           </div>
         )}
 
-        {/* ── STEP 1 ── */}
+        {/* -- STEP 1 -- */}
         {step === 1 && (
           <div className="flex flex-col gap-5">
             <h2 className="text-2xl font-extrabold mb-1">About your website 🎯</h2>
-            <TIP>Just tell us in your own words — like explaining it to a friend.</TIP>
+            <TIP>Just tell us in your own words  -  like explaining it to a friend.</TIP>
             <div>
               <Label required>What is your website about?</Label>
               <Textarea value={siteAbout} onChange={e => setSiteAbout(e.target.value)} placeholder="e.g. I sell homemade soap. I want people to see my products and order from me..." />
@@ -413,11 +411,11 @@ export default function ClientRequirements() {
           </div>
         )}
 
-        {/* ── STEP 2 ── */}
+        {/* -- STEP 2 -- */}
         {step === 2 && (
           <div className="flex flex-col gap-5">
             <h2 className="text-2xl font-extrabold mb-1">Pages you need 📄</h2>
-            <TIP>Not sure which pages? Pick what sounds right — we'll advise on the call.</TIP>
+            <TIP>Not sure which pages? Pick what sounds right  -  we'll advise on the call.</TIP>
             <div>
               <Label required>Which pages do you want?</Label>
               <div className="flex flex-wrap gap-2 mb-3">
@@ -439,7 +437,7 @@ export default function ClientRequirements() {
                         {[
                           { key: 'have',   label: '✅ I have the content ready'       },
                           { key: 'write',  label: '✏️ Please write it for me'         },
-                          { key: 'unsure', label: '🤷 Not sure — take over for me'    },
+                          { key: 'unsure', label: '🤷 Not sure  -  take over for me'    },
                         ].map(o => (
                           <RadioCard key={o.key} label={o.label} checked={pageContent[p] === o.key} onClick={() => setPageContent(prev => ({ ...prev, [p]: o.key }))} />
                         ))}
@@ -453,7 +451,7 @@ export default function ClientRequirements() {
           </div>
         )}
 
-        {/* ── STEP 3 ── */}
+        {/* -- STEP 3 -- */}
         {step === 3 && (
           <div className="flex flex-col gap-5">
             <h2 className="text-2xl font-extrabold mb-1">Look & feel 🎨</h2>
@@ -473,9 +471,9 @@ export default function ClientRequirements() {
               <Label>Brand colours?</Label>
               <div className="flex flex-col gap-2 mb-3">
                 {[
-                  { key: 'yes',    label: 'Yes — I have my colours',           sub: 'Pick them below'                    },
-                  { key: 'no',     label: 'No — please choose for me',         sub: 'We pick what suits your brand'      },
-                  { key: 'unsure', label: 'Not sure — use your best judgment', sub: 'We will advise on the call'         },
+                  { key: 'yes',    label: 'Yes  -  I have my colours',           sub: 'Pick them below'                    },
+                  { key: 'no',     label: 'No  -  please choose for me',         sub: 'We pick what suits your brand'      },
+                  { key: 'unsure', label: 'Not sure  -  use your best judgment', sub: 'We will advise on the call'         },
                 ].map(o => <RadioCard key={o.key} label={o.label} sub={o.sub} checked={hasColors === o.key} onClick={() => setHasColors(o.key)} />)}
               </div>
               {hasColors === 'yes' && (
@@ -493,7 +491,7 @@ export default function ClientRequirements() {
               <Label>Any websites you like? <span className="text-gray-400 font-normal text-xs">(optional)</span></Label>
               {siteInspire.map((url, i) => (
                 <div key={i} className="mb-2">
-                  <Input value={url} onChange={e => { const c = [...siteInspire]; c[i] = e.target.value; setSiteInspire(c); }} placeholder={`Website ${i + 1} — e.g. https://example.com`} />
+                  <Input value={url} onChange={e => { const c = [...siteInspire]; c[i] = e.target.value; setSiteInspire(c); }} placeholder={`Website ${i + 1}  -  e.g. https://example.com`} />
                 </div>
               ))}
             </div>
@@ -501,11 +499,11 @@ export default function ClientRequirements() {
           </div>
         )}
 
-        {/* ── STEP 4 ── */}
+        {/* -- STEP 4 -- */}
         {step === 4 && (
           <div className="flex flex-col gap-5">
             <h2 className="text-2xl font-extrabold mb-1">What you already have 📦</h2>
-            <TIP>Don't worry if you don't have everything — we can help.</TIP>
+            <TIP>Don't worry if you don't have everything  -  we can help.</TIP>
             <div>
               <Label required>Logo?</Label>
               <div className="flex flex-col gap-2">
@@ -557,18 +555,18 @@ export default function ClientRequirements() {
               )}
             </div>
             <div>
-              <Label>Voice or video note? <span className="text-gray-400 font-normal text-xs">(optional — very helpful!)</span></Label>
+              <Label>Voice or video note? <span className="text-gray-400 font-normal text-xs">(optional  -  very helpful!)</span></Label>
               <Input value={recording} onChange={e => setRecording(e.target.value)} placeholder="Loom, Drive, or YouTube link" />
             </div>
             <div>
               <Label>Anything else? <span className="text-gray-400 font-normal text-xs">(optional)</span></Label>
-              <Textarea value={extraNotes} onChange={e => setExtraNotes(e.target.value)} placeholder="Anything at all — the more you share the better!" />
+              <Textarea value={extraNotes} onChange={e => setExtraNotes(e.target.value)} placeholder="Anything at all  -  the more you share the better!" />
             </div>
             <StuckBtn />
           </div>
         )}
 
-        {/* ── STEP 5 ── */}
+        {/* -- STEP 5 -- */}
         {step === 5 && (
           <div className="flex flex-col gap-5">
             <h2 className="text-2xl font-extrabold mb-1">Budget & timeline 💰</h2>
@@ -577,10 +575,10 @@ export default function ClientRequirements() {
               <p className="text-xs text-gray-400 mb-3">Not sure? Use our <a href="/contact/calc" className="text-red-600 underline font-bold">pricing calculator</a> for a breakdown.</p>
               <div className="flex flex-col gap-2">
                 {[
-                  { key: 'simple',       label: '🌱 Simple Website',      sub: '$300–$500 · 3–6 pages, no accounts or payments'  },
-                  { key: 'intermediate', label: '🚀 Intermediate Website', sub: '$450–$650 · Backend, admin, integrations'        },
-                  { key: 'complex',      label: '⚡ Full Web Platform',    sub: '$550–$1000 · Accounts, payments, dashboard'      },
-                  { key: 'unsure',       label: '🤷 Not sure — advise me', sub: 'We will recommend the right option'              },
+                  { key: 'simple',       label: '🌱 Simple Website',      sub: '$300-$500 · 3-6 pages, no accounts or payments'  },
+                  { key: 'intermediate', label: '🚀 Intermediate Website', sub: '$450-$650 · Backend, admin, integrations'        },
+                  { key: 'complex',      label: '⚡ Full Web Platform',    sub: '$550-$1000 · Accounts, payments, dashboard'      },
+                  { key: 'unsure',       label: '🤷 Not sure  -  advise me', sub: 'We will recommend the right option'              },
                 ].map(o => <RadioCard key={o.key} label={o.label} sub={o.sub} checked={tier === o.key} onClick={() => setTier(o.key)} />)}
               </div>
             </div>
@@ -589,11 +587,11 @@ export default function ClientRequirements() {
               <div className="flex flex-col gap-2">
                 {[
                   { key: 'under300',  label: 'Under $300'           },
-                  { key: '300_500',   label: '$300 – $500'          },
-                  { key: '500_700',   label: '$500 – $700'          },
-                  { key: '700_1000',  label: '$700 – $1,000'        },
+                  { key: '300_500',   label: '$300 - $500'          },
+                  { key: '500_700',   label: '$500 - $700'          },
+                  { key: '700_1000',  label: '$700 - $1,000'        },
                   { key: 'above1000', label: 'Above $1,000'         },
-                  { key: 'unsure',    label: 'Not sure — advise me' },
+                  { key: 'unsure',    label: 'Not sure  -  advise me' },
                 ].map(o => <RadioCard key={o.key} label={o.label} checked={budget === o.key} onClick={() => setBudget(o.key)} />)}
               </div>
             </div>
@@ -601,9 +599,9 @@ export default function ClientRequirements() {
               <Label required>When do you need it?</Label>
               <div className="flex flex-col gap-2">
                 {[
-                  { key: 'patient',  label: '🌿 No rush',   sub: '6–8 weeks · saves 20%'          },
-                  { key: 'standard', label: '⏳ Normal',     sub: '3–5 weeks · standard pricing'   },
-                  { key: 'express',  label: '⚡ Urgently',   sub: '1–2 weeks · 30% priority extra' },
+                  { key: 'patient',  label: '🌿 No rush',   sub: '6-8 weeks · saves 20%'          },
+                  { key: 'standard', label: '⏳ Normal',     sub: '3-5 weeks · standard pricing'   },
+                  { key: 'express',  label: '⚡ Urgently',   sub: '1-2 weeks · 30% priority extra' },
                   { key: 'unsure',   label: '🤷 Not sure'                                          },
                 ].map(o => <RadioCard key={o.key} label={o.label} sub={o.sub} checked={timeline === o.key} onClick={() => setTimeline(o.key)} />)}
               </div>
@@ -612,7 +610,7 @@ export default function ClientRequirements() {
           </div>
         )}
 
-        {/* ── STEP 6 — Review & Submit ── */}
+        {/* -- STEP 6  -  Review & Submit -- */}
         {step === 6 && (
           <div className="flex flex-col gap-5">
             <h2 className="text-2xl font-extrabold mb-1">Review & Submit 🎉</h2>
@@ -622,7 +620,7 @@ export default function ClientRequirements() {
             <div className="border border-gray-100 rounded-2xl overflow-hidden">
               <div className="bg-black text-white px-5 py-4">
                 <div className="font-extrabold">Your Project Brief</div>
-                <div className="text-gray-400 text-xs mt-0.5">Summary — full details sent to our team</div>
+                <div className="text-gray-400 text-xs mt-0.5">Summary  -  full details sent to our team</div>
               </div>
               {[
                 { label: 'Name',      value: name       },
@@ -648,11 +646,11 @@ export default function ClientRequirements() {
 
             <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-4">
               <p className="text-xs text-yellow-700">
-                <span className="font-bold">Not sure about any section?</span> That's fine — just submit what you have and we'll fill in the gaps on our free call.
+                <span className="font-bold">Not sure about any section?</span> That's fine  -  just submit what you have and we'll fill in the gaps on our free call.
               </p>
             </div>
 
-            {/* ── SUBMIT FLOW ── */}
+            {/* -- SUBMIT FLOW -- */}
             {!submitted ? (
               <div className="flex flex-col gap-3">
                 <button
@@ -676,13 +674,13 @@ export default function ClientRequirements() {
                 </button>
               </div>
             ) : (
-              /* ── POST-SUBMIT: WhatsApp as next step ── */
+              /* -- POST-SUBMIT: WhatsApp as next step -- */
               <div className="flex flex-col gap-3">
                 <div className="bg-green-50 border border-green-200 rounded-2xl p-5 text-center">
                   <div className="text-4xl mb-3">🎉</div>
                   <p className="font-extrabold text-green-800 text-lg mb-1">Brief received!</p>
                   <p className="text-green-600 text-sm leading-relaxed">
-                    Your project brief has been logged and our team has been notified at <strong>davida@thebrandhelper.com</strong>. Next step — send it to us on WhatsApp so we can confirm and schedule your free consultation call.
+                    Your project brief has been logged and our team has been notified at <strong>davida@thebrandhelper.com</strong>. Next step  -  send it to us on WhatsApp so we can confirm and schedule your free consultation call.
                   </p>
                 </div>
 
@@ -739,7 +737,7 @@ export default function ClientRequirements() {
         {step < 6 && (
           <button onClick={() => setStep(s => s + 1)}
             className="w-full mt-3 py-3 rounded-2xl text-gray-400 font-bold text-sm border border-dashed border-gray-200 hover:border-gray-400 transition-all">
-            Skip — I'll answer on the call →
+            Skip  -  I'll answer on the call →
           </button>
         )}
       </div>

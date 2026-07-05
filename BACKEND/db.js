@@ -1,5 +1,5 @@
 /**
- * db.js — All MongoDB models for The BrandHelper CRM
+ * db.js  -  All MongoDB models for The BrandHelper CRM
  */
 
 const mongoose = require('mongoose');
@@ -37,7 +37,7 @@ async function connect() {
   console.log('✅ MongoDB connected');
 }
 
-// ── LEAD ─────────────────────────────────────────────────────────────────────
+// -- LEAD ---------------------------------------------------------------------
 const leadSchema = new mongoose.Schema({
   // Source
   source:        { type: String, enum: ['website', 'manual', 'referral', 'social', 'other'], default: 'website' },
@@ -77,7 +77,7 @@ const leadSchema = new mongoose.Schema({
   submitted_at: { type: String, default: '' },
 }, { timestamps: true });
 
-// ── CLIENT ────────────────────────────────────────────────────────────────────
+// -- CLIENT --------------------------------------------------------------------
 const clientSchema = new mongoose.Schema({
   // Origin
   lead_id:       { type: mongoose.Schema.Types.ObjectId, ref: 'Lead', default: null },
@@ -102,7 +102,7 @@ const clientSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-// ── PROJECT ───────────────────────────────────────────────────────────────────
+// -- PROJECT -------------------------------------------------------------------
 const projectSchema = new mongoose.Schema({
   client_id:    { type: mongoose.Schema.Types.ObjectId, ref: 'Client', required: true },
   lead_id:      { type: mongoose.Schema.Types.ObjectId, ref: 'Lead', default: null },
@@ -141,7 +141,7 @@ const projectSchema = new mongoose.Schema({
   notes:        { type: String, default: '' },
 }, { timestamps: true });
 
-// ── MILESTONE ─────────────────────────────────────────────────────────────────
+// -- MILESTONE -----------------------------------------------------------------
 const milestoneSchema = new mongoose.Schema({
   project_id:  { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
   title:       { type: String, required: true },
@@ -152,7 +152,7 @@ const milestoneSchema = new mongoose.Schema({
   order:       { type: Number, default: 0 },
 }, { timestamps: true });
 
-// ── MEETING ───────────────────────────────────────────────────────────────────
+// -- MEETING -------------------------------------------------------------------
 const meetingSchema = new mongoose.Schema({
   // Can be linked to lead or project or client
   lead_id:    { type: mongoose.Schema.Types.ObjectId, ref: 'Lead',    default: null },
@@ -169,7 +169,7 @@ const meetingSchema = new mongoose.Schema({
   outcome:     { type: String, default: '' },
 }, { timestamps: true });
 
-// ── NOTE ──────────────────────────────────────────────────────────────────────
+// -- NOTE ----------------------------------------------------------------------
 const noteSchema = new mongoose.Schema({
   lead_id:    { type: mongoose.Schema.Types.ObjectId, ref: 'Lead',    default: null },
   project_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', default: null },
@@ -178,7 +178,7 @@ const noteSchema = new mongoose.Schema({
   type:       { type: String, enum: ['note', 'call', 'email', 'whatsapp', 'meeting', 'other'], default: 'note' },
 }, { timestamps: true });
 
-// ── QUOTE ─────────────────────────────────────────────────────────────────────
+// -- QUOTE ---------------------------------------------------------------------
 const quoteSchema = new mongoose.Schema({
   lead_id:   { type: mongoose.Schema.Types.ObjectId, ref: 'Lead',   default: null },
   client_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', default: null },
@@ -215,7 +215,7 @@ const quoteSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-// ── REMINDER ─────────────────────────────────────────────────────────────────
+// -- REMINDER -----------------------------------------------------------------
 const reminderSchema = new mongoose.Schema({
   lead_id:    { type: mongoose.Schema.Types.ObjectId, ref: 'Lead',    default: null },
   project_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', default: null },
@@ -228,7 +228,7 @@ const reminderSchema = new mongoose.Schema({
   sent:      { type: Boolean, default: false },
 }, { timestamps: true });
 
-// ── PORTFOLIO PROJECT (existing) ──────────────────────────────────────────────
+// -- PORTFOLIO PROJECT (existing) ----------------------------------------------
 const portfolioSchema = new mongoose.Schema({
   title:       { type: String, required: true, trim: true },
   category:    { type: String, default: 'Other' },
@@ -322,14 +322,14 @@ const phase2RequestSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 
-// ── AUTH (PIN hashes — one document, singleton) ───────────────────────────────
+// -- AUTH (PIN hashes  -  one document, singleton) -------------------------------
 const authSchema = new mongoose.Schema({
   pin_hash:    { type: String, required: true },
   master_hash: { type: String, required: true },
 }, { timestamps: true });
 
 
-// ── PROSPECT (Google Maps research leads) ─────────────────────────────────────
+// -- PROSPECT (Google Maps research leads) -------------------------------------
 const prospectSchema = new mongoose.Schema({
   // Business info
   business_name:  { type: String, required: true, trim: true },
@@ -373,7 +373,7 @@ const prospectSchema = new mongoose.Schema({
   lead_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Lead', default: null },
 }, { timestamps: true });
 
-// ── Export all models ─────────────────────────────────────────────────────────
+// -- Export all models ---------------------------------------------------------
 function getDatabaseStatus() {
   const readyState = mongoose.connection.readyState;
   return {

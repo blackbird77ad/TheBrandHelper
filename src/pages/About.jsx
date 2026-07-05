@@ -2,19 +2,19 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 
-import storyImg    from "../photos/website-page-inner-hero-img-1.webp";
-import missionImg  from "../photos/perfecthero.png";
+import storyImg    from "../photos/consult.jpg";
+import missionImg  from "../photos/Customer-suport-24-7-most-preferred.jpg";
 
 const WHATSAPP = "https://wa.me/233501657205";
 const EMAIL    = "mailto:davida@thebrandhelper.com";
 const CALENDLY = "https://calendly.com/blackbird77ad/free-consultation";
 
 const values = [
-  { icon: "⚡", title: "Execution Over Theory",     desc: "We don't just advise — we build, manage, and deliver. Every engagement ends with something real and working." },
+  { icon: "⚡", title: "Execution Over Theory",     desc: "We don't just advise  -  we build, manage, and deliver. Every engagement ends with something real and working." },
   { icon: "🔍", title: "Transparency Always",       desc: "No hidden costs, no fake timelines, no promises we can't keep. You always know exactly where things stand." },
-  { icon: "📈", title: "Results-Focused",           desc: "Everything we build is tied to a business outcome — more clients, more visibility, more revenue." },
+  { icon: "📈", title: "Results-Focused",           desc: "Everything we build is tied to a business outcome  -  more clients, more visibility, more revenue." },
   { icon: "🤝", title: "Long-Term Partnership",     desc: "We're not a one-and-done agency. We stay involved, iterate, and grow with the businesses we work with." },
-  { icon: "🌍", title: "Built for African Markets", desc: "We understand the local context — pricing, platforms, payment methods, and what actually works here." },
+  { icon: "🌍", title: "Built for African Markets", desc: "We understand the local context  -  pricing, platforms, payment methods, and what actually works here." },
   { icon: "🎯", title: "Clarity First",             desc: "Before we build anything, we make sure we're building the right thing. Strategy always comes before execution." },
 ];
 
@@ -29,13 +29,13 @@ export default function About() {
   return (
     <div className="bg-white text-black overflow-x-hidden">
       <Helmet>
-        <title>About The BrandHelper | Digital Agency — Accra, Ghana</title>
+        <title>About The BrandHelper | Digital Agency  -  Accra, Ghana</title>
         <meta name="description" content="The BrandHelper is a digital agency based in Accra, Ghana. We build websites, run ad campaigns, and develop brand strategy for businesses growing online." />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href="https://thebrandhelper.com/about" />
         <meta property="og:type"        content="website" />
         <meta property="og:url"         content="https://thebrandhelper.com/about" />
-        <meta property="og:title"       content="About The BrandHelper | Digital Agency — Accra, Ghana" />
+        <meta property="og:title"       content="About The BrandHelper | Digital Agency  -  Accra, Ghana" />
         <meta property="og:description" content="We build websites, run ads, and develop brand strategy for businesses in Ghana and globally. Learn who we are and how we work." />
         <meta property="og:image"       content="https://thebrandhelper.com/images/og-image.jpg" />
         <meta name="twitter:card"        content="summary_large_image" />
@@ -44,7 +44,7 @@ export default function About() {
         <meta name="twitter:image"       content="https://thebrandhelper.com/images/og-image.jpg" />
       </Helmet>
 
-      {/* ── HERO ── */}
+      {/* -- HERO -- */}
       <section className="min-h-[70vh] flex items-center bg-black text-white px-6">
         <div className="max-w-5xl mx-auto py-20 w-full">
           <p className="text-red-500 text-xs font-bold uppercase tracking-widest mb-5">About Us</p>
@@ -72,20 +72,20 @@ export default function About() {
         </div>
       </section>
 
-      {/* ── STORY ── */}
+      {/* -- STORY -- */}
       <section className="py-20 md:py-28 bg-white">
         <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 md:gap-16 items-center">
           <div>
             <p className="text-red-600 text-xs font-bold uppercase tracking-widest mb-4">Our Story</p>
             <h2 className="text-3xl md:text-4xl font-semibold mb-6">Built to cut through the confusion</h2>
             <p className="text-gray-600 text-base md:text-lg leading-relaxed mb-5">
-              The Brand Helper was built because too many businesses were sold motivation without structure — advice without execution. Founders were being told what to do, but nobody was actually doing it with them.
+              The Brand Helper was built because too many businesses were sold motivation without structure  -  advice without execution. Founders were being told what to do, but nobody was actually doing it with them.
             </p>
             <p className="text-gray-600 text-base md:text-lg leading-relaxed mb-5">
               We started as a hands-on agency focused on one thing: helping real businesses get online properly. Not templates. Not generic packages. Custom, considered work that ties back to business outcomes.
             </p>
             <p className="text-gray-600 text-base md:text-lg leading-relaxed">
-              Today we work with businesses across industries — e-commerce, food, consulting, health, education, and more — delivering websites, ad campaigns, brand strategy, and technical support that actually moves the needle.
+              Today we work with businesses across industries  -  e-commerce, food, consulting, health, education, and more  -  delivering websites, ad campaigns, brand strategy, and technical support that actually moves the needle.
             </p>
           </div>
           <div className="rounded-xl overflow-hidden order-first md:order-last">
@@ -94,7 +94,7 @@ export default function About() {
         </div>
       </section>
 
-      {/* ── VALUES ── */}
+      {/* -- VALUES -- */}
       <section className="py-20 md:py-28 bg-[#F5F5F5]">
         <div className="max-w-6xl mx-auto px-6">
           <div className="mb-12 md:mb-16 text-center">
@@ -113,7 +113,7 @@ export default function About() {
         </div>
       </section>
 
-      {/* ── CAPABILITIES ── */}
+      {/* -- CAPABILITIES -- */}
       <section className="py-20 md:py-28 bg-black text-white">
         <div className="max-w-6xl mx-auto px-6">
           <div className="mb-12">
@@ -148,7 +148,7 @@ export default function About() {
         </div>
       </section>
 
-      {/* ── MISSION ── */}
+      {/* -- MISSION -- */}
       <section className="py-20 md:py-28 bg-white">
         <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 md:gap-16 items-center">
           <div className="rounded-xl overflow-hidden">
@@ -158,7 +158,7 @@ export default function About() {
             <p className="text-red-600 text-xs font-bold uppercase tracking-widest mb-4">Our Mission</p>
             <h2 className="text-3xl md:text-4xl font-semibold mb-6">Make digital growth accessible, practical, and trustworthy</h2>
             <p className="text-gray-600 text-base md:text-lg leading-relaxed mb-5">
-              We work with individuals, creators, and small businesses who want real outcomes — not theory. Our mission is to bridge the gap between business ambition and digital execution.
+              We work with individuals, creators, and small businesses who want real outcomes  -  not theory. Our mission is to bridge the gap between business ambition and digital execution.
             </p>
             <p className="text-gray-600 text-base md:text-lg leading-relaxed mb-8">
               Every project we take on is an opportunity to help a business reach more people, operate more professionally, and build something sustainable.
@@ -177,7 +177,7 @@ export default function About() {
         </div>
       </section>
 
-      {/* ── CTA ── */}
+      {/* -- CTA -- */}
       <section className="py-20 bg-red-600 text-white text-center px-6">
         <div className="max-w-3xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-extrabold mb-5">Ready to work together?</h2>

@@ -1,7 +1,7 @@
 {
   "name": "tbh-server",
   "version": "1.0.0",
-  "description": "The BrandHelper backend — portfolio, leads, and data storage",
+  "description": "The BrandHelper backend  -  portfolio, leads, and data storage",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",

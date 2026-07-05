@@ -1,4 +1,4 @@
-// ── CSV Import ────────────────────────────────────────────────────────────────
+// -- CSV Import ----------------------------------------------------------------
 function parseCSV(text) {
   const lines = text.trim().split("\n").filter(Boolean);
   if (lines.length < 2) return [];
@@ -19,7 +19,7 @@ function parseCSV(text) {
 }
 
 /**
- * ProspectTab.jsx — Google Maps Lead Research + CRM Tracking
+ * ProspectTab.jsx  -  Google Maps Lead Research + CRM Tracking
  * Place in: src/components/ProspectTab.jsx
  * Import and add as a tab in Admin.jsx
  */
@@ -27,7 +27,7 @@ function parseCSV(text) {
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import * as api from "../utils/api";
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+// -- Constants -----------------------------------------------------------------
 const COUNTRIES = ["Ghana","USA","UK","Germany","Dubai / UAE","Canada","Australia","South Africa","Nigeria","Kenya","Other"];
 
 const NICHES = [
@@ -89,7 +89,6 @@ const KEYWORDS = {
   "Catering / Food":   ["catering company","catering service","food service","corporate catering","event catering","food delivery"],
   "Interior Design":   ["interior decorator","interior designer","home decorator","interior design firm","luxury interior"],
   "Architecture":      ["architect","architectural firm","building design","quantity surveyor","structural engineer"],
-  "Logistics / Freight":["logistics company","courier service","delivery company","freight company"],
   "Restaurant":        ["restaurant","chop bar","eatery","food court","canteen","fast food","fine dining","takeaway"],
   "Fashion / Clothing":["fashion brand","clothing boutique","clothing store","fashion designer","African print","boutique"],
   "Beauty / Salon":    ["beauty salon","hair salon","nail salon","barbershop","hair vendor","natural hair salon","lash studio"],
@@ -126,7 +125,7 @@ function waLink(phone) {
   return `https://wa.me/${normalized}`;
 }
 
-// ── CSV export ────────────────────────────────────────────────────────────────
+// -- CSV export ----------------------------------------------------------------
 function exportCSV(prospects) {
   const headers = ["Business Name","Niche","Country","Location","What They Do","Phone","Email","Website","Google Rating","Reviews","Website Status","Outreach Status","Tag","Estimated Value","Comment","Maps URL"];
   const rows = prospects.map(p => [
@@ -144,7 +143,7 @@ function exportCSV(prospects) {
   a.click(); URL.revokeObjectURL(url);
 }
 
-// ── WhatsApp bulk export ──────────────────────────────────────────────────────
+// -- WhatsApp bulk export ------------------------------------------------------
 function exportWhatsApp(prospects) {
   const lines = prospects.filter(p => p.phone).map(p =>
     `*${p.business_name}*\n${p.niche || ""} · ${p.location || ""}\n${waLink(p.phone)}`
@@ -261,7 +260,7 @@ export default function ProspectTab({ onError }) {
   const toggleOne    = (id) => setSelected(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
   const selectedData = prospects.filter(p => selected.includes(p._id));
 
-  // ── Stats row ────────────────────────────────────────────────────────────────
+  // -- Stats row ----------------------------------------------------------------
   const stats = {
     total:         prospects.length,
     no_website:    prospects.filter(p => p.website_status === "no_website").length,
@@ -270,7 +269,7 @@ export default function ProspectTab({ onError }) {
     converted:     prospects.filter(p => p.outreach_status === "converted").length,
   };
 
-  // ── VIEWS ─────────────────────────────────────────────────────────────────────
+  // -- VIEWS ---------------------------------------------------------------------
 
   if (view === "search") return <SearchView onBack={() => setView("list")} onAdd={async (p) => { try { await api.createProspect(p); await load(); } catch(e){ onError(e.message); } }} onError={onError} />;
 
@@ -278,7 +277,7 @@ export default function ProspectTab({ onError }) {
 
   if (detail) return <ProspectDetail prospect={detail} onBack={() => setDetail(null)} onEdit={() => { openEdit(detail); }} onDelete={() => deleteProspect(detail._id)} onConvert={() => convertToLead(detail._id)} onUpdateStatus={updateStatus} onError={onError} onReload={load} />;
 
-  // ── LIST VIEW ─────────────────────────────────────────────────────────────────
+  // -- LIST VIEW -----------------------------------------------------------------
   return (
     <div>
       {/* Header */}
@@ -457,7 +456,7 @@ export default function ProspectTab({ onError }) {
                         {TAGS.map(t => <option key={t.value} value={t.value}>{t.label || "No tag"}</option>)}
                       </select>
                     </td>
-                    <td className="p-3 text-xs font-bold text-green-600">{p.estimated_value || "—"}</td>
+                    <td className="p-3 text-xs font-bold text-green-600">{p.estimated_value || " - "}</td>
                     <td className="p-3">
                       <div className="flex gap-1.5 flex-wrap">
                         {p.phone && (
@@ -483,7 +482,7 @@ export default function ProspectTab({ onError }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// SEARCH VIEW — Google Maps search generator + quick add
+// SEARCH VIEW  -  Google Maps search generator + quick add
 // ══════════════════════════════════════════════════════════════════════════════
 function SearchView({ onBack, onAdd, onError }) {
   const [niche,      setNiche]     = useState("");
@@ -571,7 +570,7 @@ function SearchView({ onBack, onAdd, onError }) {
           <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">
             {results.length} searches for {niche} in {customLoc || country}
           </p>
-          <p className="text-xs text-gray-400 mb-4">Click to open Google Maps. Find a business without a website — come back and click Add to save it.</p>
+          <p className="text-xs text-gray-400 mb-4">Click to open Google Maps. Find a business without a website  -  come back and click Add to save it.</p>
           <div className="flex flex-col gap-3">
             {results.map(({ query, url }) => (
               <div key={query} className="flex items-center gap-3 p-3 border border-gray-100 rounded-xl hover:border-gray-300 transition">
@@ -655,7 +654,7 @@ function ProspectForm({ form, setF, onSave, onCancel, saving, isEdit }) {
                   {WEBSITE_STATUS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
               </div>
-              <div><label className="block text-xs font-bold text-gray-600 mb-1.5">Est. Project Value</label><input className={inp} value={form.estimated_value} onChange={e => setF("estimated_value", e.target.value)} placeholder="$300–$600"/></div>
+              <div><label className="block text-xs font-bold text-gray-600 mb-1.5">Est. Project Value</label><input className={inp} value={form.estimated_value} onChange={e => setF("estimated_value", e.target.value)} placeholder="$300-$600"/></div>
               <div><label className="block text-xs font-bold text-gray-600 mb-1.5">Added to Google</label><input className={inp} value={form.google_added} onChange={e => setF("google_added", e.target.value)} placeholder="e.g. Jan 2022"/></div>
             </div>
           </div>
@@ -709,7 +708,7 @@ function ProspectDetail({ prospect: p, onBack, onEdit, onDelete, onConvert, onUp
   const waMsg = encodeURIComponent(
     `Hi, I came across ${p.business_name} on Google Maps.\n\n` +
     (p.website_status === "no_website"
-      ? `I noticed your business doesn't have a website yet — which means customers who search Google for what you offer can't find you.\n\n`
+      ? `I noticed your business doesn't have a website yet  -  which means customers who search Google for what you offer can't find you.\n\n`
       : `I checked your website and I think there's an opportunity to improve it.\n\n`) +
     `I build professional websites for ${p.niche || "businesses"} in ${p.country}.\n\nWould you be open to a quick call this week?`
   );
@@ -736,7 +735,7 @@ function ProspectDetail({ prospect: p, onBack, onEdit, onDelete, onConvert, onUp
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Left — business info */}
+        {/* Left  -  business info */}
         <div className="lg:col-span-2 flex flex-col gap-4">
           <div className="bg-white rounded-2xl p-5 shadow-sm">
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Business</p>
@@ -775,7 +774,7 @@ function ProspectDetail({ prospect: p, onBack, onEdit, onDelete, onConvert, onUp
           )}
         </div>
 
-        {/* Right — status controls */}
+        {/* Right  -  status controls */}
         <div className="flex flex-col gap-4">
           <div className="bg-white rounded-2xl p-5 shadow-sm">
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Status</p>

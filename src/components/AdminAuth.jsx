@@ -1,7 +1,7 @@
 /**
- * AdminAuth.jsx — Server-backed PIN authentication
+ * AdminAuth.jsx  -  Server-backed PIN authentication
  * PIN hashes stored in MongoDB. Works on every device.
- * No localStorage for security data — only sessionStorage for active session.
+ * No localStorage for security data  -  only sessionStorage for active session.
  *
  * Flows:
  *   First visit (any device): Setup screen → set PIN + Master PIN → hashes sent to server
@@ -23,12 +23,12 @@ const LOCKOUT_KEY   = "tbh_lockout_until";
 
 const BASE          = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
-// ── Session helpers (sessionStorage only — clears on tab close) ───────────────
+// -- Session helpers (sessionStorage only  -  clears on tab close) ---------------
 const isSession  = () => sessionStorage.getItem(SESSION_KEY) === "1";
 const startSession = () => sessionStorage.setItem(SESSION_KEY, "1");
 const endSession   = () => sessionStorage.removeItem(SESSION_KEY);
 
-// ── Lockout helpers (sessionStorage — resets when browser closes) ─────────────
+// -- Lockout helpers (sessionStorage  -  resets when browser closes) -------------
 function getAttempts()   { return parseInt(sessionStorage.getItem(ATTEMPT_KEY) || "0"); }
 function addAttempt()    { sessionStorage.setItem(ATTEMPT_KEY, String(getAttempts() + 1)); }
 function clearAttempts() { sessionStorage.removeItem(ATTEMPT_KEY); sessionStorage.removeItem(LOCKOUT_KEY); }
@@ -41,7 +41,7 @@ function isLockedOut()   {
 function lockOut()       { sessionStorage.setItem(LOCKOUT_KEY, String(Date.now() + LOCKOUT_MS)); }
 function getLockoutMins(){ return Math.ceil((parseInt(sessionStorage.getItem(LOCKOUT_KEY)||"0") - Date.now()) / 60000); }
 
-// ── Server calls ──────────────────────────────────────────────────────────────
+// -- Server calls --------------------------------------------------------------
 async function apiGet(path) {
   const r = await fetch(`${BASE}${path}`);
   return r.json();
@@ -54,8 +54,18 @@ async function apiPost(path, body) {
   });
   return r.json();
 }
-
-// ── Tiny UI pieces ────────────────────────────────────────────────────────────
+async function apiPostWithSecret(path, secret, body = {}) {
+  const r = await fetch(`${BASE}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Admin-Secret": secret,
+    },
+    body: JSON.stringify(body),
+  });
+  return r.json();
+}
+// -- Tiny UI pieces ------------------------------------------------------------
 function BrandHeader({ sub }) {
   return (
     <div className="text-center mb-6">
@@ -112,7 +122,7 @@ function NumPad({ onDigit, onDelete, onSubmit, label, disabled }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// SETUP SCREEN — runs once on first ever visit across all devices
+// SETUP SCREEN  -  runs once on first ever visit across all devices
 // ══════════════════════════════════════════════════════════════════════════════
 function SetupScreen({ onDone }) {
   const STEPS = ["Set Admin PIN", "Confirm Admin PIN", "Set Master PIN", "Confirm Master PIN"];
@@ -131,13 +141,13 @@ function SetupScreen({ onDone }) {
     setError("");
     if (current.length < 4) { setError("Minimum 4 digits"); return; }
 
-    // Confirm steps — check match
-    if (step === 1 && current !== pins[0]) { setError("PINs don't match — try again"); setVal(""); return; }
-    if (step === 3 && current !== pins[2]) { setError("Master PINs don't match — try again"); setVal(""); return; }
+    // Confirm steps  -  check match
+    if (step === 1 && current !== pins[0]) { setError("PINs don't match  -  try again"); setVal(""); return; }
+    if (step === 3 && current !== pins[2]) { setError("Master PINs don't match  -  try again"); setVal(""); return; }
 
     if (step < 3) { setStep(s => s + 1); return; }
 
-    // Final step — hash both and send to server
+    // Final step  -  hash both and send to server
     setSaving(true);
     try {
       const [pin_hash, master_hash] = await Promise.all([
@@ -148,8 +158,8 @@ function SetupScreen({ onDone }) {
       if (!res.success) { setError(res.error || "Setup failed"); setSaving(false); return; }
       startSession();
       onDone();
-    } catch (e) {
-      setError("Server error — is the server running?");
+    } catch {
+      setError("Server error  -  is the server running?");
       setSaving(false);
     }
   };
@@ -179,7 +189,7 @@ function SetupScreen({ onDone }) {
 
         <p className="text-xs text-gray-400 text-center mt-5 leading-relaxed">
           Admin PIN unlocks daily access. Master PIN resets the Admin PIN if forgotten.
-          Both stored as secure hashes in your database — never in plaintext.
+          Both stored as secure hashes in your database  -  never in plaintext.
         </p>
       </div>
     </div>
@@ -189,17 +199,159 @@ function SetupScreen({ onDone }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // LOGIN SCREEN
 // ══════════════════════════════════════════════════════════════════════════════
-function LoginScreen({ onUnlock }) {
+function EmergencyResetFlow({ onDone, onCancel }) {
+  const [secret, setSecret] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [status, setStatus] = useState("idle");
+  const [error, setError] = useState("");
+
+  const reset = async (event) => {
+    event.preventDefault();
+    setError("");
+    if (!secret.trim()) { setError("Enter the server admin secret"); return; }
+    if (confirm.trim().toUpperCase() !== "RESET") { setError("Type RESET to confirm"); return; }
+    setStatus("saving");
+    try {
+      const res = await apiPostWithSecret("/api/auth/full-reset", secret.trim());
+      if (!res.success) {
+        setError(res.error || "Reset failed");
+        setStatus("idle");
+        return;
+      }
+      clearAttempts();
+      endSession();
+      setStatus("done");
+      setTimeout(onDone, 900);
+    } catch {
+      setError("Server unreachable - check the backend");
+      setStatus("idle");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-black flex items-center justify-center px-6 py-10">
+      <form onSubmit={reset} className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl">
+        <BrandHeader sub="Emergency Admin Reset" />
+        <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-sm leading-relaxed text-red-800">
+          This clears only the saved Admin PIN and Master PIN hashes. Leads, clients, products, and projects stay untouched.
+        </div>
+        <div className="mt-5">
+          <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-gray-500">Server admin secret</label>
+          <input
+            type="password"
+            value={secret}
+            onChange={(event) => setSecret(event.target.value)}
+            className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-black"
+            placeholder="Enter ADMIN_SECRET"
+            autoComplete="off"
+          />
+        </div>
+        <div className="mt-4">
+          <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-gray-500">Type RESET</label>
+          <input
+            value={confirm}
+            onChange={(event) => setConfirm(event.target.value)}
+            className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-black"
+            placeholder="RESET"
+            autoComplete="off"
+          />
+        </div>
+        {error && <p className="mt-4 text-center text-xs font-bold text-red-600">{error}</p>}
+        {status === "done" && <p className="mt-4 text-center text-xs font-bold text-green-700">PINs cleared. Opening setup...</p>}
+        <button
+          type="submit"
+          disabled={status === "saving" || status === "done"}
+          className="mt-5 w-full rounded-2xl bg-red-600 py-3 text-sm font-extrabold text-white transition hover:bg-black disabled:opacity-50"
+        >
+          {status === "saving" ? "Resetting..." : "Clear PINs and Set New Ones"}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="mt-4 w-full text-xs font-bold text-gray-400 transition hover:text-black"
+        >
+          Back to login
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function ResetRequestFlow({ onCancel }) {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState("idle");
+  const [error, setError] = useState("");
+
+  const submit = async (event) => {
+    event.preventDefault();
+    const cleanEmail = email.trim().toLowerCase();
+    setError("");
+    if (!cleanEmail) { setError("Enter your admin email"); return; }
+    setStatus("sending");
+
+    try {
+      const res = await apiPost("/api/auth/request-reset", { email: cleanEmail });
+      setStatus(res.email_sent ? "sent" : "logged");
+    } catch {
+      setError("Could not submit reset request. Check the backend connection.");
+      setStatus("idle");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-black flex items-center justify-center px-6 py-10">
+      <form onSubmit={submit} className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl">
+        <BrandHeader sub="Request PIN Reset" />
+        <p className="mb-5 text-center text-sm leading-relaxed text-gray-500">
+          Enter an admin email. If it matches the admin list, the request is logged and the backend sends a Resend notification to the admin emails.
+        </p>
+        <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-gray-500">Admin email</label>
+        <input
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-black"
+          placeholder="admin@email.com"
+          autoComplete="email"
+        />
+        {error && <p className="mt-4 text-center text-xs font-bold text-red-600">{error}</p>}
+        {status === "sent" && <p className="mt-4 text-center text-xs font-bold text-green-700">Reset request emailed and logged.</p>}
+        {status === "logged" && (
+          <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-center">
+            <p className="text-xs font-bold text-amber-700">Request logged. Resend is not configured on the backend yet, so no automatic email was sent.</p>
+          </div>
+        )}
+        <button
+          type="submit"
+          disabled={status === "sending"}
+          className="mt-5 w-full rounded-2xl bg-black py-3 text-sm font-extrabold text-white transition hover:bg-red-600 disabled:opacity-50"
+        >
+          {status === "sending" ? "Sending..." : "Send Reset Request"}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="mt-4 w-full text-xs font-bold text-gray-400 transition hover:text-black"
+        >
+          Back to login
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function LoginScreen({ onUnlock, onResetAuth }) {
   const [pin,        setPin]        = useState("");
   const [mode,       setMode]       = useState("pin"); // "pin" | "master"
+  const [email,      setEmail]      = useState("");
+  const [password,   setPassword]   = useState("");
   const [error,      setError]      = useState("");
   const [checking,   setChecking]   = useState(false);
   const [locked,     setLocked]     = useState(isLockedOut);
+  const [emergency,  setEmergency]  = useState(false);
+  const [resetRequest, setResetRequest] = useState(false);
 
-  // New PIN after master verify
   const [resetStep,  setResetStep]  = useState(0); // 0=off, 1=new, 2=confirm
-  const [newPin,     setNewPin]     = useState("");
-  const [newConf,    setNewConf]    = useState("");
 
   useEffect(() => {
     if (!locked) return;
@@ -219,7 +371,7 @@ function LoginScreen({ onUnlock }) {
       if (res.success) {
         clearAttempts();
         if (res.type === "master") {
-          // Master PIN — go to reset flow
+          // Master PIN  -  go to reset flow
           setResetStep(1); setPin(""); setChecking(false); return;
         }
         startSession();
@@ -231,38 +383,44 @@ function LoginScreen({ onUnlock }) {
         else           { setError(`Incorrect PIN. ${left} attempt${left !== 1 ? "s" : ""} left.`); }
         setPin("");
       }
-    } catch (e) { setError("Server unreachable — check connection"); }
+    } catch { setError("Server unreachable  -  check connection"); }
     setChecking(false);
   };
 
-  // ── New PIN reset flow after master verified ──────────────────────────────
-  const newDigit  = d => {
-    if (resetStep === 1 && newPin.length  < 6) setNewPin(p  => p + d);
-    if (resetStep === 2 && newConf.length < 6) setNewConf(p => p + d);
-  };
-  const newDelete = () => {
-    if (resetStep === 1) setNewPin(p  => p.slice(0,-1));
-    if (resetStep === 2) setNewConf(p => p.slice(0,-1));
-  };
-  const newSubmit = async () => {
-    setError("");
-    const val = resetStep === 1 ? newPin : newConf;
-    if (val.length < 4) { setError("Minimum 4 digits"); return; }
-    if (resetStep === 1) { setResetStep(2); return; }
-    if (newPin !== newConf) { setError("PINs don't match"); setNewConf(""); setResetStep(1); return; }
-    setChecking(true);
+  const attemptPassword = async (event) => {
+    event.preventDefault();
+    if (locked || checking) return;
+    if (!email.trim() || !password) { setError("Enter admin email and password"); return; }
+    setChecking(true); setError("");
     try {
-      const new_pin_hash = await bcrypt.hash(newPin, SALT_ROUNDS);
-      // Need to re-verify master to send reset — ask for master again inline
-      // Actually we need the raw master PIN to send to server for verification
-      // We stored it in a ref during verification — use a different approach:
-      // Server /api/auth/reset-pin needs the raw master PIN for bcrypt compare
-      // We don't have it anymore — use a one-time token approach instead
-      // Simpler: store master PIN temporarily in memory during this flow
-      setError("Use the reset flow below — enter master PIN again with new PIN");
-      setResetStep(0); setNewPin(""); setNewConf(""); setChecking(false);
-    } catch(e) { setError("Error"); setChecking(false); }
+      const res = await apiPost("/api/auth/password-login", {
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      if (res.success) {
+        clearAttempts();
+        startSession();
+        onUnlock();
+      } else {
+        addAttempt();
+        const left = MAX_ATTEMPTS - getAttempts();
+        if (left <= 0) { lockOut(); setLocked(true); setError(`Too many attempts. Locked ${getLockoutMins()} min.`); }
+        else { setError(`Invalid admin login. ${left} attempt${left !== 1 ? "s" : ""} left.`); }
+        setPassword("");
+      }
+    } catch {
+      setError("Server unreachable  -  check connection");
+    }
+    setChecking(false);
   };
+
+  if (emergency) {
+    return <EmergencyResetFlow onDone={onResetAuth} onCancel={() => setEmergency(false)} />;
+  }
+
+  if (resetRequest) {
+    return <ResetRequestFlow onCancel={() => setResetRequest(false)} />;
+  }
 
   if (resetStep > 0) {
     return <ResetPinFlow onDone={() => { startSession(); onUnlock(); }} onCancel={() => { setResetStep(0); setMode("pin"); setPin(""); }} />;
@@ -275,8 +433,8 @@ function LoginScreen({ onUnlock }) {
 
         {/* Mode toggle */}
         <div className="flex gap-2 justify-center mb-5">
-          {[["pin","Admin PIN"],["master","Forgot PIN?"]].map(([m, label]) => (
-            <button key={m} onClick={() => { setMode(m); setPin(""); setError(""); }}
+          {[["pin","Admin PIN"],["password","Password"],["master","Reset PIN"]].map(([m, label]) => (
+            <button key={m} onClick={() => { setMode(m); setPin(""); setPassword(""); setError(""); }}
               className={`px-4 py-1.5 rounded-full text-xs font-bold transition
                 ${mode === m ? "bg-black text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
               {label}
@@ -293,23 +451,68 @@ function LoginScreen({ onUnlock }) {
           </div>
         ) : (
           <>
-            <PinDots length={pin.length} error={!!error} />
-            {error && <p className="text-red-500 text-xs text-center font-bold mb-3">{error}</p>}
-            <NumPad
-              onDigit={handleDigit}
-              onDelete={handleDelete}
-              onSubmit={attempt}
-              label={checking ? "Checking..." : mode === "master" ? "Verify Master →" : "Unlock →"}
-              disabled={checking || locked}
-            />
+            {mode === "password" ? (
+              <form onSubmit={attemptPassword} className="space-y-3">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-black"
+                  placeholder="Admin email"
+                  autoComplete="email"
+                />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-black"
+                  placeholder="Admin password"
+                  autoComplete="current-password"
+                />
+                {error && <p className="text-red-500 text-xs text-center font-bold">{error}</p>}
+                <button
+                  type="submit"
+                  disabled={checking || locked}
+                  className="w-full rounded-2xl bg-black py-3 text-sm font-extrabold text-white transition hover:bg-red-600 disabled:opacity-40"
+                >
+                  {checking ? "Checking..." : "Unlock with Password"}
+                </button>
+              </form>
+            ) : (
+              <>
+                <PinDots length={pin.length} error={!!error} />
+                {error && <p className="text-red-500 text-xs text-center font-bold mb-3">{error}</p>}
+                <NumPad
+                  onDigit={handleDigit}
+                  onDelete={handleDelete}
+                  onSubmit={attempt}
+                  label={checking ? "Checking..." : mode === "master" ? "Verify Master →" : "Unlock →"}
+                  disabled={checking || locked}
+                />
+              </>
+            )}
           </>
         )}
+        <button
+          type="button"
+          onClick={() => { setResetRequest(true); setPin(""); setError(""); }}
+          className="mt-5 w-full text-center text-xs font-bold text-gray-400 transition hover:text-black"
+        >
+          Email a reset request
+        </button>
+        <button
+          type="button"
+          onClick={() => { setEmergency(true); setPin(""); setError(""); }}
+          className="mt-3 w-full text-center text-xs font-bold text-gray-400 transition hover:text-red-600"
+        >
+          Forgot both PINs? Use server reset
+        </button>
       </div>
     </div>
   );
 }
 
-// ── Reset PIN flow — enter master PIN + new PIN in one form ───────────────────
+// -- Reset PIN flow  -  enter master PIN + new PIN in one form -------------------
 function ResetPinFlow({ onDone, onCancel }) {
   const STEPS = ["Enter Master PIN", "Set New Admin PIN", "Confirm New Admin PIN"];
   const [step,    setStep]    = useState(0);
@@ -328,7 +531,7 @@ function ResetPinFlow({ onDone, onCancel }) {
     if (step === 2 && current !== vals[1]) { setError("PINs don't match"); setVal(""); return; }
     if (step < 2)  { setStep(s => s+1); return; }
 
-    // Step 2 done — send to server
+    // Step 2 done  -  send to server
     setSaving(true);
     try {
       const new_pin_hash = await bcrypt.hash(vals[1], SALT_ROUNDS);
@@ -339,7 +542,7 @@ function ResetPinFlow({ onDone, onCancel }) {
       if (!res.success) { setError(res.error || "Reset failed"); setSaving(false); return; }
       clearAttempts();
       onDone();
-    } catch(e) { setError("Server error"); setSaving(false); }
+    } catch { setError("Server error"); setSaving(false); }
   };
 
   return (
@@ -395,10 +598,11 @@ export function LogoutButton({ onLogout }) {
 export default function AdminAuth({ children }) {
   const [status, setStatus] = useState("loading"); // loading | setup | locked | unlocked
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (isSession()) { setStatus("unlocked"); return; }
 
-    // Timeout after 6 seconds — fall through to login screen
+    // Timeout after 6 seconds  -  fall through to login screen
     const timeout = setTimeout(() => setStatus("locked"), 6000);
 
     apiGet("/api/auth/status")
@@ -413,6 +617,7 @@ export default function AdminAuth({ children }) {
 
     return () => clearTimeout(timeout);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (status === "loading") return (
     <div className="min-h-screen bg-black flex items-center justify-center">
@@ -426,6 +631,6 @@ export default function AdminAuth({ children }) {
   );
 
   if (status === "setup")    return <SetupScreen  onDone={()    => setStatus("unlocked")} />;
-  if (status === "locked")   return <LoginScreen  onUnlock={()  => setStatus("unlocked")} />;
+  if (status === "locked")   return <LoginScreen  onUnlock={()  => setStatus("unlocked")} onResetAuth={() => setStatus("setup")} />;
   return children({ onLogout: () => setStatus("locked") });
 }

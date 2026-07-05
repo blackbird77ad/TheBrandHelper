@@ -2,15 +2,12 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 
-// ── All images from your existing src/photos/ folder ──────────────────────
-// These are confirmed present in your codebase — no training photos used
-import websiteDesignImg  from "../photos/responsivewebdesign-1.png";
-import websiteManageImg  from "../photos/website-page-inner-hero-img-1.webp";
-import businessEmailImg  from "../photos/custom-domain-email-mailbox-1.jpg";
+import websiteDesignImg  from "../photos/website-page-inner-hero-img-1.webp";
+import websiteManageImg  from "../photos/Website Management1.png";
+import businessEmailImg  from "../photos/Professional Business Email - service page.webp";
 import adsManagementImg  from "../photos/Facebook-Ads.webp";
-import brandStrategyImg  from "../photos/how-to-run-multiple-ad-campaigns-on-facebook-rd5rn3hdqt26ovpxwhalq8rtc9ddf1lrxx09wum2ng.png";
-import consultingImg     from "../photos/consult.jpg";
-// Hero background — branding photo, professional and relevant
+import brandStrategyImg  from "../photos/Brand Strategy-image2-new.webp";
+import consultingImg     from "../photos/Consulting & Coaching replacement image.webp";
 import heroImg           from "../photos/branding-hero.jpeg";
 
 const WHATSAPP = "https://wa.me/233501657205";
@@ -23,7 +20,7 @@ const coreServices = [
     image: websiteDesignImg,
     badge: "Most Popular",
     description:
-      "Modern, responsive websites built to convert — from simple 6-page brochure sites to full platforms with user accounts, payments, and custom dashboards.",
+      "Modern, responsive websites built to convert  -  from simple 6-page brochure sites to full platforms with user accounts, payments, and custom dashboards.",
     points: ["Mobile-first & fast", "SEO optimised", "Domain & hosting included", "Payment & booking integrations"],
   },
   {
@@ -47,7 +44,7 @@ const coreServices = [
     image: adsManagementImg,
     badge: null,
     description:
-      "End-to-end Facebook, Instagram, and Google ad campaign management — strategy, creative, targeting, and reporting done for you.",
+      "End-to-end Facebook, Instagram, and Google ad campaign management  -  strategy, creative, targeting, and reporting done for you.",
     points: ["Facebook & Instagram ads", "Google Ads", "Creative & copywriting", "Weekly reporting"],
   },
   {
@@ -72,12 +69,12 @@ const supportServices = [
   {
     emoji: "🤖",
     name: "AI Tools & Automation",
-    description: "We identify and integrate the right AI tools into your business workflow — saving time, reducing manual work, and improving output quality.",
+    description: "We identify and integrate the right AI tools into your business workflow  -  saving time, reducing manual work, and improving output quality.",
   },
   {
     emoji: "✍️",
     name: "Technical Writing",
-    description: "SOPs, product descriptions, user documentation, and business guides — clear, professional, and ready to use.",
+    description: "SOPs, product descriptions, user documentation, and business guides  -  clear, professional, and ready to use.",
   },
   {
     emoji: "🌍",
@@ -87,12 +84,12 @@ const supportServices = [
   {
     emoji: "📞",
     name: "Customer Support Setup",
-    description: "We help you design and implement a professional customer support system — scripts, channels, tools, and workflows.",
+    description: "We help you design and implement a professional customer support system  -  scripts, channels, tools, and workflows.",
   },
   {
     emoji: "📋",
     name: "Project & Technical Support",
-    description: "A reliable technical partner for project managers and business owners who need execution support — not just advice.",
+    description: "A reliable technical partner for project managers and business owners who need execution support  -  not just advice.",
   },
 ];
 
@@ -100,13 +97,13 @@ export default function Services() {
   return (
     <div className="bg-white text-black overflow-x-hidden">
       <Helmet>
-        <title>Services | The BrandHelper — Website Design, Ads, Brand Strategy</title>
+        <title>Services | The BrandHelper  -  Website Design, Ads, Brand Strategy</title>
         <meta name="description" content="Website design and development, ads management, brand strategy, business email setup, website management, and consulting. Transparent pricing, real results." />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href="https://thebrandhelper.com/services" />
         <meta property="og:type"        content="website" />
         <meta property="og:url"         content="https://thebrandhelper.com/services" />
-        <meta property="og:title"       content="Services | The BrandHelper — Website Design, Ads, Brand Strategy" />
+        <meta property="og:title"       content="Services | The BrandHelper  -  Website Design, Ads, Brand Strategy" />
         <meta property="og:description" content="Professional digital services: website design, Facebook and Google ads, brand strategy, business email, and more. Starting from $150." />
         <meta property="og:image"       content="https://thebrandhelper.com/images/og-image.jpg" />
         <meta name="twitter:card"        content="summary_large_image" />
@@ -115,7 +112,7 @@ export default function Services() {
         <meta name="twitter:image"       content="https://thebrandhelper.com/images/og-image.jpg" />
       </Helmet>
 
-      {/* ── HERO ── */}
+      {/* -- HERO -- */}
       <section className="bg-black text-white py-20 md:py-28 px-6 relative overflow-hidden">
         {/* Background image with overlay */}
         <div className="absolute inset-0 z-0">
@@ -129,7 +126,7 @@ export default function Services() {
             <span className="text-red-600">Real Businesses</span>
           </h1>
           <p className="text-gray-300 text-lg md:text-xl max-w-2xl mb-10 leading-relaxed">
-            Done-for-you digital solutions for serious founders who want structure, visibility, and real results — not theory.
+            Done-for-you digital solutions for serious founders who want structure, visibility, and real results  -  not theory.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link to="/contact/requirements"
@@ -148,14 +145,14 @@ export default function Services() {
         </div>
       </section>
 
-      {/* ── CORE SERVICES GRID ── */}
+      {/* -- CORE SERVICES GRID -- */}
       <section className="py-16 md:py-24 px-6 bg-[#F5F5F5]">
         <div className="max-w-7xl mx-auto">
           <div className="mb-12 md:mb-16">
             <p className="text-red-600 text-xs font-bold uppercase tracking-widest mb-3">Core Services</p>
             <h2 className="text-3xl md:text-4xl font-semibold mb-3">Web, Brand & Digital</h2>
             <p className="text-gray-500 max-w-xl text-base md:text-lg">
-              Our primary services — this is where we go deepest and deliver the most value.
+              Our primary services  -  this is where we go deepest and deliver the most value.
             </p>
           </div>
 
@@ -166,11 +163,11 @@ export default function Services() {
                 className="bg-white rounded-xl shadow-sm hover:shadow-xl transition duration-300 flex flex-col overflow-hidden group"
               >
                 {/* Image */}
-                <div className="h-48 bg-gray-100 overflow-hidden relative">
+                <div className="h-48 bg-gray-50 overflow-hidden relative">
                   <img
                     src={service.image}
                     alt={service.name}
-                    className="w-full h-full object-cover object-center group-hover:scale-105 transition duration-500"
+                    className="w-full h-full object-contain object-center p-3 transition duration-500"
                   />
                   {service.badge && (
                     <span className="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full">
@@ -206,12 +203,12 @@ export default function Services() {
         </div>
       </section>
 
-      {/* ── PRICING NUDGE ── */}
+      {/* -- PRICING NUDGE -- */}
       <section className="py-12 bg-black text-white px-6">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
           <div>
             <h3 className="text-xl md:text-2xl font-bold mb-2">Not sure how much your website will cost?</h3>
-            <p className="text-gray-400 text-sm max-w-xl">Use our instant pricing calculator — answer 5 simple questions, no tech knowledge needed. Takes 2 minutes.</p>
+            <p className="text-gray-400 text-sm max-w-xl">Use our instant pricing calculator  -  answer 5 simple questions, no tech knowledge needed. Takes 2 minutes.</p>
           </div>
           <div className="flex flex-wrap gap-3 justify-center shrink-0">
             <Link to="/contact/calc"
@@ -226,14 +223,14 @@ export default function Services() {
         </div>
       </section>
 
-      {/* ── SUPPORTING SERVICES ── */}
+      {/* -- SUPPORTING SERVICES -- */}
       <section className="py-16 md:py-24 px-6 bg-[#0a0a0a] text-white">
         <div className="max-w-6xl mx-auto">
           <div className="mb-12">
             <p className="text-red-500 text-xs font-bold uppercase tracking-widest mb-3">Also Available</p>
             <h2 className="text-3xl md:text-4xl font-semibold mb-3">Supporting Business Services</h2>
             <p className="text-gray-400 max-w-xl text-sm md:text-base">
-              Beyond the website and brand — operational and technical support that keeps your business running smoothly and professionally.
+              Beyond the website and brand  -  operational and technical support that keeps your business running smoothly and professionally.
             </p>
           </div>
 
@@ -260,7 +257,7 @@ export default function Services() {
         </div>
       </section>
 
-      {/* ── HOW PAYMENT WORKS ── */}
+      {/* -- HOW PAYMENT WORKS -- */}
       <section className="py-16 md:py-20 bg-white px-6">
         <div className="max-w-5xl mx-auto">
           <div className="mb-10 text-center">
@@ -270,7 +267,7 @@ export default function Services() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {[
-              { num: "01", title: "30% deposit to start",       desc: "Sent via Payoneer invoice. You pay by bank transfer, card, or mobile money — no Payoneer account needed." },
+              { num: "01", title: "30% deposit to start",       desc: "Sent via Payoneer invoice. You pay by bank transfer, card, or mobile money  -  no Payoneer account needed." },
               { num: "02", title: "We build & show you",        desc: "Midway progress check included at no extra charge. You see it before we finish." },
               { num: "03", title: "Balance on completion",      desc: "Final payment only after you review and approve the completed work. No approval, no final payment." },
             ].map(({ num, title, desc }) => (
@@ -284,14 +281,14 @@ export default function Services() {
         </div>
       </section>
 
-      {/* ── CTA ── */}
+      {/* -- CTA -- */}
       <section className="py-16 md:py-20 bg-[#F5F5F5] px-6 text-center">
         <div className="max-w-3xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-semibold mb-5">
             Not sure which service you need?
           </h2>
           <p className="text-gray-600 text-base md:text-lg mb-10 max-w-xl mx-auto">
-            Fill in the brief and we'll tell you exactly what makes sense for your business — no pressure, no commitment.
+            Fill in the brief and we'll tell you exactly what makes sense for your business  -  no pressure, no commitment.
           </p>
           <div className="flex flex-wrap gap-3 justify-center mb-8">
             <Link to="/contact/requirements"

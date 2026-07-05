@@ -1,473 +1,311 @@
 import React from "react";
-import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { Link } from "react-router-dom";
 
-import heroImg       from "../photos/branding-hero.jpeg";
-import servicesImg   from "../photos/Facebook-Ads.webp";
-import consultingImg from "../photos/consult.jpg";
-import websiteImg    from "../photos/website-page-inner-hero-img-1.webp";
+import heroImg from "../photos/perfecthero.png";
+import webImg from "../photos/responsivewebdesign-1.png";
+import productImg from "../photos/Browse ready-built and almost-ready digital products..webp";
+import emailImg from "../photos/Business Email Setup-newmhomepage.jpg";
+import domainEmailImg from "../photos/custom-domain-email-mailbox-1.jpg";
+import brandImg from "../photos/Brand Strategy-replacement.avif";
+import adsImg from "../photos/Ads-2-use-for-ads-aside-firsts-ads.avif";
+import websiteManagementImg from "../photos/Website Management1.png";
+import digitalSupportImg from "../photos/Customer-suport-24-7-most-preferred.jpg";
+import customSoftwareImg from "../photos/Admin dashboard or SaaS Concept.webp";
+import projectImg from "../photos/AI Training and Human Feedback Teams.jpg";
+import dataImg from "../photos/AI Data Marketplace-preferred.jpg";
+import talentImg from "../photos/find-talent-or-contributors-for0projects.jpg";
 
-const WHATSAPP = "https://wa.me/233501657205";
-const EMAIL    = "mailto:davida@thebrandhelper.com";
-const CALENDLY = "https://calendly.com/blackbird77ad/free-consultation";
-
-const coreServices = [
-  { num: "01", title: "Website Design & Development", desc: "Modern, responsive websites built to convert — from clean 6-page sites to full platforms with payments, accounts, and dashboards." },
-  { num: "02", title: "Ads Management",               desc: "Facebook, Instagram, and Google campaigns managed end-to-end. Strategy, creative, targeting, and reporting — done for you." },
-  { num: "03", title: "Brand Strategy",               desc: "Positioning, messaging, and identity that makes your brand stand out and stay memorable in a crowded market." },
-  { num: "04", title: "Website Management",           desc: "We maintain, update, and optimise your site so it stays fast, secure, and always current." },
-  { num: "05", title: "Business Email Setup",         desc: "Custom-domain professional email (you@yourbusiness.com) that builds instant trust with every client." },
-  { num: "06", title: "Consulting & Coaching",        desc: "Personalised digital strategy sessions to help you structure your business and scale with clarity." },
+const webBuilds = [
+  "Business Websites",
+  "E-commerce Websites",
+  "Booking Platforms",
+  "Registration Systems",
+  "Admin Dashboards",
+  "Custom Web Applications",
 ];
 
-const supportServices = [
-  { emoji: "🤖", title: "AI Tools & Automation",        desc: "Right AI tools integrated into your workflow — saving time and cutting manual work." },
-  { emoji: "✍️", title: "Technical Writing",             desc: "SOPs, documentation, product descriptions, and guides — clear and professional." },
-  { emoji: "🌍", title: "Translation & Transcription",  desc: "Accurate translation and transcription for businesses working across languages." },
-  { emoji: "📞", title: "Customer Support Setup",       desc: "Scripts, channels, and tools to build a professional customer support system." },
-  { emoji: "📋", title: "Project & Technical Support",  desc: "Reliable technical partner for project managers who need execution, not just advice." },
+const supportCards = [
+  {
+    title: "Website Management",
+    text: "Ongoing updates, fixes, monitoring, and small improvements after launch.",
+    image: websiteManagementImg,
+  },
+  {
+    title: "Custom-Domain Email",
+    text: "Professional mailbox setup so your business email matches your domain.",
+    image: domainEmailImg,
+  },
+  {
+    title: "Digital Support",
+    text: "Practical support for content, setup, troubleshooting, and business tools.",
+    image: digitalSupportImg,
+  },
+  {
+    title: "Custom Software Development",
+    text: "When the business needs a dashboard, workflow, or platform beyond a normal website.",
+    image: customSoftwareImg,
+  },
 ];
 
-function getProjects() {
-  try {
-    const stored = localStorage.getItem("tbh_projects");
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed.slice(0, 3);
-    }
-  } catch (_) {}
-  return [];
+const aiProjects = [
+  "AI training projects",
+  "Data collection",
+  "Annotation",
+  "Evaluation",
+  "Language support",
+  "OCR project support",
+];
+
+const talent = [
+  "Developers",
+  "AI trainers",
+  "Data contributors",
+  "Annotators",
+  "Evaluators",
+  "Translators",
+  "Local language contributors",
+];
+
+const pathways = [
+  { title: "Web Development", text: "Start a custom website, platform, or business system.", to: "/web-development" },
+  { title: "Portfolio", text: "See website and digital projects built for businesses.", to: "/portfolio" },
+  { title: "Products", text: "Browse ready-built websites, tools, and digital products.", to: "/digital-products" },
+  { title: "Services", text: "Request business email, ads, brand strategy, or digital support.", to: "/services" },
+  { title: "AI Data", text: "Explore datasets, OCR data, and custom data collection.", to: "/ai-data" },
+  { title: "AI Projects", text: "Request contributors, evaluation, annotation, or project support.", to: "/ai-projects" },
+  { title: "Talent", text: "Request skilled people or join the talent network.", to: "/talent" },
+  { title: "Blueprint", text: "Plan the website structure before development begins.", to: "/blueprint" },
+  { title: "About", text: "Understand how The BrandHelper works and what we stand for.", to: "/about" },
+  { title: "Contact", text: "Send a quick message, full brief, or pricing request.", to: "/contact" },
+];
+
+function ButtonLink({ to, children, variant = "dark" }) {
+  const styles = {
+    dark: "bg-black text-white hover:bg-red-700",
+    red: "bg-red-700 text-white hover:bg-black",
+    outline: "border border-gray-300 text-black hover:border-black",
+    outlineLight: "border border-white/40 text-white hover:bg-white hover:text-black",
+    light: "bg-white text-black hover:bg-red-700 hover:text-white",
+  };
+
+  return (
+    <Link to={to} className={`inline-flex rounded-md px-5 py-3 text-sm font-bold uppercase tracking-wide transition ${styles[variant]}`}>
+      {children}
+    </Link>
+  );
 }
 
-// ── Reusable contact strip used between sections ──────────────
-function ContactStrip({ light = false }) {
+function ImageBand({ image, alt, children, dark = false, reverse = false }) {
   return (
-    <div className={`flex flex-wrap gap-3 justify-center ${light ? "opacity-80" : ""}`}>
-      <a href={WHATSAPP} target="_blank" rel="noopener noreferrer"
-        className="flex items-center gap-2 bg-green-500 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-green-600 transition">
-        💬 WhatsApp Us
-      </a>
-      <a href={EMAIL}
-        className="flex items-center gap-2 bg-white/10 border border-white/20 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-white/20 transition">
-        📧 Email Us
-      </a>
-      <a href={CALENDLY} target="_blank" rel="noopener noreferrer"
-        className="flex items-center gap-2 border border-white/20 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-white/10 transition">
-        📅 Book a Free Call
-      </a>
+    <div className={`grid gap-8 lg:grid-cols-2 lg:items-center ${reverse ? "lg:[&>*:first-child]:order-2" : ""}`}>
+      <div className="overflow-hidden rounded-lg bg-gray-100">
+        <img src={image} alt={alt} className="h-[280px] w-full object-cover sm:h-[360px] lg:h-[430px]" />
+      </div>
+      <div className={dark ? "text-white" : "text-black"}>{children}</div>
+    </div>
+  );
+}
+
+function MiniCard({ title, text, image, alt, imageVariant = "default" }) {
+  const isServiceImage = imageVariant === "service";
+
+  return (
+    <div className="rounded-lg border border-gray-100 bg-white p-5 shadow-sm">
+      {image && (
+        <div className={`mb-4 overflow-hidden rounded-md ${isServiceImage ? "aspect-[5/4] bg-white" : "bg-gray-50"}`}>
+          <img
+            src={image}
+            alt={alt || title}
+            className={isServiceImage ? "h-full w-full object-contain" : "h-32 w-full object-contain p-2"}
+          />
+        </div>
+      )}
+      <h3 className="mb-2 text-base font-semibold">{title}</h3>
+      {text && <p className="text-sm leading-relaxed text-gray-600">{text}</p>}
     </div>
   );
 }
 
 export default function Home() {
-  const featuredProjects = getProjects();
-
   return (
-    <div className="bg-white text-black overflow-x-hidden">
+    <div className="overflow-x-hidden bg-white text-black">
       <Helmet>
-        <title>The BrandHelper | Web Design, Ads & Brand Strategy — Ghana</title>
-        <meta name="description" content="The BrandHelper builds websites, manages ads, and crafts brand strategy for businesses ready to grow online. Based in Ghana. Working globally. Real work, real results." />
-        <meta name="robots" content="index, follow" />
+        <title>The BrandHelper | Web Development, Products and AI-Ready Solutions</title>
+        <meta name="description" content="The BrandHelper builds websites, digital products, business services, AI datasets, AI project support, and talent sourcing systems for growing businesses." />
         <link rel="canonical" href="https://thebrandhelper.com/" />
-        <meta property="og:type"        content="website" />
-        <meta property="og:site_name"   content="The BrandHelper" />
-        <meta property="og:url"         content="https://thebrandhelper.com/" />
-        <meta property="og:title"       content="The BrandHelper | Web Design, Ads & Brand Strategy — Ghana" />
-        <meta property="og:description" content="The BrandHelper builds websites, manages ads, and crafts brand strategy for businesses ready to grow online. Based in Ghana. Working globally. Real work, real results." />
-        <meta property="og:image"       content="https://thebrandhelper.com/images/og-image.jpg" />
-        <meta property="og:image:alt"   content="The BrandHelper — Digital Agency" />
-        <meta name="twitter:card"        content="summary_large_image" />
-        <meta name="twitter:title"       content="The BrandHelper | Web Design, Ads & Brand Strategy — Ghana" />
-        <meta name="twitter:description" content="The BrandHelper builds websites, manages ads, and crafts brand strategy for businesses ready to grow online. Based in Ghana. Working globally. Real work, real results." />
-        <meta name="twitter:image"       content="https://thebrandhelper.com/images/og-image.jpg" />
+        <meta property="og:title" content="The BrandHelper | Web Development and Digital Products" />
+        <meta property="og:description" content="Websites, digital products, services, AI data, project support, and talent sourcing for growing businesses." />
+        <meta property="og:image" content="https://thebrandhelper.com/logo-tbh.png" />
+        <meta name="twitter:image" content="https://thebrandhelper.com/logo-tbh.png" />
       </Helmet>
 
-      {/* ══════════════════════════════════════════════
-          1. HERO — first impression, two CTAs
-      ══════════════════════════════════════════════ */}
-      <section className="min-h-screen flex items-center bg-black text-white px-6">
-        <div className="max-w-7xl mx-auto w-full flex flex-col md:flex-row items-center gap-10 py-16 md:py-0">
-
-          <div className="md:w-1/2 text-center md:text-left">
-            <p className="text-red-500 text-xs font-bold uppercase tracking-widest mb-5">
-              AI Data · Talent · Technology
-            </p>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight mb-6">
-              Data. Talent. Technology.<br />
-              <span className="text-red-600">Built Around What You Need.</span>
+      <section className="bg-black px-6 py-16 text-white md:py-24">
+        <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+          <div>
+            <p className="mb-4 text-xs font-bold uppercase tracking-widest text-red-500">Web Development First</p>
+            <h1 className="mb-6 text-4xl font-extrabold leading-tight md:text-6xl">
+              We build websites, digital products, and AI-ready solutions for growing businesses.
             </h1>
-            <p className="text-gray-300 text-lg max-w-xl mb-8 leading-relaxed">
-              The BrandHelper helps companies access AI training data, multilingual contributors, skilled project teams, ready-built digital products, and custom technology solutions.
+            <p className="mb-8 max-w-2xl text-base leading-relaxed text-gray-300 md:text-lg">
+              The BrandHelper helps businesses launch professional websites, access ready-built digital products, request custom services, and connect with AI data and project support.
             </p>
-
-            {/* Primary CTAs */}
-            <div className="flex flex-wrap gap-3 justify-center md:justify-start mb-8">
-              <Link to="/ai-data"
-                className="bg-red-600 text-white px-7 py-3.5 text-sm font-bold uppercase tracking-wide hover:opacity-90 transition rounded">
-                Explore AI Data
-              </Link>
-              <Link to="/ai-projects"
-                className="border border-white/40 text-white px-7 py-3.5 text-sm font-bold uppercase tracking-wide hover:bg-white hover:text-black transition rounded">
-                Request Project Support
-              </Link>
-            </div>
-
-            {/* Quick contact links */}
-            <div className="flex flex-wrap gap-4 justify-center md:justify-start text-xs text-gray-400">
-              <a href={WHATSAPP} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 hover:text-green-400 transition">
-                <span className="text-green-400">💬</span> +233 50 165 7205
-              </a>
-              <a href={EMAIL} className="flex items-center gap-1.5 hover:text-white transition">
-                <span>📧</span> davida@thebrandhelper.com
-              </a>
+            <div className="flex flex-wrap gap-3">
+              <ButtonLink to="/web-development" variant="red">Start a Website Project</ButtonLink>
+              <ButtonLink to="/digital-products" variant="light">Browse Products</ButtonLink>
+              <ButtonLink to="/ai-data" variant="outlineLight">Explore AI Data</ButtonLink>
             </div>
           </div>
-
-          <div className="md:w-1/2 w-full h-[280px] sm:h-[380px] md:h-[540px] rounded-xl overflow-hidden shadow-2xl">
-            <img src={heroImg} alt="The Brand Helper Agency" className="w-full h-full object-cover object-center" />
+          <div className="overflow-hidden rounded-lg border border-white/10 bg-white/5">
+            <img src={heroImg} alt="Professional web development" className="h-[320px] w-full object-cover sm:h-[460px] lg:h-[540px]" />
           </div>
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════
-          2. LABEL STRIP — what we do at a glance
-      ══════════════════════════════════════════════ */}
-      <div className="bg-red-600 py-4 px-6 overflow-x-auto">
-        <div className="max-w-6xl mx-auto flex flex-nowrap md:flex-wrap gap-x-8 gap-y-2 justify-start md:justify-between items-center min-w-max md:min-w-0">
-          {["AI Datasets", "Custom Data Collection", "AI Project Teams", "Talent Sourcing", "Ready-Built Websites", "Software Products", "Web Development", "Brand Strategy"].map(label => (
-            <span key={label} className="text-white text-xs font-bold uppercase tracking-widest whitespace-nowrap opacity-90">
-              {label}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* ══════════════════════════════════════════════
-          3. CORE SERVICES — what we primarily do
-          Tour guide: "here's what we offer, go deeper →"
-      ══════════════════════════════════════════════ */}
-      <section className="py-16 md:py-24 bg-white px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-10">
-            <p className="text-red-600 text-xs font-bold uppercase tracking-widest mb-3">Phase 2 Platform</p>
-            <h2 className="text-3xl md:text-4xl font-semibold mb-4">Choose the kind of support you need</h2>
-            <p className="text-gray-500 max-w-2xl">
-              The BrandHelper now connects companies to proprietary datasets, AI project contributors, skilled talent, and ready-built digital products.
+      <section className="bg-white px-6 py-16 md:py-20">
+        <div className="mx-auto max-w-6xl">
+          <ImageBand image={webImg} alt="Responsive website design">
+            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-red-600">Main Focus</p>
+            <h2 className="mb-5 text-3xl font-semibold md:text-4xl">Web development is the core service.</h2>
+            <p className="mb-6 leading-relaxed text-gray-600">
+              We build websites and web systems that help businesses look professional, capture leads, accept orders, manage work, and grow online.
             </p>
+            <div className="mb-7 grid grid-cols-2 gap-3">
+              {webBuilds.map((item) => <MiniCard key={item} title={item} />)}
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <ButtonLink to="/web-development" variant="red">Request a Website</ButtonLink>
+              <ButtonLink to="/digital-products" variant="outline">View Ready-Built Websites</ButtonLink>
+            </div>
+          </ImageBand>
+        </div>
+      </section>
+
+      <section className="bg-[#F5F5F5] px-6 py-16 md:py-20">
+        <div className="mx-auto max-w-6xl">
+          <ImageBand image={productImg} alt="Digital product concept" reverse>
+            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-red-600">Products</p>
+            <h2 className="mb-5 text-3xl font-semibold md:text-4xl">Browse ready-built and almost-ready digital products.</h2>
+            <p className="mb-6 leading-relaxed text-gray-600">
+              Products can include ready-built websites, website concepts, business platforms, landing pages, digital templates, dataset products, and AI-related resources.
+            </p>
+            <div className="mb-7 grid gap-3 sm:grid-cols-2">
+              {["Ready-built websites", "Business platforms", "Digital tools", "Dataset products"].map((item) => <MiniCard key={item} title={item} />)}
+            </div>
+            <ButtonLink to="/digital-products" variant="dark">Browse Products</ButtonLink>
+          </ImageBand>
+        </div>
+      </section>
+
+      <section className="bg-white px-6 py-16 md:py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-10 max-w-2xl">
+            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-red-600">Services</p>
+            <h2 className="mb-4 text-3xl font-semibold md:text-4xl">Business services that support the website work.</h2>
+            <p className="text-gray-600">Use The BrandHelper for one service, or let us combine the right services around your business goal.</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {[
-              { title: "AI Data", desc: "Datasets, licensing, samples, and custom data collection.", to: "/ai-data" },
-              { title: "AI Projects", desc: "Training, evaluation, annotation, QA, and vendor management.", to: "/ai-projects" },
-              { title: "Talent", desc: "Freelancers, contributors, linguists, developers, and managed teams.", to: "/talent" },
-              { title: "Digital Products", desc: "Ready-built websites, platforms, and software concepts.", to: "/digital-products" },
-            ].map((item) => (
-              <Link key={item.to} to={item.to} className="border border-gray-100 rounded-xl p-6 hover:border-red-600 hover:shadow-lg transition group">
-                <h3 className="text-lg font-semibold mb-3 group-hover:text-red-600 transition">{item.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed mb-5">{item.desc}</p>
-                <span className="text-xs font-bold uppercase tracking-widest text-black">Explore</span>
-              </Link>
-            ))}
+          <div className="grid gap-5 md:grid-cols-3">
+            <MiniCard title="Business Email Setup" text="Professional custom-domain email for your team and brand." image={emailImg} imageVariant="service" />
+            <MiniCard title="Ads Management" text="Facebook, Instagram, and Google campaigns set up and managed properly." image={adsImg} imageVariant="service" />
+            <MiniCard title="Brand Strategy" text="Clear positioning, messaging, and identity direction before you launch." image={brandImg} imageVariant="service" />
+          </div>
+          <div className="mt-5 grid gap-5 md:grid-cols-4">
+            {supportCards.map((item) => <MiniCard key={item.title} title={item.title} text={item.text} image={item.image} imageVariant="service" />)}
+          </div>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <ButtonLink to="/services" variant="red">Request a Service</ButtonLink>
+            <ButtonLink to="/contact" variant="outline">Speak With Us</ButtonLink>
           </div>
         </div>
       </section>
 
-      <section className="py-20 md:py-28 bg-[#F5F5F5]">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="mb-12 md:mb-16">
-            <p className="text-red-600 text-xs font-bold uppercase tracking-widest mb-3">Core Services</p>
-            <h2 className="text-3xl md:text-4xl font-semibold mb-4">Digital services that drive real results</h2>
-            <p className="text-gray-500 text-base md:text-lg max-w-2xl">
-              Done-for-you solutions for founders and business owners who want visibility, credibility, and sustainable growth online.
+      <section className="bg-black px-6 py-16 text-white md:py-20">
+        <div className="mx-auto max-w-6xl">
+          <ImageBand image={dataImg} alt="AI data and campaign analytics" dark>
+            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-red-500">AI Data</p>
+            <h2 className="mb-5 text-3xl font-semibold md:text-4xl">Datasets for OCR, ML, AI training, and document AI.</h2>
+            <p className="mb-6 leading-relaxed text-gray-300">
+              The BrandHelper provides proprietary and custom datasets for OCR, machine learning, AI training, document AI, and data-driven projects.
             </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-            {coreServices.map(({ num, title, desc }) => (
-              <div key={num} className="bg-white p-7 rounded-xl shadow-sm hover:shadow-lg transition group cursor-default">
-                <div className="text-red-600 text-xs font-bold uppercase tracking-widest mb-4">{num}</div>
-                <h3 className="text-base font-semibold mb-3 group-hover:text-red-600 transition">{title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{desc}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Tour guide CTA: go to full services page */}
-          <div className="mt-12 flex flex-col sm:flex-row gap-4 items-center justify-center">
-            <Link to="/services"
-              className="bg-black text-white px-8 py-3.5 text-sm font-bold uppercase tracking-wide hover:bg-red-600 transition rounded">
-              See Full Services & Pricing →
-            </Link>
-            <Link to="/contact/requirements"
-              className="border-2 border-black text-black px-8 py-3.5 text-sm font-bold uppercase tracking-wide hover:bg-black hover:text-white transition rounded">
-              Start a Project
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════
-          4. WEBSITE FEATURE SPLIT
-          Tour guide: "this is our core — learn more"
-      ══════════════════════════════════════════════ */}
-      <section className="py-20 md:py-28 bg-black text-white px-6">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-12 md:gap-16">
-          <div className="w-full md:w-1/2 h-[260px] sm:h-[340px] md:h-[420px] rounded-xl overflow-hidden order-2 md:order-1">
-            <img src={websiteImg} alt="Website Design" className="w-full h-full object-cover object-center" />
-          </div>
-          <div className="md:w-1/2 order-1 md:order-2">
-            <p className="text-red-500 text-xs font-bold uppercase tracking-widest mb-4">Websites That Work</p>
-            <h2 className="text-3xl md:text-4xl font-semibold mb-5">Not just a website. A business asset.</h2>
-            <p className="text-gray-300 text-base md:text-lg mb-7 leading-relaxed">
-              We build websites that are fast, mobile-first, and designed to convert visitors into clients. From a clean starter site to a full platform with payments and user accounts.
-            </p>
-            <div className="flex flex-col gap-2.5 mb-8">
-              {["Mobile-first responsive design", "Built for speed and SEO", "Payment and booking integrations", "Admin dashboards and user accounts", "Domain, hosting, and email included"].map(point => (
-                <div key={point} className="flex items-center gap-3 text-sm text-gray-300">
-                  <span className="text-red-500 font-bold shrink-0">✓</span>{point}
-                </div>
+            <div className="mb-7 grid gap-3 sm:grid-cols-2">
+              {["OCR datasets", "Handwritten datasets", "Document AI datasets", "Custom data collection"].map((item) => (
+                <div key={item} className="rounded border border-white/10 bg-white/5 p-4 text-sm text-gray-200">{item}</div>
               ))}
             </div>
-            <div className="flex flex-wrap gap-3">
-              <Link to="/contact/calc"
-                className="bg-red-600 text-white px-6 py-3 text-sm font-bold uppercase tracking-wide hover:opacity-90 transition rounded">
-                Get a Website Quote
-              </Link>
-              <Link to="/portfolio"
-                className="border border-white/30 text-white px-6 py-3 text-sm font-bold uppercase tracking-wide hover:bg-white/10 transition rounded">
-                See Our Work
-              </Link>
-            </div>
-          </div>
+            <ButtonLink to="/ai-data" variant="light">Explore AI Data</ButtonLink>
+          </ImageBand>
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════
-          5. ADS SPLIT
-          Tour guide: "another key service — see more"
-      ══════════════════════════════════════════════ */}
-      <section className="py-20 md:py-28 bg-white px-6">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-12 md:gap-16">
-          <div className="md:w-1/2">
-            <p className="text-red-600 text-xs font-bold uppercase tracking-widest mb-4">Ads That Convert</p>
-            <h2 className="text-3xl md:text-4xl font-semibold mb-5">Stop wasting ad budget.<br />Start getting clients.</h2>
-            <p className="text-gray-600 text-base md:text-lg mb-8 leading-relaxed">
-              Most ad spend is wasted on the wrong audience, wrong creative, or no strategy. We manage your Facebook, Instagram, and Google campaigns end-to-end — from strategy to reporting.
+      <section className="bg-white px-6 py-16 md:py-20">
+        <div className="mx-auto max-w-6xl">
+          <ImageBand image={projectImg} alt="AI project planning" reverse>
+            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-red-600">AI Projects</p>
+            <h2 className="mb-5 text-3xl font-semibold md:text-4xl">Human support for AI training and data projects.</h2>
+            <p className="mb-6 leading-relaxed text-gray-600">
+              Companies can request help with data collection, annotation, model evaluation, OCR support, language projects, and human-in-the-loop work.
             </p>
-            <div className="flex flex-wrap gap-3">
-              <Link to="/services"
-                className="bg-black text-white px-6 py-3 text-sm font-bold uppercase tracking-wide hover:bg-red-600 transition rounded">
-                See How We Run Ads
-              </Link>
-              <a href={WHATSAPP} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 border-2 border-gray-200 text-black px-6 py-3 text-sm font-bold hover:border-black transition rounded">
-                💬 Ask on WhatsApp
-              </a>
+            <div className="mb-7 grid grid-cols-2 gap-3">
+              {aiProjects.map((item) => <MiniCard key={item} title={item} />)}
             </div>
-          </div>
-          <div className="w-full md:w-1/2 h-[260px] sm:h-[320px] md:h-[380px] rounded-xl overflow-hidden">
-            <img src={servicesImg} alt="Ads Management" className="w-full h-full object-cover object-center" />
-          </div>
+            <ButtonLink to="/ai-projects" variant="red">Request AI Project Support</ButtonLink>
+          </ImageBand>
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════
-          6. HOW IT WORKS
-          Tour guide: "now you understand us — here's the process"
-      ══════════════════════════════════════════════ */}
-      <section className="py-20 md:py-28 bg-[#F5F5F5]">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="mb-12 md:mb-16 text-center">
-            <p className="text-red-600 text-xs font-bold uppercase tracking-widest mb-3">Our Process</p>
-            <h2 className="text-3xl md:text-4xl font-semibold mb-4">Simple. Transparent. Structured.</h2>
-            <p className="text-gray-500 max-w-xl mx-auto">No confusion, no hidden steps. Here's exactly how we work with every client from start to finish.</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-            {[
-              { num: "01", title: "Fill the Brief",      desc: "Tell us about your business and what you need. Our form takes 5 minutes and covers everything.", link: "/contact/requirements", cta: "Start here →" },
-              { num: "02", title: "Free Consultation",   desc: "We review your brief and get on a free call to align on scope, timeline, and exact pricing.", link: CALENDLY, external: true, cta: "Book a call →" },
-              { num: "03", title: "We Build & Deliver",  desc: "You sit back. We execute — with a midway progress check to make sure you're happy.", link: null, cta: null },
-              { num: "04", title: "You Go Live",         desc: "Your business launches properly. We stay available for support and ongoing management.", link: "/portfolio", cta: "See results →" },
-            ].map(({ num, title, desc, link, cta, external }) => (
-              <div key={num} className="bg-white p-7 rounded-xl shadow-sm text-center flex flex-col">
-                <div className="text-red-600 text-3xl font-extrabold mb-4">{num}</div>
-                <h3 className="text-base font-semibold mb-3">{title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed flex-1">{desc}</p>
-                {link && cta && (
-                  external
-                    ? <a href={link} target="_blank" rel="noopener noreferrer" className="mt-4 text-xs font-bold uppercase tracking-widest text-red-600 hover:underline">{cta}</a>
-                    : <Link to={link} className="mt-4 text-xs font-bold uppercase tracking-widest text-red-600 hover:underline">{cta}</Link>
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="mt-12 text-center">
-            <Link to="/contact/requirements"
-              className="inline-block bg-red-600 text-white px-10 py-4 text-sm font-bold uppercase tracking-wide hover:opacity-90 transition rounded">
-              Fill the Brief — It's Free →
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════
-          7. PORTFOLIO TEASER
-          Tour guide: "don't just take our word — see the work"
-      ══════════════════════════════════════════════ */}
-      <section className="py-20 md:py-28 bg-white px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-5">
+      <section className="bg-[#F5F5F5] px-6 py-16 md:py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
             <div>
-              <p className="text-red-600 text-xs font-bold uppercase tracking-widest mb-3">Our Work</p>
-              <h2 className="text-3xl md:text-4xl font-semibold mb-3">Projects We've Built</h2>
-              <p className="text-gray-500 max-w-lg">Real work for real businesses. See what we've delivered — and let's build yours next.</p>
+              <p className="mb-3 text-xs font-bold uppercase tracking-widest text-red-600">Talent</p>
+              <h2 className="mb-5 text-3xl font-semibold md:text-4xl">Request freelancers, contributors, or a managed team.</h2>
+              <p className="mb-7 leading-relaxed text-gray-600">
+                We can help companies find developers, AI trainers, annotators, evaluators, translators, local language contributors, researchers, and project support talent.
+              </p>
+              <ButtonLink to="/talent" variant="dark">Request Talent</ButtonLink>
             </div>
-            <Link to="/portfolio"
-              className="shrink-0 inline-block border-2 border-black px-7 py-3 text-sm font-bold uppercase tracking-wide hover:bg-black hover:text-white transition rounded">
-              View All Work →
-            </Link>
-          </div>
-
-          {featuredProjects.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-7">
-              {featuredProjects.map((project, i) => (
-                <div key={project.id || i} className="group border border-gray-100 rounded-xl overflow-hidden hover:shadow-xl transition">
-                  <div className="h-48 sm:h-52 bg-[#F5F5F5] flex items-center justify-center overflow-hidden">
-                    {project.image
-                      ? <img src={project.image} alt={project.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
-                      : <div className="flex flex-col items-center gap-2 text-gray-300"><span className="text-4xl">🖥️</span><span className="text-xs uppercase tracking-widest">Preview Soon</span></div>
-                    }
-                  </div>
-                  <div className="p-5">
-                    <span className="text-red-600 text-xs font-bold uppercase tracking-widest">{project.category}</span>
-                    <h3 className="text-sm font-semibold mt-1.5 mb-2">{project.title}</h3>
-                    <p className="text-gray-500 text-xs leading-relaxed line-clamp-2 mb-3">{project.description}</p>
-                    {project.link
-                      ? <a href={project.link} target="_blank" rel="noopener noreferrer" className="text-xs font-bold uppercase tracking-widest text-black hover:text-red-600 transition">View Live →</a>
-                      : <Link to="/portfolio" className="text-xs font-bold uppercase tracking-widest text-gray-300 hover:text-red-600 transition">See More →</Link>
-                    }
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            /* Empty state — still guides them to portfolio */
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-7">
-              {["Website Design", "Brand Strategy", "Ads Management"].map((cat, i) => (
-                <Link key={i} to="/portfolio"
-                  className="group border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:border-red-600 hover:bg-red-50 transition">
-                  <div className="text-4xl mb-3">🖥️</div>
-                  <div className="text-red-600 text-xs font-bold uppercase tracking-widest mb-2">{cat}</div>
-                  <p className="text-gray-400 text-sm">View our portfolio →</p>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════
-          8. CONSULTING SPLIT
-          Tour guide: "not sure where to start? talk to us"
-      ══════════════════════════════════════════════ */}
-      <section className="py-20 md:py-28 bg-[#F5F5F5] px-6">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-12 md:gap-16">
-          <div className="w-full md:w-1/2 h-[260px] sm:h-[320px] md:h-[380px] rounded-xl overflow-hidden">
-            <img src={consultingImg} alt="Consulting" className="w-full h-full object-cover object-center" />
-          </div>
-          <div className="md:w-1/2">
-            <p className="text-red-600 text-xs font-bold uppercase tracking-widest mb-4">Strategy First</p>
-            <h2 className="text-3xl md:text-4xl font-semibold mb-5">Not sure where to start?<br />Start with a conversation.</h2>
-            <p className="text-gray-600 text-base md:text-lg mb-8 leading-relaxed">
-              Before we build anything, we make sure you're building the right thing. Our free consultation helps you get clear on strategy, priorities, and what will actually move the needle.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <a href={CALENDLY} target="_blank" rel="noopener noreferrer"
-                className="bg-black text-white px-6 py-3 text-sm font-bold uppercase tracking-wide hover:bg-red-600 transition rounded">
-                📅 Book a Free Consultation
-              </a>
-              <Link to="/about"
-                className="border-2 border-gray-300 text-black px-6 py-3 text-sm font-bold uppercase tracking-wide hover:border-black transition rounded">
-                Learn About Us
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════
-          9. SUPPORTING SERVICES (30%)
-          Tour guide: "we do more — see if you need any of this"
-      ══════════════════════════════════════════════ */}
-      <section className="py-20 bg-[#0a0a0a] text-white">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="mb-10">
-            <p className="text-red-500 text-xs font-bold uppercase tracking-widest mb-3">Also Available</p>
-            <h2 className="text-2xl md:text-3xl font-semibold mb-3">Supporting Business Services</h2>
-            <p className="text-gray-400 max-w-xl text-sm md:text-base">
-              Beyond web and brand — technical and operational support that keeps your business running smoothly.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {supportServices.map(({ emoji, title, desc }) => (
-              <div key={title} className="border border-white/10 p-6 rounded-xl hover:border-red-600 transition">
-                <div className="text-2xl mb-3">{emoji}</div>
-                <h3 className="text-sm font-semibold mb-2">{title}</h3>
-                <p className="text-gray-400 text-xs leading-relaxed">{desc}</p>
+            <div className="grid gap-4 md:grid-cols-[0.95fr_1.05fr] md:items-stretch">
+              <div className="overflow-hidden rounded-lg bg-gray-100">
+                <img src={talentImg} alt="Talent contributors" className="h-full min-h-[260px] w-full object-cover" />
               </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {talent.map((item) => <MiniCard key={item} title={item} />)}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white px-6 py-16 md:py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-10 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="mb-3 text-xs font-bold uppercase tracking-widest text-red-600">Explore The Platform</p>
+              <h2 className="text-3xl font-semibold md:text-4xl">Choose the next step that fits what you need.</h2>
+            </div>
+            <p className="max-w-md text-sm leading-relaxed text-gray-600">
+              Website, portfolio, products, services, AI data, AI projects, talent, blueprint, and contact paths are all one click away.
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {pathways.map((item) => (
+              <Link key={item.to} to={item.to} className="group rounded-lg border border-gray-100 bg-[#F8F8F8] p-5 transition hover:border-black hover:bg-white">
+                <div className="flex items-center justify-between gap-4">
+                  <h3 className="text-base font-semibold">{item.title}</h3>
+                  <span className="text-sm font-bold text-red-600 transition group-hover:translate-x-1">Go</span>
+                </div>
+                <p className="mt-3 text-sm leading-relaxed text-gray-600">{item.text}</p>
+              </Link>
             ))}
           </div>
-          <div className="mt-10 flex flex-wrap gap-3">
-            <Link to="/services"
-              className="border border-white/30 text-white px-7 py-3 text-sm font-bold uppercase tracking-wide hover:bg-white hover:text-black transition rounded">
-              View All Services
-            </Link>
-            <a href={WHATSAPP} target="_blank" rel="noopener noreferrer"
-              className="bg-green-500 text-white px-7 py-3 text-sm font-bold uppercase tracking-wide hover:bg-green-600 transition rounded">
-              💬 Ask on WhatsApp
-            </a>
-          </div>
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════
-          10. FINAL CTA
-          Tour guide: "you've seen everything — take action now"
-      ══════════════════════════════════════════════ */}
-      <section className="py-20 md:py-28 bg-red-600 text-white text-center px-6">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl md:text-5xl font-extrabold mb-6 leading-tight">
-            Ready to build your business online?
-          </h2>
-          <p className="text-red-100 text-base md:text-lg mb-10 max-w-xl mx-auto leading-relaxed">
-            Fill in the brief, get a free consultation, and let's build something that actually works for your business.
-          </p>
-
-          {/* Three paths */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
-            <Link to="/contact/requirements"
-              className="bg-white text-red-600 px-5 py-4 rounded-xl font-bold text-sm hover:bg-black hover:text-white transition">
-              📋 Fill the Brief
-              <div className="text-xs font-normal mt-1 opacity-70">Start a project</div>
-            </Link>
-            <Link to="/contact/calc"
-              className="bg-white/15 border border-white/30 text-white px-5 py-4 rounded-xl font-bold text-sm hover:bg-white hover:text-red-600 transition">
-              💰 Get a Quote
-              <div className="text-xs font-normal mt-1 opacity-70">Instant estimate</div>
-            </Link>
-            <a href={CALENDLY} target="_blank" rel="noopener noreferrer"
-              className="bg-white/15 border border-white/30 text-white px-5 py-4 rounded-xl font-bold text-sm hover:bg-white hover:text-red-600 transition">
-              📅 Book a Call
-              <div className="text-xs font-normal mt-1 opacity-70">Free consultation</div>
-            </a>
-          </div>
-
-          <ContactStrip />
-
-          <p className="text-red-200 text-xs mt-8">
-            Or call / WhatsApp: +233 50 165 7205 · +233 54 889 4600
-          </p>
+      <section className="bg-red-700 px-6 py-16 text-center text-white md:py-20">
+        <div className="mx-auto max-w-3xl">
+          <h2 className="mb-5 text-3xl font-extrabold md:text-5xl">Have a project, product interest, or data need?</h2>
+          <p className="mb-8 text-red-100">Tell us what you are trying to build, buy, launch, collect, or staff. We will help you choose the right next step.</p>
+          <ButtonLink to="/contact" variant="light">Contact Us</ButtonLink>
         </div>
       </section>
     </div>

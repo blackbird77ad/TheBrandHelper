@@ -1,0 +1,46 @@
+{
+  "name": "The BrandHelper",
+  "short_name": "BrandHelper",
+  "description": "Web development, digital products, AI data, project support, and talent sourcing.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#000000",
+  "theme_color": "#b91c1c",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/tbh-app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/tbh-app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Start Website",
+      "short_name": "Website",
+      "url": "/web-development",
+      "icons": [{ "src": "/tbh-app-icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Request Talent",
+      "short_name": "Talent",
+      "url": "/talent",
+      "icons": [{ "src": "/tbh-app-icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Contact",
+      "short_name": "Contact",
+      "url": "/contact",
+      "icons": [{ "src": "/tbh-app-icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

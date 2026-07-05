@@ -2,31 +2,96 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── OVERRIDE VITE DEFAULTS THAT BREAK FULL-WIDTH LAYOUT ── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* --- OVERRIDE VITE DEFAULTS THAT BREAK FULL-WIDTH LAYOUT -- */
 #root {
   max-width: 100%;
+  min-width: 0;
   margin: 0;
   padding: 0;
   text-align: left;
 }
 
-/* ─── SMOOTH SCROLL & ANTIALIASING ─────────────────────── */
+/* --- SMOOTH SCROLL & ANTIALIASING ----------------------- */
 html {
   scroll-behavior: smooth;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 body {
+  width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ─── BRAND SELECTION COLOR ─────────────────────────────── */
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+  min-width: 0;
+}
+
+a,
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+span,
+li {
+  overflow-wrap: anywhere;
+}
+
+table {
+  max-width: 100%;
+}
+
+@media (max-width: 360px) {
+  body {
+    font-size: 15px;
+  }
+
+  .px-6 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .text-6xl {
+    font-size: 3rem;
+    line-height: 1;
+  }
+
+  .text-5xl {
+    font-size: 2.5rem;
+    line-height: 1.05;
+  }
+}
+
+/* --- BRAND SELECTION COLOR ------------------------------- */
 ::selection {
   background: #e11d48;
   color: #fff;
 }
 
-/* ─── SUBTLE SCROLLBAR ──────────────────────────────────── */
+/* --- SUBTLE SCROLLBAR ------------------------------------ */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #f1f1f1; }
 ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }

@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import emailjs from '@emailjs/browser';
 import { submitLead } from '../utils/api';
+import blueprintHeroImg from '../photos/blueprint-heropage.webp';
 
-const EMAILJS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || '';
-const EMAILJS_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || '';
-const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '';
 const APPS_SCRIPT_URL = import.meta.env.VITE_BLUEPRINT_APPS_SCRIPT_URL || import.meta.env.VITE_APPS_SCRIPT_URL || '';
 const STORAGE_KEY = 'tbh_blueprint_builder_v1';
 
@@ -616,7 +613,7 @@ function buildSummary(form, estimate, narration) {
   const mood = getMood(form.mood);
 
   return [
-    'THE BRAND HELPER — INTERACTIVE BLUEPRINT SUMMARY',
+    'THE BRAND HELPER  -  INTERACTIVE BLUEPRINT SUMMARY',
     '',
     'IMPORTANT:',
     'This is a visual blueprint / planning mockup and not a hosted, published, or live website.',
@@ -901,6 +898,7 @@ function BlueprintBuilder() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const shared = params.get('blueprint');
@@ -911,7 +909,7 @@ function BlueprintBuilder() {
         setForm((prev) => ({ ...prev, ...decoded }));
         setRestoredMessage('Loaded a shared blueprint configuration.');
         return;
-      } catch (_) {
+      } catch {
         setRestoredMessage('We could not fully read that shared blueprint link, so the default starter was loaded instead.');
       }
     }
@@ -923,7 +921,7 @@ function BlueprintBuilder() {
         setForm((prev) => ({ ...prev, ...parsed }));
         setRestoredMessage('Restored your last saved blueprint progress from this device.');
       }
-    } catch (_) {
+    } catch {
       setRestoredMessage('');
     }
   }, []);
@@ -936,10 +934,11 @@ function BlueprintBuilder() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(form));
       setSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-    } catch (_) {
+    } catch {
       setSavedAt('');
     }
   }, [form]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const theme = getTheme(form.mood, form.palette);
   const estimate = buildEstimate(form);
@@ -991,7 +990,7 @@ function BlueprintBuilder() {
     try {
       const logoPreview = await readFileAsDataUrl(file);
       setPreviewAssets((prev) => ({ ...prev, logoPreview }));
-    } catch (_) {
+    } catch {
       setPreviewAssets((prev) => ({ ...prev, logoPreview: '' }));
     }
   };
@@ -1002,7 +1001,7 @@ function BlueprintBuilder() {
     try {
       const previews = await Promise.all(files.map((file) => readFileAsDataUrl(file)));
       setPreviewAssets((prev) => ({ ...prev, inspirationPreviews: previews }));
-    } catch (_) {
+    } catch {
       setPreviewAssets((prev) => ({ ...prev, inspirationPreviews: [] }));
     }
   };
@@ -1048,7 +1047,7 @@ function BlueprintBuilder() {
       to_name: 'The BrandHelper Team',
       from_name: form.clientName || form.businessName || 'Blueprint Lead',
       reply_to: form.email || 'noreply@thebrandhelper.com',
-      subject: `New Interactive Blueprint — ${form.businessName || activeBusiness.label}`,
+      subject: `New Interactive Blueprint  -  ${form.businessName || activeBusiness.label}`,
       form_type: 'Interactive Blueprint Builder',
       client_name: form.clientName || form.businessName || 'Blueprint Lead',
       business_name: form.businessName || '',
@@ -1063,14 +1062,6 @@ function BlueprintBuilder() {
       full_brief: summary,
       submitted_at: new Date().toLocaleString('en-GB', { timeZone: 'Africa/Accra' }),
     };
-
-    try {
-      if (EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID && EMAILJS_PUBLIC_KEY) {
-        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, payload, EMAILJS_PUBLIC_KEY);
-      }
-    } catch (error) {
-      console.warn('EmailJS:', error);
-    }
 
     try {
       if (APPS_SCRIPT_URL) {
@@ -1154,6 +1145,9 @@ function BlueprintBuilder() {
             )}
           </div>
           <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
+            <div className="mb-4 overflow-hidden rounded-lg border border-white/10 bg-black/20">
+              <img src={blueprintHeroImg} alt="Blueprint planning preview" className="h-36 w-full object-cover" />
+            </div>
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">How it works</div>

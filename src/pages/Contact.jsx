@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import emailjs from '@emailjs/browser';
+import { submitLead } from '../utils/api';
+import contactInquiryImg from "../photos/Get In Touch-use this for the inquiry forms as side image.png";
 
-const EMAILJS_SERVICE_ID  = import.meta.env.VITE_EMAILJS_SERVICE_ID || '';
-const EMAILJS_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || '';
-const EMAILJS_PUBLIC_KEY  = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '';
 const APPS_SCRIPT_URL     = import.meta.env.VITE_CONTACT_APPS_SCRIPT_URL || import.meta.env.VITE_APPS_SCRIPT_URL || '';
 
 const WHATSAPP = "https://wa.me/233501657205";
@@ -27,12 +25,12 @@ const ALL_SERVICES = [
   "Translation & Transcription",
   "Customer Support Setup",
   "Project & Technical Support",
-  "Not sure — advise me",
+  "Not sure  -  advise me",
 ];
 
 const inputClass = "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gray-800 transition-all bg-white";
 
-// ── Quick Inquiry Form ─────────────────────────────────────────────────────
+// -- Quick Inquiry Form -----------------------------------------------------
 function InquiryForm() {
   const [name,       setName]       = useState('');
   const [email,      setEmail]      = useState('');
@@ -43,7 +41,7 @@ function InquiryForm() {
   const [submitted,  setSubmitted]  = useState(false);
 
   const buildMessage = () => [
-    `New Inquiry — The BrandHelper`,
+    `New Inquiry  -  The BrandHelper`,
     ``,
     `Name:    ${name}`,
     `Email:   ${email}`,
@@ -64,7 +62,7 @@ function InquiryForm() {
       to_name:      'The BrandHelper Team',
       from_name:    name || 'New Inquiry',
       reply_to:     email || 'noreply@thebrandhelper.com',
-      subject:      `New Inquiry — ${service || 'General'} (${name})`,
+      subject:      `New Inquiry  -  ${service || 'General'} (${name})`,
       form_type:    'Quick Inquiry',
       client_name:  name,
       email,
@@ -74,13 +72,9 @@ function InquiryForm() {
       full_brief:   buildMessage(),
       submitted_at: new Date().toLocaleString('en-GB', { timeZone: 'Africa/Accra' }),
     };
-
-    // EmailJS
     try {
-      if (EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID && EMAILJS_PUBLIC_KEY) {
-        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, payload, EMAILJS_PUBLIC_KEY);
-      }
-    } catch (e) { console.warn('EmailJS:', e); }
+      await submitLead(payload);
+    } catch (e) { console.warn('Backend lead:', e); }
 
     // Google Sheet
     try {
@@ -171,7 +165,7 @@ function InquiryForm() {
 
       <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
         <p className="text-xs text-blue-700">
-          💡 For a website project, use the <Link to="/contact/requirements" className="font-bold underline">Full Project Brief</Link> — it covers everything and takes 5 minutes.
+          💡 For a website project, use the <Link to="/contact/requirements" className="font-bold underline">Full Project Brief</Link>  -  it covers everything and takes 5 minutes.
           For a pricing estimate, use the <Link to="/contact/calc" className="font-bold underline">Pricing Calculator</Link>.
         </p>
       </div>
@@ -201,14 +195,14 @@ function InquiryForm() {
   );
 }
 
-// ── Tab config ─────────────────────────────────────────────────────────────
+// -- Tab config -------------------------------------------------------------
 const TABS = [
   { key: "inquiry",      label: "Quick Inquiry",     desc: "General questions or service enquiries" },
-  { key: "requirements", label: "Project Brief",     desc: "Start a website project — 5 mins"       },
+  { key: "requirements", label: "Project Brief",     desc: "Start a website project  -  5 mins"       },
   { key: "calc",         label: "Pricing Calculator", desc: "Get an instant website estimate"        },
 ];
 
-// ── Lazy imports of the other two forms ───────────────────────────────────
+// -- Lazy imports of the other two forms -----------------------------------
 import ClientRequirements from "./ClientRequirements";
 import WebsiteCalc from "./WebsiteCalc";
 
@@ -239,7 +233,7 @@ export default function Contact() {
         <meta name="twitter:image"       content="https://thebrandhelper.com/images/og-image.jpg" />
       </Helmet>
 
-      {/* ── Hero ── */}
+      {/* -- Hero -- */}
       <section className="bg-black text-white py-16 md:py-20 px-6">
         <div className="max-w-5xl mx-auto">
           <p className="text-red-500 text-xs font-bold uppercase tracking-widest mb-4">Get In Touch</p>
@@ -269,7 +263,7 @@ export default function Contact() {
         </div>
       </section>
 
-      {/* ── Tabs ── */}
+      {/* -- Tabs -- */}
       <div className="border-b border-gray-100 sticky top-16 z-40 bg-white shadow-sm">
         <div className="max-w-5xl mx-auto px-6">
           <div className="flex overflow-x-auto">
@@ -288,16 +282,28 @@ export default function Contact() {
         </div>
       </div>
 
-      {/* ── Tab content ── */}
+      {/* -- Tab content -- */}
       <div className="max-w-5xl mx-auto px-6 py-10 md:py-14">
 
         {activeTab === "inquiry" && (
-          <div className="max-w-2xl">
-            <h2 className="text-2xl md:text-3xl font-extrabold mb-2">Quick Inquiry</h2>
-            <p className="text-gray-500 mb-8 text-sm md:text-base">
-              General questions, partnership enquiries, or not sure where to start? Drop us a message — we reply quickly.
-            </p>
-            <InquiryForm />
+          <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-extrabold mb-2">Quick Inquiry</h2>
+              <p className="text-gray-500 mb-8 text-sm md:text-base">
+                General questions, partnership enquiries, or not sure where to start? Drop us a message  -  we reply quickly.
+              </p>
+              <InquiryForm />
+            </div>
+            <aside className="overflow-hidden rounded-2xl border border-gray-100 bg-[#F8F8F8]">
+              <img src={contactInquiryImg} alt="Contact inquiry support" className="h-72 w-full object-cover" />
+              <div className="p-5">
+                <p className="text-xs font-bold uppercase tracking-widest text-red-600">Easy Start</p>
+                <h3 className="mt-2 text-lg font-extrabold">Tell us what you need in plain language.</h3>
+                <p className="mt-3 text-sm leading-relaxed text-gray-600">
+                  You can send a quick message first. If the project needs more detail, we will guide you to the brief or calculator.
+                </p>
+              </div>
+            </aside>
           </div>
         )}
 
@@ -315,7 +321,7 @@ export default function Contact() {
 
       </div>
 
-      {/* ── Direct contact cards — only on inquiry tab ── */}
+      {/* -- Direct contact cards  -  only on inquiry tab -- */}
       {activeTab === "inquiry" && (
         <section className="py-12 md:py-16 bg-[#F5F5F5] px-6">
           <div className="max-w-5xl mx-auto">

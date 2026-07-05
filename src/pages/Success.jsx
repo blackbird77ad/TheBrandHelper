@@ -14,7 +14,7 @@ export default function Success() {
         <h1 className="text-4xl font-extrabold mb-4">Brief Received!</h1>
 
         <p className="text-gray-300 text-lg mb-3 leading-relaxed">
-          Thank you — we've received your project brief and will review it shortly.
+          Thank you  -  we've received your project brief and will review it shortly.
         </p>
         <p className="text-gray-400 mb-10 text-sm">
           We typically respond within a few hours on WhatsApp, or within 24 hours by email.
@@ -27,7 +27,7 @@ export default function Success() {
               "We review your brief and prepare questions if needed",
               "We reach out to schedule a free consultation call",
               "We align on scope, timeline, and exact pricing",
-              "You approve — we start building",
+              "You approve  -  we start building",
             ].map((step, i) => (
               <div key={i} className="flex items-start gap-3 text-sm text-gray-300">
                 <span className="w-5 h-5 rounded-full bg-red-600 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">

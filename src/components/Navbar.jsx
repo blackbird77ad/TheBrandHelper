@@ -1,197 +1,90 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import logo from "../photos/logo-tbh-wordmark-tight.png";
 
 const NAV_LINKS = [
-  { label: "Home",      to: "/"          },
-  { label: "AI Data",   to: "/ai-data"   },
+  { label: "Home", to: "/" },
+  { label: "Web Development", to: "/web-development" },
+  { label: "Products", to: "/digital-products" },
+  { label: "Services", to: "/services" },
+  { label: "AI Data", to: "/ai-data" },
   { label: "AI Projects", to: "/ai-projects" },
-  { label: "Talent",    to: "/talent"    },
-  { label: "Products",  to: "/digital-products" },
-  { label: "Services",  to: "/services"  },
-  { label: "Contact",   to: "/contact"   },
+  { label: "Talent", to: "/talent" },
+  { label: "Contact", to: "/contact" },
 ];
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
 
-  useEffect(() => { setMenuOpen(false); }, [pathname]);
-
-  const isActive = (to) =>
-    to === "/" ? pathname === "/" : pathname.startsWith(to);
+  const isActive = (to) => {
+    if (to === "/web-development") return pathname === "/web-development";
+    if (to === "/") return pathname === "/";
+    return pathname === to || pathname.startsWith(`${to}/`);
+  };
 
   return (
-    <>
-      <nav
-        style={{
-          position: "fixed",
-          top: 0, left: 0, right: 0,
-          zIndex: 200,
-          background: "rgba(10,10,10,0.98)",
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
-          borderBottom: "1px solid rgba(255,255,255,0.07)",
-        }}
-      >
-        <div style={{
-          maxWidth: 1200, margin: "0 auto", padding: "0 24px",
-          height: 64, display: "flex", alignItems: "center", justifyContent: "space-between",
-        }}>
-          <Link to="/" style={{ textDecoration: "none", flexShrink: 0 }}>
-            <span style={{ color: "#fff", fontWeight: 900, fontSize: 17, letterSpacing: "-0.3px" }}>
-              The Brand<span style={{ color: "#e11d48" }}>Helper</span>
-            </span>
-          </Link>
+    <nav className="fixed inset-x-0 top-0 z-[200] border-b border-white/10 bg-black/95 text-white backdrop-blur">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
+        <Link to="/" className="flex shrink-0 items-center" aria-label="The BrandHelper home" onClick={() => setMenuOpen(false)}>
+          <span className="flex h-14 items-center overflow-hidden rounded-sm">
+            <img src={logo} alt="The BrandHelper" className="h-14 w-auto max-w-[250px] object-contain" />
+          </span>
+        </Link>
 
-          <div className="hidden md:flex" style={{ alignItems: "center", gap: 2 }}>
-            {NAV_LINKS.map(({ label, to }) => (
-              <Link
-                key={to}
-                to={to}
-                style={{
-                  color: isActive(to) ? "#ffffff" : "rgba(255,255,255,0.55)",
-                  textDecoration: "none",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  letterSpacing: "0.07em",
-                  textTransform: "uppercase",
-                  padding: "8px 12px",
-                  borderRadius: 6,
-                  background: isActive(to) ? "rgba(255,255,255,0.08)" : "transparent",
-                  transition: "color 0.15s, background 0.15s",
-                  whiteSpace: "nowrap",
-                }}
-                onMouseEnter={e => {
-                  if (!isActive(to)) {
-                    e.currentTarget.style.color = "#fff";
-                    e.currentTarget.style.background = "rgba(255,255,255,0.06)";
-                  }
-                }}
-                onMouseLeave={e => {
-                  if (!isActive(to)) {
-                    e.currentTarget.style.color = "rgba(255,255,255,0.55)";
-                    e.currentTarget.style.background = "transparent";
-                  }
-                }}
-              >
-                {label}
-              </Link>
-            ))}
-
+        <div className="hidden items-center gap-1 lg:flex">
+          {NAV_LINKS.map(({ label, to }) => (
             <Link
-              to="/blueprint"
-              style={{
-                marginLeft: 10,
-                background: "#e11d48",
-                color: "#fff",
-                textDecoration: "none",
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: "0.09em",
-                textTransform: "uppercase",
-                padding: "10px 18px",
-                borderRadius: 6,
-                transition: "opacity 0.15s, transform 0.15s",
-                whiteSpace: "nowrap",
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.opacity = "0.88";
-                e.currentTarget.style.transform = "translateY(-1px)";
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.opacity = "1";
-                e.currentTarget.style.transform = "translateY(0)";
-              }}
+              key={to}
+              to={to}
+              className={`rounded-md px-3 py-2 text-[11px] font-bold uppercase tracking-wide transition ${
+                isActive(to) ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/10 hover:text-white"
+              }`}
             >
-              Build a Blueprint
+              {label}
             </Link>
-          </div>
-
-          <button
-            className="md:hidden"
-            onClick={() => setMenuOpen(o => !o)}
-            aria-label="Toggle navigation"
-            style={{
-              background: "none", border: "none", padding: "8px",
-              cursor: "pointer", display: "flex", flexDirection: "column",
-              gap: 5, width: 36,
-            }}
-          >
-            <span style={{
-              display: "block", height: 2, width: 22,
-              background: "#fff", borderRadius: 2, transition: "transform 0.25s",
-              transform: menuOpen ? "rotate(45deg) translate(3px, 7px)" : "none",
-            }} />
-            <span style={{
-              display: "block", height: 2, width: 22,
-              background: "#fff", borderRadius: 2, transition: "opacity 0.25s",
-              opacity: menuOpen ? 0 : 1,
-            }} />
-            <span style={{
-              display: "block", height: 2, width: 22,
-              background: "#fff", borderRadius: 2, transition: "transform 0.25s",
-              transform: menuOpen ? "rotate(-45deg) translate(3px, -7px)" : "none",
-            }} />
-          </button>
+          ))}
         </div>
 
-        <div
-          className="md:hidden"
-          style={{
-            maxHeight: menuOpen ? 520 : 0,
-            overflow: "hidden",
-            transition: "max-height 0.3s ease",
-            background: "rgba(10,10,10,0.99)",
-            borderTop: menuOpen ? "1px solid rgba(255,255,255,0.07)" : "none",
-          }}
+        <button
+          type="button"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-white/15 text-white transition hover:bg-white/10 lg:hidden"
+          onClick={() => setMenuOpen((open) => !open)}
+          aria-expanded={menuOpen}
+          aria-controls="mobile-navigation"
+          aria-label="Toggle navigation"
         >
-          <div style={{ padding: "12px 24px 24px" }}>
-            {NAV_LINKS.map(({ label, to }) => (
-              <Link
-                key={to}
-                to={to}
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  color: isActive(to) ? "#fff" : "rgba(255,255,255,0.6)",
-                  textDecoration: "none", fontSize: 15, fontWeight: 600,
-                  padding: "14px 0", borderBottom: "1px solid rgba(255,255,255,0.05)",
-                }}
-              >
-                {label}
-                <span style={{ color: "#e11d48", fontSize: 12 }}>→</span>
-              </Link>
-            ))}
-            <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-              <Link
-                to="/blueprint"
-                style={{
-                  display: "block", background: "#e11d48", color: "#fff",
-                  textDecoration: "none", fontSize: 13, fontWeight: 700,
-                  letterSpacing: "0.08em", textTransform: "uppercase",
-                  padding: "14px", borderRadius: 10, textAlign: "center",
-                }}
-              >
-                Build a Blueprint →
-              </Link>
-              <a
-                href="https://wa.me/233501657205"
-                target="_blank" rel="noopener noreferrer"
-                style={{
-                  display: "block",
-                  background: "rgba(37,211,102,0.12)",
-                  border: "1px solid rgba(37,211,102,0.3)",
-                  color: "#25d366", textDecoration: "none",
-                  fontSize: 13, fontWeight: 700,
-                  padding: "13px", borderRadius: 10, textAlign: "center",
-                }}
-              >
-                💬 WhatsApp Us
-              </a>
-            </div>
-          </div>
-        </div>
-      </nav>
+          <span className="sr-only">Open menu</span>
+          <span className="relative block h-5 w-6">
+            <span className={`absolute left-0 top-0 h-0.5 w-6 rounded bg-white transition ${menuOpen ? "translate-y-2 rotate-45" : ""}`} />
+            <span className={`absolute left-0 top-2 h-0.5 w-6 rounded bg-white transition ${menuOpen ? "opacity-0" : "opacity-100"}`} />
+            <span className={`absolute left-0 top-4 h-0.5 w-6 rounded bg-white transition ${menuOpen ? "-translate-y-2 -rotate-45" : ""}`} />
+          </span>
+        </button>
+      </div>
 
-    </>
+      <div
+        id="mobile-navigation"
+        className={`overflow-hidden border-t border-white/10 bg-black transition-[max-height,opacity] duration-300 lg:hidden ${
+          menuOpen ? "max-h-[540px] opacity-100" : "max-h-0 opacity-0"
+        }`}
+      >
+        <div className="mx-auto flex max-w-7xl flex-col px-4 py-3 sm:px-6">
+          {NAV_LINKS.map(({ label, to }) => (
+            <Link
+              key={to}
+              to={to}
+              onClick={() => setMenuOpen(false)}
+              className={`flex items-center justify-between border-b border-white/10 py-4 text-sm font-bold ${
+                isActive(to) ? "text-white" : "text-white/65"
+              }`}
+            >
+              <span>{label}</span>
+              <span className="text-red-500">Go</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </nav>
   );
 }

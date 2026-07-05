@@ -1,5 +1,5 @@
 /**
- * The BrandHelper — Full CRM API Server
+ * The BrandHelper  -  Full CRM API Server
  * Models: Lead, Client, Project, Milestone, Meeting, Note, Quote, Reminder, Portfolio
  */
 
@@ -19,8 +19,30 @@ const {
 const app    = express();
 const PORT   = process.env.PORT || 4000;
 const SECRET = process.env.ADMIN_SECRET || 'change_this_secret';
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || process.env.ADMIN_RESET_NOTIFY_EMAILS || '')
+  .split(',')
+  .map(email => email.trim().toLowerCase())
+  .filter(Boolean);
+const RESET_NOTIFY_EMAILS = (process.env.ADMIN_RESET_NOTIFY_EMAILS || process.env.ADMIN_EMAILS || '')
+  .split(',')
+  .map(email => email.trim())
+  .filter(Boolean);
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
+const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || '';
+const ADMIN_MASTER_PIN = process.env.ADMIN_MASTER_PIN || '';
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || '';
+const ADMIN_NOTIFY_EMAILS = (
+  process.env.ADMIN_NOTIFY_EMAILS ||
+  process.env.ADMIN_RESET_NOTIFY_EMAILS ||
+  process.env.ADMIN_EMAILS ||
+  ''
+)
+  .split(',')
+  .map(email => email.trim())
+  .filter(Boolean);
 
-// ── CORS ──────────────────────────────────────────────────────────────────────
+// -- CORS ----------------------------------------------------------------------
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
   .split(',').map(o => o.trim()).filter(Boolean);
 
@@ -37,7 +59,7 @@ app.use(cors({
 
 app.use(express.json({ limit: '5mb' }));
 
-// ── Auth middleware ───────────────────────────────────────────────────────────
+// -- Auth middleware -----------------------------------------------------------
 function auth(req, res, next) {
   if (req.headers['x-admin-secret'] !== SECRET) {
     return res.status(401).json({ error: 'Unauthorised' });
@@ -45,14 +67,105 @@ function auth(req, res, next) {
   next();
 }
 
-// ── Helper ────────────────────────────────────────────────────────────────────
+// -- Helper --------------------------------------------------------------------
 const ok  = (res, data, status = 200) => res.status(status).json({ success: true, data });
 const err = (res, e, status = 500)    => res.status(status).json({ error: e?.message || e });
 const toArray = (value) => Array.isArray(value)
   ? value
   : String(value || '').split(',').map(item => item.trim()).filter(Boolean);
+const isAdminEmail = (email) => ADMIN_EMAILS.includes(String(email || '').trim().toLowerCase());
 
-// ── Health ────────────────────────────────────────────────────────────────────
+async function isAdminPassword(password) {
+  if (!password) return false;
+  if (ADMIN_PASSWORD_HASH) return bcrypt.compare(password, ADMIN_PASSWORD_HASH);
+  return Boolean(ADMIN_PASSWORD && password === ADMIN_PASSWORD);
+}
+
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function compactLines(lines) {
+  return lines.filter(line => String(line || '').trim());
+}
+
+function recordLines(title, fields) {
+  return compactLines([
+    title,
+    '',
+    ...fields.map(([label, value]) => value ? `${label}: ${value}` : ''),
+  ]);
+}
+
+async function sendEmail({ to, subject, text, html, replyTo }) {
+  const recipients = (Array.isArray(to) ? to : [to]).map(email => String(email || '').trim()).filter(Boolean);
+  if (!RESEND_API_KEY || !RESEND_FROM_EMAIL || recipients.length === 0) {
+    return { sent: false, skipped: true };
+  }
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: RESEND_FROM_EMAIL,
+        to: recipients,
+        subject,
+        text,
+        html: html || `<pre style="font-family:Arial,sans-serif;white-space:pre-wrap;line-height:1.5">${escapeHtml(text)}</pre>`,
+        ...(replyTo ? { reply_to: replyTo } : {}),
+      }),
+    });
+
+    if (!response.ok) {
+      const details = await response.text().catch(() => '');
+      console.warn('Resend email failed:', response.status, details);
+      return { sent: false, error: details || `Resend ${response.status}` };
+    }
+
+    return { sent: true };
+  } catch (error) {
+    console.warn('Resend email error:', error.message);
+    return { sent: false, error: error.message };
+  }
+}
+
+async function notifyAdmins(subject, lines, options = {}) {
+  return sendEmail({
+    to: options.to || ADMIN_NOTIFY_EMAILS,
+    subject,
+    text: compactLines(lines).join('\n'),
+    replyTo: options.replyTo,
+  });
+}
+
+async function acknowledgeLead(lead) {
+  if (!lead?.email) return { sent: false, skipped: true };
+  return sendEmail({
+    to: lead.email,
+    subject: `We received your ${lead.form_type || 'request'} - The BrandHelper`,
+    text: compactLines([
+      `Hello ${lead.client_name || lead.business_name || 'there'},`,
+      '',
+      'Thank you for contacting The BrandHelper. We have received your request and a team member will follow up with you.',
+      '',
+      lead.service ? `Interest: ${lead.service}` : '',
+      lead.message ? `Message: ${lead.message}` : '',
+      '',
+      'The BrandHelper Team',
+    ]).join('\n'),
+  });
+}
+
+// -- Health --------------------------------------------------------------------
 async function healthPayload() {
   const database = getDatabaseStatus();
   const payload = {
@@ -96,7 +209,7 @@ app.get('/health', async (_req, res) => {
 app.use('/api', requireDb);
 
 // ══════════════════════════════════════════════════════════════════════════════
-// LEADS — public POST (from forms), admin for everything else
+// LEADS  -  public POST (from forms), admin for everything else
 // ══════════════════════════════════════════════════════════════════════════════
 
 // Create lead from form (public) OR manually (admin)
@@ -124,6 +237,21 @@ app.post('/api/leads', async (req, res) => {
       submitted_at:  body.submitted_at  || new Date().toISOString(),
       status:        isAdmin ? (body.status || 'new') : 'new',
     });
+    await notifyAdmins(
+      `${isAdmin ? 'CRM lead created' : 'New website lead'}: ${lead.form_type || 'Lead'}`,
+      recordLines('Lead details', [
+        ['Name', lead.client_name],
+        ['Business', lead.business_name],
+        ['Email', lead.email],
+        ['Phone', lead.phone],
+        ['Service', lead.service],
+        ['Budget', lead.budget],
+        ['Timeline', lead.timeline],
+        ['Message', lead.message],
+      ]),
+      { replyTo: lead.email }
+    );
+    if (!isAdmin) await acknowledgeLead(lead);
     ok(res, lead, 201);
   } catch (e) { err(res, e); }
 });
@@ -147,8 +275,26 @@ app.get('/api/leads/:id',    auth, async (req, res) => {
 
 app.put('/api/leads/:id',    auth, async (req, res) => {
   try {
+    const before = await Lead.findById(req.params.id);
     const lead = await Lead.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!lead) return res.status(404).json({ error: 'Not found' });
+    if (before && (
+      before.status !== lead.status ||
+      String(before.follow_up_date || '') !== String(lead.follow_up_date || '')
+    )) {
+      await notifyAdmins(
+        `Lead updated: ${lead.client_name || lead.business_name || lead.email || lead._id}`,
+        recordLines('Lead update', [
+          ['Name', lead.client_name],
+          ['Business', lead.business_name],
+          ['Old status', before.status],
+          ['New status', lead.status],
+          ['Follow up', lead.follow_up_date],
+          ['Notes', lead.notes],
+        ]),
+        { replyTo: lead.email }
+      );
+    }
     ok(res, lead);
   } catch (e) { err(res, e); }
 });
@@ -183,6 +329,18 @@ app.post('/api/leads/:id/convert', auth, async (req, res) => {
       status: 'won',
       converted_to_client: client._id,
     });
+
+    await notifyAdmins(
+      `Lead converted to client: ${client.name || client.business_name}`,
+      recordLines('Converted lead', [
+        ['Client', client.name],
+        ['Business', client.business_name],
+        ['Email', client.email],
+        ['Phone', client.phone],
+        ['Industry', client.industry],
+      ]),
+      { replyTo: client.email }
+    );
 
     ok(res, client, 201);
   } catch (e) { err(res, e); }
@@ -290,7 +448,7 @@ app.delete('/api/projects/:id',  auth, async (req, res) => {
   } catch (e) { err(res, e); }
 });
 
-// ── Milestones ────────────────────────────────────────────────────────────────
+// -- Milestones ----------------------------------------------------------------
 app.post('/api/projects/:id/milestones',           auth, async (req, res) => {
   try {
     const m = await Milestone.create({ ...req.body, project_id: req.params.id });
@@ -312,7 +470,7 @@ app.delete('/api/milestones/:id',                  auth, async (req, res) => {
   } catch (e) { err(res, e); }
 });
 
-// ── Toggle milestone complete ─────────────────────────────────────────────────
+// -- Toggle milestone complete -------------------------------------------------
 app.patch('/api/milestones/:id/toggle',            auth, async (req, res) => {
   try {
     const m = await Milestone.findById(req.params.id);
@@ -450,7 +608,7 @@ app.delete('/api/quotes/:id',  auth, async (req, res) => {
 // REMINDERS
 // ══════════════════════════════════════════════════════════════════════════════
 
-// Helper — converts empty string IDs to null to avoid ObjectId cast errors
+// Helper  -  converts empty string IDs to null to avoid ObjectId cast errors
 function cleanIds(body) {
   const fields = ['lead_id','client_id','project_id','meeting_id'];
   const cleaned = { ...body };
@@ -593,18 +751,18 @@ app.get('/api/stats', auth, async (_req, res) => {
 
 
 // ══════════════════════════════════════════════════════════════════════════════
-// AUTH — PIN setup and verification (no ADMIN_SECRET needed — uses hashed PINs)
+// AUTH  -  PIN setup and verification (no ADMIN_SECRET needed  -  uses hashed PINs)
 // ══════════════════════════════════════════════════════════════════════════════
 
-/** GET /api/auth/status — check if PINs are configured */
+/** GET /api/auth/status  -  check if PINs are configured */
 app.get('/api/auth/status', async (_req, res) => {
   try {
     const auth = await Auth.findOne();
-    res.json({ configured: !!auth });
+    res.json({ configured: !!auth, password_enabled: Boolean(ADMIN_PASSWORD || ADMIN_PASSWORD_HASH) });
   } catch (e) { err(res, e); }
 });
 
-/** POST /api/auth/setup — first time setup, save both hashes */
+/** POST /api/auth/setup  -  first time setup, save both hashes */
 app.post('/api/auth/setup', async (req, res) => {
   try {
     const existing = await Auth.findOne();
@@ -616,24 +774,87 @@ app.post('/api/auth/setup', async (req, res) => {
   } catch (e) { err(res, e); }
 });
 
-/** POST /api/auth/verify — verify a PIN, returns type if matched */
+/** POST /api/auth/verify  -  verify a PIN, returns type if matched */
 app.post('/api/auth/verify', async (req, res) => {
   try {
     const { pin } = req.body;
     if (!pin) return res.status(400).json({ error: 'PIN required' });
     const auth = await Auth.findOne();
     if (!auth) return res.status(404).json({ error: 'Not configured' });
+    const envMasterMatch = Boolean(ADMIN_MASTER_PIN && pin === ADMIN_MASTER_PIN);
     const [pinMatch, masterMatch] = await Promise.all([
       bcrypt.compare(pin, auth.pin_hash),
       bcrypt.compare(pin, auth.master_hash),
     ]);
     if (pinMatch)    return res.json({ success: true, type: 'pin'    });
-    if (masterMatch) return res.json({ success: true, type: 'master' });
+    if (masterMatch || envMasterMatch) return res.json({ success: true, type: 'master' });
     res.status(401).json({ success: false, error: 'Incorrect PIN' });
   } catch (e) { err(res, e); }
 });
 
-/** POST /api/auth/reset-pin — use master hash to set new admin PIN hash */
+/** POST /api/auth/password-login  -  admin email + password login */
+app.post('/api/auth/password-login', async (req, res) => {
+  try {
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const password = String(req.body.password || '');
+    if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+    const emailOk = isAdminEmail(email);
+    const passwordOk = await isAdminPassword(password);
+    if (!emailOk || !passwordOk) return res.status(401).json({ success: false, error: 'Invalid admin login' });
+    res.json({ success: true, type: 'password' });
+  } catch (e) { err(res, e); }
+});
+
+/** POST /api/auth/request-reset  -  log a PIN reset request for admin follow-up */
+app.post('/api/auth/request-reset', async (req, res) => {
+  try {
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const requestedBy = email || 'Unknown';
+    const allowed = isAdminEmail(email);
+    if (allowed) {
+      const lead = await Lead.create({
+        source: 'manual',
+        form_type: 'Admin PIN Reset Request',
+        client_name: requestedBy,
+        email,
+        service: 'Admin access',
+        message: `Admin PIN reset requested by ${requestedBy}`,
+        full_brief: [
+          'Admin PIN reset request',
+          `Requested by: ${requestedBy}`,
+          `Time: ${new Date().toISOString()}`,
+          `Notify: ${RESET_NOTIFY_EMAILS.join(', ') || 'No notify emails configured'}`,
+        ].join('\n'),
+        submitted_at: new Date().toISOString(),
+        status: 'new',
+      });
+      const emailResult = await notifyAdmins(
+        `Admin PIN reset request: ${requestedBy}`,
+        recordLines('Admin reset request', [
+          ['Requested by', requestedBy],
+          ['Email', email],
+          ['Time', new Date().toISOString()],
+        ]),
+        {
+          to: RESET_NOTIFY_EMAILS.length ? RESET_NOTIFY_EMAILS : ADMIN_NOTIFY_EMAILS,
+          replyTo: email,
+        }
+      );
+      return res.json({
+        success: true,
+        message: 'If this is an admin email, the reset request has been logged.',
+        email_sent: Boolean(emailResult.sent),
+      });
+    }
+    res.json({
+      success: true,
+      message: 'If this is an admin email, the reset request has been logged.',
+      email_sent: false,
+    });
+  } catch (e) { err(res, e); }
+});
+
+/** POST /api/auth/reset-pin  -  use master hash to set new admin PIN hash */
 app.post('/api/auth/reset-pin', async (req, res) => {
   try {
     const { master_pin, new_pin_hash } = req.body;
@@ -641,14 +862,15 @@ app.post('/api/auth/reset-pin', async (req, res) => {
     const auth = await Auth.findOne();
     if (!auth) return res.status(404).json({ error: 'Not configured' });
     const match = await bcrypt.compare(master_pin, auth.master_hash);
-    if (!match) return res.status(401).json({ error: 'Incorrect master PIN' });
+    const envMasterMatch = Boolean(ADMIN_MASTER_PIN && master_pin === ADMIN_MASTER_PIN);
+    if (!match && !envMasterMatch) return res.status(401).json({ error: 'Incorrect master PIN' });
     auth.pin_hash = new_pin_hash;
     await auth.save();
     res.json({ success: true });
   } catch (e) { err(res, e); }
 });
 
-/** POST /api/auth/full-reset — wipe all PINs, requires ADMIN_SECRET header */
+/** POST /api/auth/full-reset  -  wipe all PINs, requires ADMIN_SECRET header */
 app.post('/api/auth/full-reset', auth, async (req, res) => {
   try {
     await Auth.deleteMany({});
@@ -658,7 +880,7 @@ app.post('/api/auth/full-reset', auth, async (req, res) => {
 
 
 // ══════════════════════════════════════════════════════════════════════════════
-// PROSPECTS — Google Maps research leads with full outreach tracking
+// PROSPECTS  -  Google Maps research leads with full outreach tracking
 // ══════════════════════════════════════════════════════════════════════════════
 
 app.post('/api/prospects', auth, async (req, res) => {
@@ -742,7 +964,7 @@ app.post('/api/prospects/:id/convert', auth, async (req, res) => {
   } catch (e) { err(res, e); }
 });
 
-// ── 404 ───────────────────────────────────────────────────────────────────────
+// -- 404 -----------------------------------------------------------------------
 app.get('/api/phase2/products', async (req, res) => {
   try {
     const filter = { published: true };
@@ -808,9 +1030,9 @@ app.post('/api/phase2/requests', async (req, res) => {
       submitted_at: body.submitted_at || new Date().toISOString(),
     });
 
-    await Lead.create({
+    const lead = await Lead.create({
       source: 'website',
-      form_type: `Phase 2 - ${request.request_type}`,
+      form_type: `Platform - ${request.request_type}`,
       client_name: request.contact_name,
       business_name: request.company,
       email: request.email,
@@ -824,6 +1046,23 @@ app.post('/api/phase2/requests', async (req, res) => {
       submitted_at: request.submitted_at,
       status: 'new',
     });
+
+    await notifyAdmins(
+      `New platform request: ${request.request_type}`,
+      recordLines('Platform request details', [
+        ['Company', request.company],
+        ['Contact', request.contact_name],
+        ['Email', request.email],
+        ['Phone', request.phone || request.whatsapp],
+        ['Project type', request.project_type || request.data_type],
+        ['Source product', request.source_product],
+        ['Budget', request.budget],
+        ['Timeline', request.timeline],
+        ['Message', request.message],
+      ]),
+      { replyTo: request.email }
+    );
+    await acknowledgeLead(lead);
 
     ok(res, request, 201);
   } catch (e) { err(res, e); }
@@ -850,11 +1089,11 @@ app.put('/api/admin/phase2/requests/:id', auth, async (req, res) => {
 app.use((req, res) => res.status(404).json({ error: `${req.method} ${req.path} not found` }));
 app.use((e, _req, res, _next) => { console.error(e.message); res.status(500).json({ error: e.message }); });
 
-// ── Start ─────────────────────────────────────────────────────────────────────
+// -- Start ---------------------------------------------------------------------
 /* Legacy crash-on-connect startup disabled.
 false && connect()
   .then(() => app.listen(PORT, () => {
-    console.log(`\n🚀 TBH CRM Server — port ${PORT}`);
+    console.log(`\n🚀 TBH CRM Server  -  port ${PORT}`);
     console.log(`   ENV: ${process.env.NODE_ENV || 'development'}\n`);
   }))
   .catch(e => { console.error('❌ MongoDB:', e.message); process.exit(1); });

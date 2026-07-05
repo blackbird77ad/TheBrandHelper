@@ -4,7 +4,7 @@ import AdminAuth, { LogoutButton } from "../components/AdminAuth";
 import ProspectTab from "../components/ProspectTab";
 import * as api from "../utils/api";
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+// -- Constants -----------------------------------------------------------------
 const PIPELINE_COLS = [
   { key: 'new',         label: 'New',         color: 'bg-blue-500'   },
   { key: 'contacted',   label: 'Contacted',   color: 'bg-yellow-500' },
@@ -21,6 +21,10 @@ const NOTE_TYPES       = ['note','call','email','whatsapp','meeting','other'];
 const MEETING_TYPES    = ['call','video','in_person','whatsapp'];
 const LEAD_SOURCES     = ['website','manual','referral','social','other'];
 const CATEGORIES       = ['Website Design','Brand Strategy','Ads Management','Technical Support','Other'];
+const PHASE2_PRODUCT_TYPES = ['dataset','website','software','digital_product','ai_service','other'];
+const PHASE2_PRODUCT_STATUSES = ['available','limited','licensing','custom_collection','coming_soon','request_access','sold','unavailable'];
+const PHASE2_REQUEST_TYPES = ['dataset_interest','ai_project','data_collection','talent_request','contributor_application','product_enquiry','general_phase2'];
+const PHASE2_REQUEST_STATUSES = ['new','contacted','qualified','samples_requested','samples_shared','meeting_scheduled','negotiation','agreement_pending','won','lost'];
 
 const STATUS_COLOR = {
   new:         'bg-blue-100 text-blue-700',
@@ -44,12 +48,24 @@ const STATUS_COLOR = {
   accepted:    'bg-green-100 text-green-700',
   declined:    'bg-red-100 text-red-600',
   expired:     'bg-gray-100 text-gray-400',
+  samples_requested: 'bg-purple-100 text-purple-700',
+  samples_shared: 'bg-indigo-100 text-indigo-700',
+  meeting_scheduled: 'bg-blue-100 text-blue-700',
+  agreement_pending: 'bg-orange-100 text-orange-700',
+  available: 'bg-green-100 text-green-700',
+  limited: 'bg-yellow-100 text-yellow-700',
+  licensing: 'bg-purple-100 text-purple-700',
+  custom_collection: 'bg-blue-100 text-blue-700',
+  coming_soon: 'bg-gray-100 text-gray-500',
+  request_access: 'bg-indigo-100 text-indigo-700',
+  sold: 'bg-green-100 text-green-700',
+  unavailable: 'bg-red-100 text-red-600',
 };
 
 const inp = "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gray-800 transition-all bg-white";
 const sel = `${inp} cursor-pointer`;
 
-// ── Tiny shared components ────────────────────────────────────────────────────
+// -- Tiny shared components ----------------------------------------------------
 const Badge = ({ status }) => (
   <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${STATUS_COLOR[status] || 'bg-gray-100 text-gray-500'}`}>
     {status?.replace(/_/g,' ')}
@@ -92,11 +108,11 @@ const Modal = ({ title, onClose, children, wide }) => (
   </div>
 );
 
-const fmtDate  = d => d ? new Date(d).toLocaleDateString('en-GB') : '—';
-const fmtMoney = (n, c='USD') => n ? `${c} ${Number(n).toLocaleString()}` : '—';
+const fmtDate  = d => d ? new Date(d).toLocaleDateString('en-GB') : ' - ';
+const fmtMoney = (n, c='USD') => n ? `${c} ${Number(n).toLocaleString()}` : ' - ';
 
 // ══════════════════════════════════════════════════════════════════════════════
-// ADMIN INNER — rendered only after auth
+// ADMIN INNER  -  rendered only after auth
 // ══════════════════════════════════════════════════════════════════════════════
 function AdminInner({ onLogout }) {
   const [tab,     setTab]     = useState('pipeline');
@@ -111,6 +127,8 @@ function AdminInner({ onLogout }) {
   const [portfolio, setPortfolio] = useState([]);
   const [stats,     setStats]     = useState(null);
   const [meetings,  setMeetings]  = useState([]);
+  const [phase2Requests, setPhase2Requests] = useState([]);
+  const [phase2Products, setPhase2Products] = useState([]);
   const [modal,     setModal]     = useState(null);
 
   const closeModal = () => setModal(null);
@@ -126,13 +144,21 @@ function AdminInner({ onLogout }) {
       if (which === 'portfolio' || which === 'all') setPortfolio((await api.getPortfolio()).data);
       if (which === 'stats'     || which === 'all') setStats((await api.getStats()).data);
       if (which === 'meetings'  || which === 'all') setMeetings((await api.getMeetings()).data);
+      if (which === 'phase2'    || which === 'all') {
+        const [requests, products] = await Promise.all([
+          api.getPhase2Requests(),
+          api.getAdminPhase2Products(),
+        ]);
+        setPhase2Requests(requests.data || []);
+        setPhase2Products(products.data || []);
+      }
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
   }, []);
 
   useEffect(() => { load('all'); }, []);
   useEffect(() => {
-    const map = { pipeline:'leads', leads:'leads', clients:'clients', projects:'projects', quotes:'quotes', reminders:'reminders', portfolio:'portfolio', stats:'stats' };
+    const map = { pipeline:'leads', leads:'leads', clients:'clients', projects:'projects', quotes:'quotes', reminders:'reminders', portfolio:'portfolio', phase2:'phase2', stats:'stats' };
     if (map[tab]) load(map[tab]);
   }, [tab]);
 
@@ -146,13 +172,14 @@ function AdminInner({ onLogout }) {
     { key:'quotes',    icon:'📄', label:'Quotes'    },
     { key:'reminders', icon:'🔔', label:'Reminders' },
     { key:'portfolio', icon:'🖥️', label:'Portfolio' },
+    { key:'phase2',    icon:'AI', label:'Data & Talent' },
     { key:'prospects', icon:'🔍', label:'Prospects' },
     { key:'stats',     icon:'📊', label:'Stats'     },
   ];
 
   return (
     <div className="min-h-screen bg-[#F5F5F5] text-black">
-      <Helmet><title>Admin — TBH CRM</title><meta name="robots" content="noindex,nofollow"/></Helmet>
+      <Helmet><title>Admin  -  TBH CRM</title><meta name="robots" content="noindex,nofollow"/></Helmet>
 
       {/* Header */}
       <div className="bg-black text-white px-4 py-4 sticky top-0 z-40">
@@ -200,6 +227,7 @@ function AdminInner({ onLogout }) {
           {modal.type === 'quote_view'    && <QuoteView    data={modal.data} onClose={closeModal} />}
           {modal.type === 'reminder_form' && <ReminderForm data={modal.data} leads={leads} clients={clients} projects={projects} onClose={closeModal} onSave={() => { load('reminders'); closeModal(); }} onError={E} />}
           {modal.type === 'portfolio_form'&& <PortfolioForm data={modal.data} onClose={closeModal} onSave={() => { load('portfolio'); closeModal(); }} onError={E} />}
+          {modal.type === 'phase2_product_form' && <Phase2ProductForm data={modal.data} onClose={closeModal} onSave={() => { load('phase2'); closeModal(); }} onError={E} />}
         </>
       )}
 
@@ -211,6 +239,7 @@ function AdminInner({ onLogout }) {
         {tab === 'quotes'    && <QuotesTab    quotes={quotes} onView={q => setModal({type:'quote_view',data:q})} onAdd={() => setModal({type:'quote_form',data:null})} onDelete={async id => { try { await api.deleteQuote(id); load('quotes'); } catch(e){E(e.message);} }} onStatus={async (id,s) => { try { await api.updateQuote(id,{status:s}); load('quotes'); } catch(e){E(e.message);} }} />}
         {tab === 'reminders' && <RemindersTab reminders={reminders} onAdd={() => setModal({type:'reminder_form',data:null})} onComplete={async id => { try { await api.completeReminder(id); load('reminders'); } catch(e){E(e.message);} }} onDelete={async id => { try { await api.deleteReminder(id); load('reminders'); } catch(e){E(e.message);} }} />}
         {tab === 'portfolio' && <PortfolioTab items={portfolio} onAdd={() => setModal({type:'portfolio_form',data:null})} onEdit={p => setModal({type:'portfolio_form',data:p})} onDelete={async id => { try { await api.deletePortfolio(id); load('portfolio'); } catch(e){E(e.message);} }} onToggleFeatured={async item => { try { await api.updatePortfolio(item._id,{featured:!item.featured}); load('portfolio'); } catch(e){E(e.message);} }} />}
+        {tab === 'phase2'    && <Phase2AdminTab requests={phase2Requests} products={phase2Products} onAddProduct={() => setModal({type:'phase2_product_form',data:null})} onEditProduct={p => setModal({type:'phase2_product_form',data:p})} onDeleteProduct={async id => { try { await api.deletePhase2Product(id); load('phase2'); } catch(e){E(e.message);} }} onRequestStatus={async (id,status) => { try { await api.updatePhase2Request(id,{status}); load('phase2'); } catch(e){E(e.message);} }} onProductToggle={async product => { try { await api.updatePhase2Product(product._id,{published:!product.published}); load('phase2'); } catch(e){E(e.message);} }} />}
         {tab === 'prospects' && <ProspectTab onError={E} />}
         {tab === 'stats'     && <StatsTab     stats={stats} />}
       </div>
@@ -219,7 +248,7 @@ function AdminInner({ onLogout }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// DEFAULT EXPORT — wraps AdminInner with auth
+// DEFAULT EXPORT  -  wraps AdminInner with auth
 // ══════════════════════════════════════════════════════════════════════════════
 export default function Admin() {
   return (
@@ -232,6 +261,213 @@ export default function Admin() {
 // ══════════════════════════════════════════════════════════════════════════════
 // PIPELINE TAB
 // ══════════════════════════════════════════════════════════════════════════════
+function Phase2AdminTab({ requests, products, onAddProduct, onEditProduct, onDeleteProduct, onRequestStatus, onProductToggle }) {
+  const [requestType, setRequestType] = useState('all');
+  const [productType, setProductType] = useState('all');
+
+  const filteredRequests = requests.filter((item) => requestType === 'all' || item.request_type === requestType);
+  const filteredProducts = products.filter((item) => productType === 'all' || item.product_type === productType);
+  const newRequests = requests.filter((item) => item.status === 'new').length;
+  const contributorApps = requests.filter((item) => item.request_type === 'contributor_application').length;
+  const publishedProducts = products.filter((item) => item.published).length;
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {[
+          ['Platform Requests', requests.length],
+          ['New Follow-ups', newRequests],
+          ['Contributor Apps', contributorApps],
+          ['Published Products', publishedProducts],
+        ].map(([label, value]) => (
+          <div key={label} className="bg-white rounded-2xl p-5 shadow-sm">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{label}</p>
+            <p className="text-3xl font-extrabold">{value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-6 items-start">
+        <div className="bg-white rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-5">
+            <div>
+              <h2 className="text-xl font-extrabold">Data, Talent & Product Requests</h2>
+              <p className="text-xs text-gray-400 mt-1">Dataset enquiries, AI projects, talent requests, product leads, and contributor applications.</p>
+            </div>
+            <select className="border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold outline-none bg-white" value={requestType} onChange={e=>setRequestType(e.target.value)}>
+              <option value="all">All request types</option>
+              {PHASE2_REQUEST_TYPES.map(type => <option key={type} value={type}>{type.replace(/_/g,' ')}</option>)}
+            </select>
+          </div>
+
+          <div className="space-y-3">
+            {filteredRequests.map((item) => (
+              <div key={item._id} className="border border-gray-100 rounded-xl p-4 hover:border-gray-200 transition">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-2">
+                      <Badge status={item.status} />
+                      <span className="text-xs font-bold uppercase tracking-widest text-red-600">{item.request_type?.replace(/_/g,' ')}</span>
+                      <span className="text-xs text-gray-300">{fmtDate(item.createdAt)}</span>
+                    </div>
+                    <p className="text-sm font-extrabold">{item.contact_name || 'Unknown'}{item.company ? ` - ${item.company}` : ''}</p>
+                    <p className="text-xs text-gray-500 mt-1">{item.email}{item.phone || item.whatsapp ? ` - ${item.phone || item.whatsapp}` : ''}</p>
+                    <p className="text-xs text-gray-400 mt-2 line-clamp-2">{item.project_title || item.source_product || item.project_type || item.data_type || 'No title supplied'}</p>
+                  </div>
+                  <select className="border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold outline-none bg-white" value={item.status || 'new'} onChange={e=>onRequestStatus(item._id, e.target.value)}>
+                    {PHASE2_REQUEST_STATUSES.map(status => <option key={status} value={status}>{status.replace(/_/g,' ')}</option>)}
+                  </select>
+                </div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-3 text-xs text-gray-500">
+                  <div><span className="font-bold text-gray-700">Country:</span> {item.country || item.countries?.join(', ') || '-'}</div>
+                  <div><span className="font-bold text-gray-700">Languages:</span> {item.languages?.join(', ') || '-'}</div>
+                  <div><span className="font-bold text-gray-700">Budget:</span> {item.budget || '-'}</div>
+                </div>
+                {item.request_type === 'contributor_application' && item.metadata?.professional_profile && (
+                  <div className="mt-3 rounded-xl bg-gray-50 p-3 text-xs text-gray-600">
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <div><span className="font-bold text-gray-800">Residence:</span> {item.metadata.professional_profile.residence_country || '-'}</div>
+                      <div><span className="font-bold text-gray-800">Native language:</span> {item.metadata.professional_profile.native_languages?.join(', ') || '-'}</div>
+                      <div><span className="font-bold text-gray-800">Role:</span> {item.metadata.professional_profile.current_role || item.project_type || '-'}</div>
+                      <div><span className="font-bold text-gray-800">Availability:</span> {item.metadata.professional_profile.availability || item.timeline || '-'}</div>
+                      <div><span className="font-bold text-gray-800">Experience:</span> {item.metadata.professional_profile.experience_years || '-'}</div>
+                      <div><span className="font-bold text-gray-800">Rate:</span> {item.metadata.professional_profile.expected_rate || item.budget || '-'}</div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {item.metadata.professional_profile.cv_url && <a href={item.metadata.professional_profile.cv_url} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-white px-3 py-1.5 font-bold text-red-600">CV</a>}
+                      {item.metadata.professional_profile.linkedin_url && <a href={item.metadata.professional_profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-white px-3 py-1.5 font-bold text-blue-600">LinkedIn</a>}
+                      {item.metadata.professional_profile.portfolio_url && <a href={item.metadata.professional_profile.portfolio_url} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-white px-3 py-1.5 font-bold text-black">Portfolio</a>}
+                      {item.metadata.professional_profile.github_url && <a href={item.metadata.professional_profile.github_url} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-white px-3 py-1.5 font-bold text-gray-700">GitHub</a>}
+                    </div>
+                  </div>
+                )}
+                {item.request_type === 'talent_request' && item.metadata?.talent_request && (
+                  <div className="mt-3 rounded-xl bg-gray-50 p-3 text-xs text-gray-600">
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <div><span className="font-bold text-gray-800">Role needed:</span> {item.metadata.talent_request.role_required || '-'}</div>
+                      <div><span className="font-bold text-gray-800">People:</span> {item.metadata.talent_request.number_required || '-'}</div>
+                      <div><span className="font-bold text-gray-800">Workload:</span> {item.metadata.talent_request.weekly_hours_or_workload || '-'}</div>
+                      <div><span className="font-bold text-gray-800">Duration:</span> {item.metadata.talent_request.contract_duration || '-'}</div>
+                    </div>
+                  </div>
+                )}
+                {item.message && <p className="mt-3 rounded-xl bg-gray-50 p-3 text-xs leading-relaxed text-gray-600">{item.message}</p>}
+              </div>
+            ))}
+            {filteredRequests.length === 0 && <div className="rounded-2xl bg-gray-50 p-10 text-center text-sm font-semibold text-gray-400">No platform requests yet</div>}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-5">
+            <div>
+              <h2 className="text-xl font-extrabold">Products</h2>
+              <p className="text-xs text-gray-400 mt-1">Datasets, websites, software, digital products, and AI service packages.</p>
+            </div>
+            <Btn onClick={onAddProduct}>+ Product</Btn>
+          </div>
+          <select className="border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold outline-none bg-white mb-4 w-full" value={productType} onChange={e=>setProductType(e.target.value)}>
+            <option value="all">All product types</option>
+            {PHASE2_PRODUCT_TYPES.map(type => <option key={type} value={type}>{type.replace(/_/g,' ')}</option>)}
+          </select>
+          <div className="space-y-3">
+            {filteredProducts.map((item) => (
+              <div key={item._id} className="border border-gray-100 rounded-xl p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap mb-2">
+                      <Badge status={item.status} />
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${item.published ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{item.published ? 'published' : 'hidden'}</span>
+                    </div>
+                    <p className="text-sm font-extrabold">{item.title}</p>
+                    <p className="text-xs text-gray-400 mt-1">{item.product_type?.replace(/_/g,' ')} - {item.category || 'No category'}</p>
+                  </div>
+                  <button onClick={() => onProductToggle(item)} className="text-xs font-bold text-gray-500 hover:text-black">{item.published ? 'Hide' : 'Publish'}</button>
+                </div>
+                <p className="mt-3 text-xs text-gray-500 line-clamp-2">{item.description || 'No description yet'}</p>
+                <div className="mt-3 flex gap-2 flex-wrap">
+                  <Btn small variant="outline" onClick={() => onEditProduct(item)}>Edit</Btn>
+                  <Btn small variant="danger" onClick={() => onDeleteProduct(item._id)}>Delete</Btn>
+                  {item.demo_url && <a href={item.demo_url} target="_blank" rel="noopener noreferrer" className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg font-bold hover:bg-blue-100 transition">Demo</a>}
+                </div>
+              </div>
+            ))}
+            {filteredProducts.length === 0 && <div className="rounded-2xl bg-gray-50 p-10 text-center text-sm font-semibold text-gray-400">No platform products yet</div>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Phase2ProductForm({ data, onClose, onSave, onError }) {
+  const [f, setF] = useState({
+    product_type: 'dataset',
+    title: '',
+    slug: '',
+    category: '',
+    data_type: '',
+    language: '',
+    locale: '',
+    industry: '',
+    description: '',
+    scale: '',
+    status: 'available',
+    price_label: '',
+    image: '',
+    demo_url: '',
+    sample_url: '',
+    enquiry_only: true,
+    published: true,
+    featured: false,
+    internal_notes: '',
+    ...data,
+    applications: Array.isArray(data?.applications) ? data.applications.join(', ') : data?.applications || '',
+    features: Array.isArray(data?.features) ? data.features.join(', ') : data?.features || '',
+    tags: Array.isArray(data?.tags) ? data.tags.join(', ') : data?.tags || '',
+  });
+  const [saving, setSaving] = useState(false);
+  const set = (key, value) => setF(current => ({ ...current, [key]: value }));
+
+  const save = async () => {
+    if (!f.title) return;
+    setSaving(true);
+    try {
+      const { _id, __v, createdAt, updatedAt, ...payload } = f;
+      if (data?._id) await api.updatePhase2Product(data._id, payload);
+      else await api.createPhase2Product(payload);
+      onSave();
+    } catch(e) { onError(e.message); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <Modal title={data ? 'Edit Platform Product' : 'Add Platform Product'} onClose={onClose} wide>
+      <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div><Lbl req>Product Type</Lbl><select className={sel} value={f.product_type} onChange={e=>set('product_type',e.target.value)}>{PHASE2_PRODUCT_TYPES.map(type=><option key={type} value={type}>{type.replace(/_/g,' ')}</option>)}</select></div>
+          <div><Lbl>Status</Lbl><select className={sel} value={f.status} onChange={e=>set('status',e.target.value)}>{PHASE2_PRODUCT_STATUSES.map(status=><option key={status} value={status}>{status.replace(/_/g,' ')}</option>)}</select></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3"><div><Lbl req>Title</Lbl><input className={inp} value={f.title} onChange={e=>set('title',e.target.value)} placeholder="Dataset, website, product, or package name"/></div><div><Lbl>Slug</Lbl><input className={inp} value={f.slug} onChange={e=>set('slug',e.target.value)} placeholder="optional-url-slug"/></div></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3"><div><Lbl>Category</Lbl><input className={inp} value={f.category} onChange={e=>set('category',e.target.value)} placeholder="OCR, ecommerce, SaaS..."/></div><div><Lbl>Data / Product Type</Lbl><input className={inp} value={f.data_type} onChange={e=>set('data_type',e.target.value)} placeholder="Image, speech, website..."/></div></div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3"><div><Lbl>Language</Lbl><input className={inp} value={f.language} onChange={e=>set('language',e.target.value)} placeholder="English, Twi..."/></div><div><Lbl>Locale</Lbl><input className={inp} value={f.locale} onChange={e=>set('locale',e.target.value)} placeholder="Ghana, Africa..."/></div><div><Lbl>Industry</Lbl><input className={inp} value={f.industry} onChange={e=>set('industry',e.target.value)} placeholder="Document AI, retail..."/></div></div>
+        <div><Lbl>Description</Lbl><textarea className={`${inp} resize-none`} rows={4} value={f.description} onChange={e=>set('description',e.target.value)} placeholder="Public description. Avoid exposing sensitive dataset details."/></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3"><div><Lbl>Scale / Availability</Lbl><input className={inp} value={f.scale} onChange={e=>set('scale',e.target.value)} placeholder="Large internal collection, limited..."/></div><div><Lbl>Price Label</Lbl><input className={inp} value={f.price_label} onChange={e=>set('price_label',e.target.value)} placeholder="Request pricing, deposit options..."/></div></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3"><div><Lbl>Applications</Lbl><input className={inp} value={f.applications} onChange={e=>set('applications',e.target.value)} placeholder="OCR, NLP, QA"/></div><div><Lbl>Features</Lbl><input className={inp} value={f.features} onChange={e=>set('features',e.target.value)} placeholder="Demo, screenshots, support"/></div></div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3"><div><Lbl>Image URL</Lbl><input className={inp} value={f.image} onChange={e=>set('image',e.target.value)} placeholder="https://..."/></div><div><Lbl>Demo URL</Lbl><input className={inp} value={f.demo_url} onChange={e=>set('demo_url',e.target.value)} placeholder="https://..."/></div><div><Lbl>Sample URL</Lbl><input className={inp} value={f.sample_url} onChange={e=>set('sample_url',e.target.value)} placeholder="private sample link"/></div></div>
+        <div><Lbl>Tags</Lbl><input className={inp} value={f.tags} onChange={e=>set('tags',e.target.value)} placeholder="comma separated"/></div>
+        <div><Lbl>Internal Notes</Lbl><textarea className={`${inp} resize-none`} rows={3} value={f.internal_notes} onChange={e=>set('internal_notes',e.target.value)} placeholder="Private notes for sales and operations."/></div>
+        <div className="flex flex-wrap gap-3">
+          {[['published','Published publicly'], ['featured','Featured'], ['enquiry_only','Enquiry only']].map(([key,label]) => (
+            <button key={key} onClick={() => set(key, !f[key])} className={`px-4 py-2 rounded-lg text-xs font-bold border ${f[key] ? 'bg-black text-white border-black' : 'border-gray-200 text-gray-500'}`}>{label}</button>
+          ))}
+        </div>
+        <div className="flex gap-3 pt-2"><Btn onClick={save} disabled={!f.title||saving}>{saving?'Saving...':'Save Product'}</Btn><Btn variant="outline" onClick={onClose}>Cancel</Btn></div>
+      </div>
+    </Modal>
+  );
+}
+
 function PipelineTab({ leads, onMove, onView, onAdd }) {
   return (
     <div>
@@ -254,7 +490,7 @@ function PipelineTab({ leads, onMove, onView, onAdd }) {
                     className="bg-gray-50 rounded-xl p-3 cursor-pointer hover:bg-red-50 border border-transparent hover:border-red-200 transition"
                     onClick={() => onView(lead)}>
                     <p className="text-sm font-bold truncate">{lead.client_name || 'Unknown'}</p>
-                    <p className="text-xs text-gray-400 truncate">{lead.business_name || lead.service || '—'}</p>
+                    <p className="text-xs text-gray-400 truncate">{lead.business_name || lead.service || ' - '}</p>
                     {lead.budget && <p className="text-xs text-green-600 font-bold mt-1">{lead.budget}</p>}
                     <div className="flex gap-1 mt-2 flex-wrap">
                       {PIPELINE_COLS.filter(c => c.key !== col.key).slice(0,2).map(c => (
@@ -306,7 +542,7 @@ function LeadsTab({ leads, onView, onAdd, onEdit, onDelete, onConvert }) {
                 <span className="text-xs text-gray-400">{lead.source}</span>
                 <span className="text-xs text-gray-300">{fmtDate(lead.createdAt)}</span>
               </div>
-              <p className="font-semibold text-sm">{lead.client_name || 'Unknown'}{lead.business_name ? ` — ${lead.business_name}` : ''}</p>
+              <p className="font-semibold text-sm">{lead.client_name || 'Unknown'}{lead.business_name ? `  -  ${lead.business_name}` : ''}</p>
               <p className="text-xs text-gray-400">{lead.email}{lead.phone ? ` · ${lead.phone}` : ''}</p>
               {lead.budget && <p className="text-xs text-green-600 font-bold mt-0.5">{lead.budget} · {lead.service || lead.form_type}</p>}
             </div>
@@ -383,7 +619,7 @@ function ProjectsTab({ projects, onView, onAdd, onEdit, onDelete }) {
                 <div>
                   <Badge status={proj.status} />
                   <h3 className="font-bold text-sm mt-1">{proj.title}</h3>
-                  {client && <p className="text-xs text-gray-400">{client.name}{client.business_name ? ` — ${client.business_name}` : ''}</p>}
+                  {client && <p className="text-xs text-gray-400">{client.name}{client.business_name ? `  -  ${client.business_name}` : ''}</p>}
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-base font-extrabold text-green-600">{fmtMoney(proj.agreed_price, proj.currency)}</p>
@@ -514,11 +750,11 @@ function PortfolioTab({ items, onAdd, onEdit, onDelete, onToggleFeatured }) {
       <div className="flex gap-4 mb-5 text-xs flex-wrap">
         <div className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-full bg-green-500 inline-block"/>
-          <span className="text-gray-500">PUBLIC — visible on Portfolio page</span>
+          <span className="text-gray-500">PUBLIC  -  visible on Portfolio page</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-full bg-gray-300 inline-block"/>
-          <span className="text-gray-500">HIDDEN — not shown to visitors</span>
+          <span className="text-gray-500">HIDDEN  -  not shown to visitors</span>
         </div>
       </div>
 
@@ -530,7 +766,7 @@ function PortfolioTab({ items, onAdd, onEdit, onDelete, onToggleFeatured }) {
               <div className="flex items-center gap-2">
                 <span className={`w-2.5 h-2.5 rounded-full ${item.featured ? "bg-green-500" : "bg-gray-300"}`}/>
                 <span className={`text-xs font-extrabold uppercase tracking-widest ${item.featured ? "text-green-700" : "text-gray-400"}`}>
-                  {item.featured ? "PUBLIC — shown on site" : "HIDDEN — not shown"}
+                  {item.featured ? "PUBLIC  -  shown on site" : "HIDDEN  -  not shown"}
                 </span>
               </div>
               <button
@@ -571,7 +807,7 @@ function PortfolioTab({ items, onAdd, onEdit, onDelete, onToggleFeatured }) {
         {items.length === 0 && (
           <div className="col-span-3 bg-white rounded-2xl p-12 text-center text-gray-300">
             <p className="text-5xl mb-3">🖥️</p>
-            <p className="text-gray-400 font-semibold">No portfolio items yet — add one above</p>
+            <p className="text-gray-400 font-semibold">No portfolio items yet  -  add one above</p>
           </div>
         )}
       </div>
@@ -777,7 +1013,7 @@ function ClientView({ data, onClose, onUpdate, onError }) {
 
 function ProjectForm({ data, clients, onClose, onSave, onError }) {
   const [f, setF] = useState({
-    client_id:'', client_name_manual:'', title:'', description:'', service_type:'',
+    client_name_manual:'', title:'', description:'', service_type:'',
     agreed_price:0, deposit_amount:0, deposit_paid:false, deposit_date:'',
     balance_amount:0, balance_paid:false, balance_date:'',
     currency:'USD', start_date:'', deadline:'', delivered_date:'',
@@ -818,8 +1054,8 @@ function ProjectForm({ data, clients, onClose, onSave, onError }) {
         <div>
           <Lbl req>Client</Lbl>
           <select className={sel} value={f.client_id} onChange={e => { set("client_id", e.target.value); if (e.target.value) set("client_name_manual",""); }}>
-            <option value="">— Type name below if not in list —</option>
-            {clients.map(c => <option key={c._id} value={c._id}>{c.name}{c.business_name ? ` — ${c.business_name}` : ""}</option>)}
+            <option value=""> -  Type name below if not in list  - </option>
+            {clients.map(c => <option key={c._id} value={c._id}>{c.name}{c.business_name ? `  -  ${c.business_name}` : ""}</option>)}
           </select>
           {!f.client_id && (
             <input className={`${inp} mt-2`} value={f.client_name_manual} onChange={e => set("client_name_manual", e.target.value)}
@@ -879,7 +1115,7 @@ function ProjectForm({ data, clients, onClose, onSave, onError }) {
             </select>
           </div>
           <div>
-            <Lbl>Progress — {f.progress}%</Lbl>
+            <Lbl>Progress  -  {f.progress}%</Lbl>
             <input type="range" min={0} max={100} value={f.progress} onChange={e=>set("progress",Number(e.target.value))} className="w-full mt-3 accent-red-600"/>
           </div>
         </div>
@@ -921,7 +1157,7 @@ function ProjectView({ data, onClose, onUpdate, onError }) {
     <Modal title={project.title} onClose={onClose} wide>
       <div className="flex flex-col gap-5">
         <div className="flex justify-between flex-wrap gap-3">
-          <div><Badge status={project.status}/>{client&&<p className="text-sm text-gray-500 mt-1">{client.name}{client.business_name?` — ${client.business_name}`:''}</p>}</div>
+          <div><Badge status={project.status}/>{client&&<p className="text-sm text-gray-500 mt-1">{client.name}{client.business_name?`  -  ${client.business_name}`:''}</p>}</div>
           <div className="text-right"><p className="text-2xl font-extrabold text-green-600">{fmtMoney(project.agreed_price)}</p><p className={`text-xs font-bold ${project.deposit_paid?'text-green-600':'text-yellow-600'}`}>{project.deposit_paid?'✓ Deposit paid':'⏳ Deposit pending'}</p><p className={`text-xs font-bold ${project.balance_paid?'text-green-600':'text-gray-400'}`}>{project.balance_paid?'✓ Balance paid':'Balance pending'}</p></div>
         </div>
         <div><div className="flex justify-between text-xs text-gray-400 mb-1"><span>Progress</span><span>{project.progress}%</span></div><div className="h-3 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-red-600 rounded-full" style={{width:`${project.progress}%`}}/></div></div>
@@ -968,7 +1204,7 @@ function QuoteForm({ data, leads, clients, onClose, onSave, onError }) {
   return (
     <Modal title={data?'Edit Quote':'New Quote'} onClose={onClose} wide>
       <div className="flex flex-col gap-4">
-        <div><Lbl>Fill from client</Lbl><select className={sel} onChange={e=>fillFrom(e.target.value)} defaultValue=""><option value="">Select client to autofill...</option>{clients.map(c=><option key={c._id} value={c._id}>{c.name}{c.business_name?` — ${c.business_name}`:''}</option>)}</select></div>
+        <div><Lbl>Fill from client</Lbl><select className={sel} onChange={e=>fillFrom(e.target.value)} defaultValue=""><option value="">Select client to autofill...</option>{clients.map(c=><option key={c._id} value={c._id}>{c.name}{c.business_name?`  -  ${c.business_name}`:''}</option>)}</select></div>
         <div className="grid grid-cols-2 gap-3"><div><Lbl>Client Name</Lbl><input className={inp} value={f.client_name} onChange={e=>set('client_name',e.target.value)}/></div><div><Lbl>Business</Lbl><input className={inp} value={f.business_name} onChange={e=>set('business_name',e.target.value)}/></div></div>
         <div className="grid grid-cols-2 gap-3"><div><Lbl>Email</Lbl><input className={inp} value={f.client_email} onChange={e=>set('client_email',e.target.value)}/></div><div><Lbl>Phone</Lbl><input className={inp} value={f.client_phone} onChange={e=>set('client_phone',e.target.value)}/></div></div>
         <div><Lbl>Line Items</Lbl><div className="flex flex-col gap-2 mb-2">{f.items.map((item,i)=><div key={i} className="flex gap-2"><input className={inp} value={item.description} onChange={e=>setItem(i,'description',e.target.value)} placeholder="e.g. Website Design"/><input className="border border-gray-200 rounded-xl px-3 py-3 text-sm outline-none w-28 bg-white" type="number" value={item.amount} onChange={e=>setItem(i,'amount',e.target.value)}/>{f.items.length>1&&<button onClick={()=>delItem(i)} className="text-red-400 hover:text-red-600 font-bold px-2">✕</button>}</div>)}</div><Btn small variant="outline" onClick={addItem}>+ Add Line</Btn></div>
@@ -1006,7 +1242,7 @@ function QuoteView({ data, onClose }) {
         {q.notes&&<div className="bg-gray-50 rounded-xl p-4 text-sm"><p className="font-bold mb-1">Notes</p><p className="text-gray-600">{q.notes}</p></div>}
         <div className="flex gap-3 pt-2">
           <Btn onClick={()=>window.print()}>Print / Save PDF</Btn>
-          <a href={`https://wa.me/233501657205?text=${encodeURIComponent(`Quote ${q.quote_number} — Total: $${total.toLocaleString()} · Deposit: $${deposit.toLocaleString()}`)}`} target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 text-sm font-bold bg-green-500 text-white rounded-xl hover:bg-green-600 transition">💬 Send on WhatsApp</a>
+          <a href={`https://wa.me/233501657205?text=${encodeURIComponent(`Quote ${q.quote_number}  -  Total: $${total.toLocaleString()} · Deposit: $${deposit.toLocaleString()}`)}`} target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 text-sm font-bold bg-green-500 text-white rounded-xl hover:bg-green-600 transition">💬 Send on WhatsApp</a>
           <Btn variant="outline" onClick={onClose}>Close</Btn>
         </div>
       </div>
@@ -1044,14 +1280,14 @@ function ReminderForm({ data, leads, clients, projects, onClose, onSave, onError
         <div><Lbl>Lead</Lbl>
           <select className={sel} value={f.lead_id} onChange={e=>set("lead_id",e.target.value)}>
             <option value="">None</option>
-            {leads.map(l=><option key={l._id} value={l._id}>{l.client_name}{l.business_name ? ` — ${l.business_name}` : ""}</option>)}
+            {leads.map(l=><option key={l._id} value={l._id}>{l.client_name}{l.business_name ? `  -  ${l.business_name}` : ""}</option>)}
           </select>
         </div>
 
         <div><Lbl>Client</Lbl>
           <select className={sel} value={f.client_id} onChange={e=>set("client_id",e.target.value)}>
             <option value="">None</option>
-            {clients.map(c=><option key={c._id} value={c._id}>{c.name}{c.business_name ? ` — ${c.business_name}` : ""}</option>)}
+            {clients.map(c=><option key={c._id} value={c._id}>{c.name}{c.business_name ? `  -  ${c.business_name}` : ""}</option>)}
           </select>
         </div>
 
@@ -1072,14 +1308,14 @@ function ReminderForm({ data, leads, clients, projects, onClose, onSave, onError
 }
 
 function PortfolioForm({ data, onClose, onSave, onError }) {
-  const [f, setF] = useState({ title:'', category:'Website Design', description:'', image:'', link:'', tags:'', featured:false, ...data, tags:Array.isArray(data?.tags)?data.tags.join(', '):data?.tags||'' });
+  const [f, setF] = useState({ title:'', category:'Website Design', description:'', image:'', link:'', featured:false, ...data, tags:Array.isArray(data?.tags)?data.tags.join(', '):data?.tags||'' });
   const [imgMode, setImgMode] = useState(data?.image?.startsWith('data:')?'upload':'url');
   const [saving,  setSaving]  = useState(false);
   const fileRef = useRef(null);
   const set = (k,v) => setF(p=>({...p,[k]:v}));
   const handleFile = async e => {
     const file=e.target.files?.[0]; if(!file) return;
-    if(file.size>2*1024*1024){onError('Image too large — max 2MB'); return;}
+    if(file.size>2*1024*1024){onError('Image too large  -  max 2MB'); return;}
     const reader=new FileReader(); reader.onload=()=>set('image',reader.result); reader.readAsDataURL(file);
   };
   const save = async () => {

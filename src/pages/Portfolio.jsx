@@ -2,17 +2,21 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { getPortfolio } from "../utils/api";
+import portfolioHeroImg from "../photos/What-are-you-building-contact-us.jpg";
+import ecommerceFallbackImg from "../photos/digital-products-card.jpg";
+import consultingFallbackImg from "../photos/customer-support-preferred-image.avif";
+import adsFallbackImg from "../photos/how-to-run-multiple-ad-campaigns-on-facebook-rd5rn3hdqt26ovpxwhalq8rtc9ddf1lrxx09wum2ng.png";
 
 const WHATSAPP = "https://wa.me/233501657205";
 const EMAIL    = "mailto:davida@thebrandhelper.com";
 const CALENDLY = "https://calendly.com/blackbird77ad/free-consultation";
 
-// ── Hardcoded fallback — shown while loading or if server is unreachable ─────
+// -- Hardcoded fallback  -  shown while loading or if server is unreachable -----
 const FALLBACK = [
-  { id: "f1", title: "E-commerce Store",           category: "Website Design",  featured: true,  description: "Full online store with product listings, cart, checkout, and mobile-first design.",              image: "", link: "", tags: ["E-commerce", "React", "Payments"]    },
+  { id: "f1", title: "E-commerce Store",           category: "Website Design",  featured: true,  description: "Full online store with product listings, cart, checkout, and mobile-first design.",              image: ecommerceFallbackImg, link: "", tags: ["E-commerce", "React", "Payments"]    },
   { id: "f2", title: "Restaurant Brand & Website", category: "Brand Strategy",  featured: true,  description: "Brand identity, colour system, and website for a growing food business.",                       image: "", link: "", tags: ["Branding", "Website", "Food"]         },
-  { id: "f3", title: "Consulting Firm Website",    category: "Website Design",  featured: false, description: "Professional site with service pages, team profiles, and booking integration.",                  image: "", link: "", tags: ["Website", "Booking", "Professional"]  },
-  { id: "f4", title: "Facebook Ad Campaign",       category: "Ads Management",  featured: false, description: "End-to-end ad campaign for a fashion brand — strategy, creative, targeting, and reporting.",    image: "", link: "", tags: ["Facebook Ads", "Fashion", "Leads"]    },
+  { id: "f3", title: "Consulting Firm Website",    category: "Website Design",  featured: false, description: "Professional site with service pages, team profiles, and booking integration.",                  image: consultingFallbackImg, link: "", tags: ["Website", "Booking", "Professional"]  },
+  { id: "f4", title: "Facebook Ad Campaign",       category: "Ads Management",  featured: false, description: "End-to-end ad campaign for a fashion brand  -  strategy, creative, targeting, and reporting.",    image: adsFallbackImg, link: "", tags: ["Facebook Ads", "Fashion", "Leads"]    },
 ];
 
 const CATEGORIES = ["All", "Website Design", "Brand Strategy", "Ads Management", "Technical Support", "Other"];
@@ -41,14 +45,14 @@ export default function Portfolio() {
   return (
     <div className="bg-white text-black min-h-screen overflow-x-hidden">
       <Helmet>
-        <title>Portfolio | The BrandHelper — Websites and Projects We Have Built</title>
+        <title>Portfolio | The BrandHelper  -  Websites and Projects We Have Built</title>
         <meta name="description" content="Browse real websites, e-commerce platforms, and brand projects built by The BrandHelper for clients in Ghana, the USA, and beyond." />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href="https://thebrandhelper.com/portfolio" />
         <meta property="og:type"        content="website" />
         <meta property="og:url"         content="https://thebrandhelper.com/portfolio" />
-        <meta property="og:title"       content="Portfolio | The BrandHelper — Real Work for Real Businesses" />
-        <meta property="og:description" content="E-commerce stores, food ordering platforms, brand identities and more — built for clients across Ghana, New Jersey, and beyond." />
+        <meta property="og:title"       content="Portfolio | The BrandHelper  -  Real Work for Real Businesses" />
+        <meta property="og:description" content="E-commerce stores, food ordering platforms, brand identities and more  -  built for clients across Ghana, New Jersey, and beyond." />
         <meta property="og:image"       content="https://thebrandhelper.com/images/og-image.jpg" />
         <meta name="twitter:card"        content="summary_large_image" />
         <meta name="twitter:title"       content="Portfolio | The BrandHelper" />
@@ -56,18 +60,23 @@ export default function Portfolio() {
         <meta name="twitter:image"       content="https://thebrandhelper.com/images/og-image.jpg" />
       </Helmet>
 
-      {/* ── HERO ── */}
+      {/* -- HERO -- */}
       <section className="bg-black text-white py-20 md:py-28 px-6">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-6xl mx-auto grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+          <div>
           <p className="text-red-500 text-xs font-bold uppercase tracking-widest mb-4">Our Work</p>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-6 leading-tight">
             Projects We've Built<br />
             <span className="text-red-600">& Contributed To</span>
           </h1>
           <p className="text-gray-300 text-lg md:text-xl max-w-2xl mb-10">
-            Real work for real businesses. Browse what we've delivered — and let's build yours next.
+            Real work for real businesses. Browse what we've delivered  -  and let's build yours next.
           </p>
           <div className="flex flex-wrap gap-3">
+            <Link to="/web-development"
+              className="bg-white text-black px-7 py-3 text-sm font-bold uppercase tracking-wide hover:bg-red-600 hover:text-white transition rounded">
+              Request a Website
+            </Link>
             <Link to="/contact/requirements"
               className="bg-red-600 text-white px-7 py-3 text-sm font-bold uppercase tracking-wide hover:opacity-90 transition rounded">
               Start a Similar Project
@@ -77,10 +86,14 @@ export default function Portfolio() {
               💬 Ask on WhatsApp
             </a>
           </div>
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+            <img src={portfolioHeroImg} alt="Project idea and portfolio planning" className="h-[300px] w-full object-cover sm:h-[430px]" />
+          </div>
         </div>
       </section>
 
-      {/* ── FEATURED ── */}
+      {/* -- FEATURED -- */}
       {featured.length > 0 && (
         <section className="py-16 md:py-20 bg-[#F5F5F5] px-6">
           <div className="max-w-6xl mx-auto">
@@ -93,7 +106,7 @@ export default function Portfolio() {
                 >
                   <div className="h-52 sm:h-64 bg-[#0a0a0a] flex items-center justify-center overflow-hidden relative">
                     {project.image
-                      ? <img src={project.image} alt={project.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" loading="lazy" />
+                      ? <img src={project.image} alt={project.title} className="w-full h-full object-contain p-3 transition duration-500" loading="lazy" />
                       : <div className="flex flex-col items-center gap-3 text-white/30"><span className="text-6xl">🖥️</span><span className="text-xs uppercase tracking-widest">Preview Coming Soon</span></div>
                     }
                     <div className="absolute top-4 left-4">
@@ -125,7 +138,7 @@ export default function Portfolio() {
         </section>
       )}
 
-      {/* ── ALL PROJECTS ── */}
+      {/* -- ALL PROJECTS -- */}
       <section className="py-16 md:py-20 bg-white px-6">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-wrap gap-2 mb-10 overflow-x-auto pb-1">
@@ -162,7 +175,7 @@ export default function Portfolio() {
                 >
                   <div className="h-48 sm:h-52 bg-[#F5F5F5] flex items-center justify-center overflow-hidden">
                     {project.image
-                      ? <img src={project.image} alt={project.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" loading="lazy" />
+                      ? <img src={project.image} alt={project.title} className="w-full h-full object-contain p-3 transition duration-500" loading="lazy" />
                       : <div className="flex flex-col items-center gap-2 text-gray-300"><span className="text-4xl">🖥️</span><span className="text-xs uppercase tracking-widest">Preview Soon</span></div>
                     }
                   </div>
@@ -183,7 +196,7 @@ export default function Portfolio() {
         </div>
       </section>
 
-      {/* ── MODAL ── */}
+      {/* -- MODAL -- */}
       {selected && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.8)" }} onClick={closeModal}>
@@ -191,7 +204,7 @@ export default function Portfolio() {
             onClick={e => e.stopPropagation()}>
             <div className="h-52 sm:h-64 bg-[#0a0a0a] flex items-center justify-center overflow-hidden rounded-t-3xl">
               {selected.image
-                ? <img src={selected.image} alt={selected.title} className="w-full h-full object-cover" />
+                ? <img src={selected.image} alt={selected.title} className="w-full h-full object-contain p-4" />
                 : <div className="flex flex-col items-center gap-2 text-white/30"><span className="text-6xl">🖥️</span><span className="text-xs uppercase tracking-widest">Preview Coming Soon</span></div>
               }
             </div>
@@ -229,11 +242,11 @@ export default function Portfolio() {
         </div>
       )}
 
-      {/* ── CTA ── */}
+      {/* -- CTA -- */}
       <section className="py-20 bg-black text-white text-center px-6">
         <div className="max-w-3xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-extrabold mb-5">Like what you see?</h2>
-          <p className="text-gray-400 text-base md:text-lg mb-10">Let's build something like this — or better — for your business.</p>
+          <p className="text-gray-400 text-base md:text-lg mb-10">Let's build something like this  -  or better  -  for your business.</p>
           <div className="flex flex-wrap gap-3 justify-center mb-8">
             <Link to="/contact/requirements"
               className="bg-red-600 text-white px-8 py-3.5 text-sm font-bold uppercase tracking-wide hover:opacity-90 transition rounded">

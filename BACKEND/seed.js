@@ -1,5 +1,5 @@
 /**
- * seed.js — Seeds the portfolio with real projects
+ * seed.js  -  Seeds the portfolio with real projects
  * Run once from BACKEND folder: node seed.js
  */
 
@@ -9,15 +9,15 @@ const { connect, Portfolio } = require('./db');
 
 const PROJECTS = [
   {
-    title:       "Belle Kreyashon — Ghana's One-Stop Lifestyle Store",
+    title:       "Belle Kreyashon  -  Ghana's One-Stop Lifestyle Store",
     category:    "Website Design",
     featured:    true,
     image:       "/images/og-image.jpg.svg",
     link:        "https://bellekreyashon.com",
     tags:        ["E-commerce", "React", "Node.js", "MongoDB", "Paystack", "Cloudinary", "Ghana"],
-    description: `We built Belle Kreyashon — Ghana's boldest lifestyle e-commerce platform. Hair, beauty, fashion, skincare, health and gadgets — all in one place, built to move beyond WhatsApp selling and into a fully professional online store.
+    description: `We built Belle Kreyashon  -  Ghana's boldest lifestyle e-commerce platform. Hair, beauty, fashion, skincare, health and gadgets  -  all in one place, built to move beyond WhatsApp selling and into a fully professional online store.
 
-Customers browse a rich product catalogue, pay instantly with MoMo or card via Paystack, and get delivered nationwide or internationally. Vendors and partners can feature their products directly on the platform, and the business owner manages everything from a powerful admin dashboard — orders, invoices, customers, stock.
+Customers browse a rich product catalogue, pay instantly with MoMo or card via Paystack, and get delivered nationwide or internationally. Vendors and partners can feature their products directly on the platform, and the business owner manages everything from a powerful admin dashboard  -  orders, invoices, customers, stock.
 
 What's under the hood:
 → Full e-commerce with cart, checkout & order history
@@ -35,15 +35,15 @@ Built for hair vendors, beauty brands, fashion stores, skill trainers, and any W
 Running a product-based business in Ghana or West Africa? This is what's possible. Let's build yours.`,
   },
   {
-    title:       "Faith & Grace Catering — Full Food Ordering Platform",
+    title:       "Faith & Grace Catering  -  Full Food Ordering Platform",
     category:    "Website Design",
     featured:    true,
     image:       "/images/Screenshot 2026-03-25 164016.png",
     link:        "https://faithandgracecatering.com",
     tags:        ["Food & Restaurant", "React", "Order Management", "New Jersey", "Catering"],
-    description: `We built Faith & Grace Catering a complete online ordering platform for their New Jersey-based catering business — serving individual meals and large party orders with zero friction.
+    description: `We built Faith & Grace Catering a complete online ordering platform for their New Jersey-based catering business  -  serving individual meals and large party orders with zero friction.
 
-Customers browse a full digital menu, place orders online, and track them in real time. The kitchen gets instant order tickets. The business owner sees everything from a clean management dashboard — no missed orders, no WhatsApp chaos.
+Customers browse a full digital menu, place orders online, and track them in real time. The kitchen gets instant order tickets. The business owner sees everything from a clean management dashboard  -  no missed orders, no WhatsApp chaos.
 
 What the platform includes:
 → Full menu system with categories and item management
@@ -56,7 +56,7 @@ What the platform includes:
 
 Built for catering businesses, restaurants, food vendors, cloud kitchens, and event caterers who want to stop taking orders over the phone and start running a proper digital food business.
 
-Running a food business? View the site — then tell us how you want yours built.`,
+Running a food business? View the site  -  then tell us how you want yours built.`,
   },
 ];
 

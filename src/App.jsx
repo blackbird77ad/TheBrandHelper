@@ -10,6 +10,7 @@ import About              from "./pages/About";
 import Services           from "./pages/Services";
 import Portfolio          from "./pages/Portfolio";
 import Contact            from "./pages/Contact";
+import WebDevelopment     from "./pages/WebDevelopment";
 import ClientRequirements from "./pages/ClientRequirements";
 import WebsiteCalc        from "./pages/WebsiteCalc";
 import BlueprintBuilder   from "./pages/BlueprintBuilder";
@@ -28,6 +29,7 @@ function Layout() {
         <Routes>
           <Route path="/"             element={<Home />} />
           <Route path="/about"        element={<About />} />
+          <Route path="/web-development" element={<WebDevelopment />} />
           <Route path="/services"     element={<Services />} />
           <Route path="/portfolio"    element={<Portfolio />} />
           <Route path="/ai-data"      element={<Phase2 mode="data" />} />
