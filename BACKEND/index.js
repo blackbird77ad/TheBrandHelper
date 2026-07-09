@@ -36,6 +36,7 @@ const RESEND_FROM_EMAIL = (process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FR
 const CLOUDINARY_CLOUD_NAME = (process.env.CLOUDINARY_CLOUD_NAME || '').trim();
 const CLOUDINARY_API_KEY = (process.env.CLOUDINARY_API_KEY || '').trim();
 const CLOUDINARY_API_SECRET = (process.env.CLOUDINARY_API_SECRET || '').trim();
+const EMAIL_TIMEOUT_MS = Number(process.env.EMAIL_TIMEOUT_MS || 6000);
 const ADMIN_NOTIFY_EMAILS = (
   process.env.ADMIN_NOTIFY_EMAILS ||
   process.env.ADMIN_RESET_NOTIFY_EMAILS ||
@@ -71,7 +72,7 @@ app.use(cors({
     cb(new Error(`CORS: ${origin} not allowed`));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'X-Admin-Secret'],
+  allowedHeaders: ['Content-Type', 'X-Admin-Secret', 'X-Admin-Token'],
 }));
 
 app.use(express.json({ limit: '15mb' }));
@@ -85,7 +86,9 @@ app.use((e, _req, res, next) => {
 
 // -- Auth middleware -----------------------------------------------------------
 function auth(req, res, next) {
-  if (req.headers['x-admin-secret'] !== SECRET) {
+  const headerSecret = String(req.headers['x-admin-secret'] || '').trim();
+  const headerToken = String(req.headers['x-admin-token'] || '').trim();
+  if (headerSecret !== SECRET && !verifyAdminToken(headerToken)) {
     return res.status(401).json({ success: false, status: 401, error: 'Unauthorised' });
   }
   next();
@@ -109,6 +112,35 @@ async function isAdminPassword(password) {
   if (!password) return false;
   if (ADMIN_PASSWORD_HASH) return bcrypt.compare(password, ADMIN_PASSWORD_HASH);
   return Boolean(ADMIN_PASSWORD && password === ADMIN_PASSWORD);
+}
+
+function createAdminToken() {
+  const now = Date.now();
+  const payload = {
+    scope: 'admin',
+    iat: now,
+    exp: now + (Number(process.env.ADMIN_TOKEN_TTL_HOURS || 12) * 60 * 60 * 1000),
+  };
+  const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const signature = crypto.createHmac('sha256', SECRET).update(body).digest('base64url');
+  return `${body}.${signature}`;
+}
+
+function verifyAdminToken(token = '') {
+  const [body, signature] = String(token || '').split('.');
+  if (!body || !signature) return false;
+
+  try {
+    const expected = crypto.createHmac('sha256', SECRET).update(body).digest('base64url');
+    const actualBuffer = Buffer.from(signature);
+    const expectedBuffer = Buffer.from(expected);
+    if (actualBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(actualBuffer, expectedBuffer)) return false;
+
+    const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
+    return payload.scope === 'admin' && Number(payload.exp) > Date.now();
+  } catch {
+    return false;
+  }
 }
 
 function escapeHtml(value = '') {
@@ -138,9 +170,12 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
     return { sent: false, skipped: true };
   }
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), EMAIL_TIMEOUT_MS);
   try {
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
+      signal: controller.signal,
       headers: {
         Authorization: `Bearer ${RESEND_API_KEY}`,
         'Content-Type': 'application/json',
@@ -164,8 +199,19 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
     return { sent: true };
   } catch (error) {
     console.warn('Resend email error:', error.message);
-    return { sent: false, error: error.message };
+    return { sent: false, error: error.name === 'AbortError' ? 'Resend request timed out' : error.message };
+  } finally {
+    clearTimeout(timeout);
   }
+}
+
+function queueEmail(label, task) {
+  Promise.resolve()
+    .then(task)
+    .then((result) => {
+      if (result?.error) console.warn(`${label}:`, result.error);
+    })
+    .catch((error) => console.warn(`${label}:`, error.message));
 }
 
 async function notifyAdmins(subject, lines, options = {}) {
@@ -367,7 +413,8 @@ app.post('/api/leads', async (req, res) => {
       submitted_at:  body.submitted_at  || new Date().toISOString(),
       status:        isAdmin ? (body.status || 'new') : 'new',
     });
-    await notifyAdmins(
+    ok(res, lead, 201);
+    queueEmail('Lead admin notification', () => notifyAdmins(
       `${isAdmin ? 'CRM lead created' : 'New website lead'}: ${lead.form_type || 'Lead'}`,
       recordLines('Lead details', [
         ['Name', lead.client_name],
@@ -380,9 +427,8 @@ app.post('/api/leads', async (req, res) => {
         ['Message', lead.message],
       ]),
       { replyTo: lead.email }
-    );
-    if (!isAdmin) await acknowledgeLead(lead);
-    ok(res, lead, 201);
+    ));
+    if (!isAdmin) queueEmail('Lead acknowledgement', () => acknowledgeLead(lead));
   } catch (e) { err(res, e); }
 });
 
@@ -412,7 +458,7 @@ app.put('/api/leads/:id',    auth, async (req, res) => {
       before.status !== lead.status ||
       String(before.follow_up_date || '') !== String(lead.follow_up_date || '')
     )) {
-      await notifyAdmins(
+      queueEmail('Lead update notification', () => notifyAdmins(
         `Lead updated: ${lead.client_name || lead.business_name || lead.email || lead._id}`,
         recordLines('Lead update', [
           ['Name', lead.client_name],
@@ -423,7 +469,7 @@ app.put('/api/leads/:id',    auth, async (req, res) => {
           ['Notes', lead.notes],
         ]),
         { replyTo: lead.email }
-      );
+      ));
     }
     ok(res, lead);
   } catch (e) { err(res, e); }
@@ -460,7 +506,8 @@ app.post('/api/leads/:id/convert', auth, async (req, res) => {
       converted_to_client: client._id,
     });
 
-    await notifyAdmins(
+    ok(res, client, 201);
+    queueEmail('Lead conversion notification', () => notifyAdmins(
       `Lead converted to client: ${client.name || client.business_name}`,
       recordLines('Converted lead', [
         ['Client', client.name],
@@ -470,9 +517,7 @@ app.post('/api/leads/:id/convert', auth, async (req, res) => {
         ['Industry', client.industry],
       ]),
       { replyTo: client.email }
-    );
-
-    ok(res, client, 201);
+    ));
   } catch (e) { err(res, e); }
 });
 
@@ -1011,7 +1056,7 @@ app.post('/api/auth/setup', async (req, res) => {
     const { pin_hash, master_hash } = req.body;
     if (!pin_hash || !master_hash) return res.status(400).json({ error: 'Both hashes required' });
     const auth = await Auth.create({ pin_hash, master_hash });
-    res.status(201).json({ success: true });
+    res.status(201).json({ success: true, token: createAdminToken() });
   } catch (e) { err(res, e); }
 });
 
@@ -1027,8 +1072,8 @@ app.post('/api/auth/verify', async (req, res) => {
       bcrypt.compare(pin, auth.pin_hash),
       bcrypt.compare(pin, auth.master_hash),
     ]);
-    if (pinMatch)    return res.json({ success: true, type: 'pin'    });
-    if (masterMatch || envMasterMatch) return res.json({ success: true, type: 'master' });
+    if (pinMatch)    return res.json({ success: true, type: 'pin', token: createAdminToken() });
+    if (masterMatch || envMasterMatch) return res.json({ success: true, type: 'master', token: createAdminToken() });
     res.status(401).json({ success: false, error: 'Incorrect PIN' });
   } catch (e) { err(res, e); }
 });
@@ -1044,7 +1089,7 @@ app.post('/api/auth/password-login', async (req, res) => {
     const emailOk = isAdminEmail(email);
     const passwordOk = await isAdminPassword(password);
     if (!emailOk || !passwordOk) return fail(res, 401, 'Invalid admin login');
-    res.json({ success: true, type: 'password' });
+    res.json({ success: true, type: 'password', token: createAdminToken() });
   } catch (e) { err(res, e); }
 });
 
@@ -1071,7 +1116,7 @@ app.post('/api/auth/request-reset', async (req, res) => {
         submitted_at: new Date().toISOString(),
         status: 'new',
       });
-      const emailResult = await notifyAdmins(
+      queueEmail('Admin reset request notification', () => notifyAdmins(
         `Admin PIN reset request: ${requestedBy}`,
         recordLines('Admin reset request', [
           ['Requested by', requestedBy],
@@ -1082,11 +1127,12 @@ app.post('/api/auth/request-reset', async (req, res) => {
           to: RESET_NOTIFY_EMAILS.length ? RESET_NOTIFY_EMAILS : ADMIN_NOTIFY_EMAILS,
           replyTo: email,
         }
-      );
+      ));
       return res.json({
         success: true,
         message: 'If this is an admin email, the reset request has been logged.',
-        email_sent: Boolean(emailResult.sent),
+        email_sent: false,
+        email_queued: true,
       });
     }
     res.json({
@@ -1109,7 +1155,7 @@ app.post('/api/auth/reset-pin', async (req, res) => {
     if (!match && !envMasterMatch) return res.status(401).json({ error: 'Incorrect master PIN' });
     auth.pin_hash = new_pin_hash;
     await auth.save();
-    res.json({ success: true });
+    res.json({ success: true, token: createAdminToken() });
   } catch (e) { err(res, e); }
 });
 
@@ -1290,7 +1336,8 @@ app.post('/api/phase2/requests', async (req, res) => {
       status: 'new',
     });
 
-    await notifyAdmins(
+    ok(res, request, 201);
+    queueEmail('Platform request admin notification', () => notifyAdmins(
       `New platform request: ${request.request_type}`,
       recordLines('Platform request details', [
         ['Company', request.company],
@@ -1304,10 +1351,8 @@ app.post('/api/phase2/requests', async (req, res) => {
         ['Message', request.message],
       ]),
       { replyTo: request.email }
-    );
-    await acknowledgeLead(lead);
-
-    ok(res, request, 201);
+    ));
+    queueEmail('Platform request acknowledgement', () => acknowledgeLead(lead));
   } catch (e) { err(res, e); }
 });
 

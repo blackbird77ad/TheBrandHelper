@@ -124,7 +124,9 @@ export async function apiRequest(path, options = {}) {
   const data = await readResponseBody(res);
   if (!res.ok) {
     let message = responseMessage(data, `API ${res.status}`);
-    if (res.status === 401 && options.headers?.['X-Admin-Secret'] !== undefined) {
+    if (res.status === 401 && options.headers?.['X-Admin-Token'] !== undefined) {
+      message = 'Admin session expired or was rejected - log in again';
+    } else if (res.status === 401 && options.headers?.['X-Admin-Secret'] !== undefined) {
       message = SECRET
         ? 'Admin secret was rejected - check VITE_ADMIN_SECRET matches the backend ADMIN_SECRET'
         : 'Admin secret is missing - set VITE_ADMIN_SECRET for admin CRUD';
@@ -145,7 +147,18 @@ async function req(path, options = {}) {
   return apiRequest(path, options);
 }
 
-const A = () => ({ 'X-Admin-Secret': SECRET }); // admin headers
+export const ADMIN_TOKEN_KEY = 'tbh_admin_token';
+
+function getAdminToken() {
+  if (typeof window === 'undefined') return '';
+  return sessionStorage.getItem(ADMIN_TOKEN_KEY) || '';
+}
+
+const A = () => {
+  const token = getAdminToken();
+  if (token) return { 'X-Admin-Token': token };
+  return { 'X-Admin-Secret': SECRET };
+}; // admin headers
 
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {

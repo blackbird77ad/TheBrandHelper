@@ -15,9 +15,10 @@ import React, { useState, useEffect } from "react";
 import bcrypt from "bcryptjs";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import ApiIssueReport from "./ApiIssueReport";
-import { API_BASE, ApiRequestError, apiRequest, describeApiError, isReportableApiIssue } from "../utils/api";
+import { ADMIN_TOKEN_KEY, API_BASE, ApiRequestError, apiRequest, describeApiError, isReportableApiIssue } from "../utils/api";
 
-const SESSION_KEY   = "tbh_admin_session";
+const SESSION_KEY   = "tbh_admin_session_v2";
+const LEGACY_SESSION_KEY = "tbh_admin_session";
 const SALT_ROUNDS   = 10;
 const MAX_ATTEMPTS  = 5;
 const LOCKOUT_MS    = 15 * 60 * 1000;
@@ -25,9 +26,17 @@ const ATTEMPT_KEY   = "tbh_fail_count";
 const LOCKOUT_KEY   = "tbh_lockout_until";
 
 // -- Session helpers (sessionStorage only  -  clears on tab close) ---------------
-const isSession  = () => sessionStorage.getItem(SESSION_KEY) === "1";
-const startSession = () => sessionStorage.setItem(SESSION_KEY, "1");
-const endSession   = () => sessionStorage.removeItem(SESSION_KEY);
+const isSession  = () => sessionStorage.getItem(SESSION_KEY) === "1" && Boolean(sessionStorage.getItem(ADMIN_TOKEN_KEY));
+const startSession = (token) => {
+  sessionStorage.setItem(SESSION_KEY, "1");
+  sessionStorage.removeItem(LEGACY_SESSION_KEY);
+  if (token) sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
+};
+const endSession   = () => {
+  sessionStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(LEGACY_SESSION_KEY);
+  sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+};
 
 // -- Lockout helpers (sessionStorage  -  resets when browser closes) -------------
 function getAttempts()   { return parseInt(sessionStorage.getItem(ATTEMPT_KEY) || "0"); }
@@ -172,7 +181,7 @@ function SetupScreen({ onDone }) {
       ]);
       const res = await apiPost("/api/auth/setup", { pin_hash, master_hash });
       if (!res.success) { setError(res.error || "Setup failed"); setSaving(false); return; }
-      startSession();
+      startSession(res.token);
       onDone();
     } catch (error) {
       setError(connectionErrorMessage(error));
@@ -405,7 +414,7 @@ function LoginScreen({ onUnlock, onResetAuth, initialIssue }) {
           // Master PIN  -  go to reset flow
           setResetStep(1); setPin(""); setChecking(false); return;
         }
-        startSession();
+        startSession(res.token);
         onUnlock();
       } else {
         addAttempt();
@@ -433,7 +442,7 @@ function LoginScreen({ onUnlock, onResetAuth, initialIssue }) {
       });
       if (res.success) {
         clearAttempts();
-        startSession();
+        startSession(res.token);
         onUnlock();
       } else {
         addAttempt();
@@ -458,7 +467,7 @@ function LoginScreen({ onUnlock, onResetAuth, initialIssue }) {
   }
 
   if (resetStep > 0) {
-    return <ResetPinFlow onDone={() => { startSession(); onUnlock(); }} onCancel={() => { setResetStep(0); setMode("pin"); setPin(""); }} />;
+    return <ResetPinFlow onDone={(token) => { startSession(token); onUnlock(); }} onCancel={() => { setResetStep(0); setMode("pin"); setPin(""); }} />;
   }
 
   return (
@@ -595,7 +604,7 @@ function ResetPinFlow({ onDone, onCancel }) {
       });
       if (!res.success) { setError(res.error || "Reset failed"); setSaving(false); return; }
       clearAttempts();
-      onDone();
+      onDone(res.token);
     } catch (error) {
       setError(connectionErrorMessage(error));
       setApiIssue(isReportableApiIssue(error) ? error : null);
