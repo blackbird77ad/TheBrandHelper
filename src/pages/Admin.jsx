@@ -1,5 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
+import {
+  FiBarChart2,
+  FiBell,
+  FiDatabase,
+  FiFileText,
+  FiInbox,
+  FiMonitor,
+  FiRefreshCw,
+  FiSearch,
+  FiTool,
+  FiUsers,
+  FiZap,
+} from "react-icons/fi";
 import AdminAuth, { LogoutButton } from "../components/AdminAuth";
 import ProspectTab from "../components/ProspectTab";
 import * as api from "../utils/api";
@@ -110,6 +123,19 @@ const Modal = ({ title, onClose, children, wide }) => (
 
 const fmtDate  = d => d ? new Date(d).toLocaleDateString('en-GB') : ' - ';
 const fmtMoney = (n, c='USD') => n ? `${c} ${Number(n).toLocaleString()}` : ' - ';
+const toDateTimeLocal = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value).slice(0, 16);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+};
+const cleanQuotePayload = (quote) => {
+  const payload = { ...quote };
+  ['_id', '__v', 'createdAt', 'updatedAt', 'quote_number', 'subtotal', 'total', 'deposit_amount']
+    .forEach((field) => { delete payload[field]; });
+  return payload;
+};
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ADMIN INNER  -  rendered only after auth
@@ -126,45 +152,52 @@ function AdminInner({ onLogout }) {
   const [reminders, setReminders] = useState([]);
   const [portfolio, setPortfolio] = useState([]);
   const [stats,     setStats]     = useState(null);
-  const [meetings,  setMeetings]  = useState([]);
+  const [, setMeetings]  = useState([]);
   const [phase2Requests, setPhase2Requests] = useState([]);
   const [phase2Products, setPhase2Products] = useState([]);
   const [modal,     setModal]     = useState(null);
+  const didInitialLoad = useRef(false);
 
   const closeModal = () => setModal(null);
 
   const load = useCallback(async (which) => {
     setLoading(true);
     try {
-      if (which === 'leads'     || which === 'all') setLeads((await api.getLeads()).data);
-      if (which === 'clients'   || which === 'all') setClients((await api.getClients()).data);
-      if (which === 'projects'  || which === 'all') setProjects((await api.getProjects()).data);
-      if (which === 'quotes'    || which === 'all') setQuotes((await api.getQuotes()).data);
-      if (which === 'reminders' || which === 'all') setReminders((await api.getReminders()).data);
-      if (which === 'portfolio' || which === 'all') setPortfolio((await api.getPortfolio()).data);
-      if (which === 'stats'     || which === 'all') setStats((await api.getStats()).data);
-      if (which === 'meetings'  || which === 'all') setMeetings((await api.getMeetings()).data);
+      const tasks = [];
+      if (which === 'leads'     || which === 'all') tasks.push(api.getLeads().then((res) => setLeads(res.data || [])));
+      if (which === 'clients'   || which === 'all') tasks.push(api.getClients().then((res) => setClients(res.data || [])));
+      if (which === 'projects'  || which === 'all') tasks.push(api.getProjects().then((res) => setProjects(res.data || [])));
+      if (which === 'quotes'    || which === 'all') tasks.push(api.getQuotes().then((res) => setQuotes(res.data || [])));
+      if (which === 'reminders' || which === 'all') tasks.push(api.getReminders().then((res) => setReminders(res.data || [])));
+      if (which === 'portfolio' || which === 'all') tasks.push(api.getAdminPortfolio().then((res) => setPortfolio(res.data || [])));
+      if (which === 'stats'     || which === 'all') tasks.push(api.getStats().then((res) => setStats(res.data || null)));
+      if (which === 'meetings'  || which === 'all') tasks.push(api.getMeetings().then((res) => setMeetings(res.data || [])));
       if (which === 'phase2'    || which === 'all') {
-        const [requests, products] = await Promise.all([
+        tasks.push(Promise.all([
           api.getPhase2Requests(),
           api.getAdminPhase2Products(),
-        ]);
-        setPhase2Requests(requests.data || []);
-        setPhase2Products(products.data || []);
+        ]).then(([requests, products]) => {
+          setPhase2Requests(requests.data || []);
+          setPhase2Products(products.data || []);
+        }));
       }
+      await Promise.all(tasks);
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { load('all'); }, []);
   useEffect(() => {
+    load('all').finally(() => { didInitialLoad.current = true; });
+  }, [load]);
+  useEffect(() => {
+    if (!didInitialLoad.current) return;
     const map = { pipeline:'leads', leads:'leads', clients:'clients', projects:'projects', quotes:'quotes', reminders:'reminders', portfolio:'portfolio', phase2:'phase2', stats:'stats' };
     if (map[tab]) load(map[tab]);
-  }, [tab]);
+  }, [tab, load]);
 
   const E = (msg) => setError(msg);
 
-  const TABS = [
+  const RAW_TABS = [
     { key:'pipeline',  icon:'⚡', label:'Pipeline'  },
     { key:'leads',     icon:'📬', label:'Leads'     },
     { key:'clients',   icon:'👥', label:'Clients'   },
@@ -177,30 +210,75 @@ function AdminInner({ onLogout }) {
     { key:'stats',     icon:'📊', label:'Stats'     },
   ];
 
+  const TABS = [
+    { key:'pipeline',  icon:FiZap,       label:'Pipeline'  },
+    { key:'leads',     icon:FiInbox,     label:'Leads'     },
+    { key:'clients',   icon:FiUsers,     label:'Clients'   },
+    { key:'projects',  icon:FiTool,      label:'Projects'  },
+    { key:'quotes',    icon:FiFileText,  label:'Quotes'    },
+    { key:'reminders', icon:FiBell,      label:'Reminders' },
+    { key:'portfolio', icon:FiMonitor,   label:'Portfolio' },
+    { key:'phase2',    icon:FiDatabase,  label:'Data & Talent' },
+    { key:'prospects', icon:FiSearch,    label:'Prospects' },
+    { key:'stats',     icon:FiBarChart2, label:'Stats'     },
+  ];
+  const activeTab = TABS.find((item) => item.key === tab) || TABS[0];
+  const ActiveIcon = activeTab.icon;
+  const overdueReminders = reminders.filter((item) => new Date(item.due_date) < new Date()).length;
+  const publishedPortfolio = portfolio.filter((item) => item.published !== false).length;
+  const adminSummary = [
+    { label: 'New leads', value: leads.filter((item) => item.status === 'new').length, tone: 'text-blue-600' },
+    { label: 'Active projects', value: projects.filter((item) => item.status === 'in_progress').length, tone: 'text-red-600' },
+    { label: 'Due reminders', value: overdueReminders, tone: overdueReminders ? 'text-red-600' : 'text-gray-400' },
+    { label: 'Live portfolio', value: publishedPortfolio, tone: 'text-green-600' },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#F5F5F5] text-black">
+    <div className="min-h-screen bg-[#EEF1F5] text-black">
       <Helmet><title>Admin  -  TBH CRM</title><meta name="robots" content="noindex,nofollow"/></Helmet>
 
       {/* Header */}
-      <div className="bg-black text-white px-4 py-4 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 flex-wrap">
-          <div>
-            <p className="text-red-500 text-xs font-bold uppercase tracking-widest">Private</p>
-            <h1 className="text-lg font-extrabold">
-              The Brand<span className="text-red-600">Helper</span> CRM
-            </h1>
+      <div className="sticky top-0 z-40 border-b border-white/10 bg-[#080808]/95 text-white backdrop-blur">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 px-4 py-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-600 text-white shadow-lg shadow-red-950/30">
+              <ActiveIcon className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-red-500 text-xs font-bold uppercase tracking-widest">Private CRM</p>
+              <h1 className="truncate text-lg font-extrabold">
+                The Brand<span className="text-red-600">Helper</span> / {activeTab.label}
+              </h1>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {TABS.map(t => (
-              <button key={t.key} onClick={() => setTab(t.key)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition
-                  ${tab === t.key ? 'bg-red-600 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'}`}>
-                {t.icon} {t.label}
-              </button>
-            ))}
-            {/* Logout button */}
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => load('all')}
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-xs font-bold text-white/75 transition hover:bg-white/15 hover:text-white"
+            >
+              <FiRefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
+              Refresh
+            </button>
             <LogoutButton onLogout={onLogout} />
           </div>
+        </div>
+        <div className="max-w-7xl mx-auto flex gap-2 overflow-x-auto px-4 pb-4">
+          {TABS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setTab(item.key)}
+                className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition
+                  ${tab === item.key ? 'bg-red-600 text-white shadow-lg shadow-red-950/30' : 'bg-white/10 text-white/65 hover:bg-white/15 hover:text-white'}`}
+              >
+                <Icon className="h-4 w-4" aria-hidden="true" />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -224,7 +302,7 @@ function AdminInner({ onLogout }) {
           {modal.type === 'project_form'  && <ProjectForm  data={modal.data} clients={clients} onClose={closeModal} onSave={() => { load('projects');  closeModal(); }} onError={E} />}
           {modal.type === 'project_view'  && <ProjectView  data={modal.data} onClose={closeModal} onUpdate={() => load('projects')} onError={E} />}
           {modal.type === 'quote_form'    && <QuoteForm    data={modal.data} leads={leads} clients={clients} onClose={closeModal} onSave={() => { load('quotes');    closeModal(); }} onError={E} />}
-          {modal.type === 'quote_view'    && <QuoteView    data={modal.data} onClose={closeModal} />}
+          {modal.type === 'quote_view'    && <QuoteView    data={modal.data} onClose={closeModal} onSent={() => load('quotes')} onError={E} />}
           {modal.type === 'reminder_form' && <ReminderForm data={modal.data} leads={leads} clients={clients} projects={projects} onClose={closeModal} onSave={() => { load('reminders'); closeModal(); }} onError={E} />}
           {modal.type === 'portfolio_form'&& <PortfolioForm data={modal.data} onClose={closeModal} onSave={() => { load('portfolio'); closeModal(); }} onError={E} />}
           {modal.type === 'phase2_product_form' && <Phase2ProductForm data={modal.data} onClose={closeModal} onSave={() => { load('phase2'); closeModal(); }} onError={E} />}
@@ -232,14 +310,27 @@ function AdminInner({ onLogout }) {
       )}
 
       <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {adminSummary.map((item) => (
+            <div key={item.label} className="rounded-2xl border border-white bg-white p-4 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-widest text-gray-400">{item.label}</p>
+              <p className={`mt-2 text-3xl font-extrabold ${item.tone}`}>{item.value}</p>
+            </div>
+          ))}
+        </div>
+        {loading && (
+          <div className="mb-5 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
+            Refreshing admin data...
+          </div>
+        )}
         {tab === 'pipeline'  && <PipelineTab  leads={leads} onMove={async (id,s) => { try { await api.updateLead(id,{status:s}); load('leads'); } catch(e){E(e.message);} }} onView={l => setModal({type:'lead_view',data:l})} onAdd={() => setModal({type:'lead_form',data:null})} />}
         {tab === 'leads'     && <LeadsTab     leads={leads} onView={l => setModal({type:'lead_view',data:l})} onAdd={() => setModal({type:'lead_form',data:null})} onEdit={l => setModal({type:'lead_form',data:l})} onDelete={async id => { try { await api.deleteLead(id); load('leads'); } catch(e){E(e.message);} }} onConvert={async id => { try { await api.convertLead(id); load('all'); } catch(e){E(e.message);} }} />}
         {tab === 'clients'   && <ClientsTab   clients={clients} onView={c => setModal({type:'client_view',data:c})} onAdd={() => setModal({type:'client_form',data:null})} onEdit={c => setModal({type:'client_form',data:c})} onDelete={async id => { try { await api.deleteClient(id); load('clients'); } catch(e){E(e.message);} }} />}
         {tab === 'projects'  && <ProjectsTab  projects={projects} onView={p => setModal({type:'project_view',data:p})} onAdd={() => setModal({type:'project_form',data:null})} onEdit={p => setModal({type:'project_form',data:p})} onDelete={async id => { try { await api.deleteProject(id); load('projects'); } catch(e){E(e.message);} }} />}
-        {tab === 'quotes'    && <QuotesTab    quotes={quotes} onView={q => setModal({type:'quote_view',data:q})} onAdd={() => setModal({type:'quote_form',data:null})} onDelete={async id => { try { await api.deleteQuote(id); load('quotes'); } catch(e){E(e.message);} }} onStatus={async (id,s) => { try { await api.updateQuote(id,{status:s}); load('quotes'); } catch(e){E(e.message);} }} />}
-        {tab === 'reminders' && <RemindersTab reminders={reminders} onAdd={() => setModal({type:'reminder_form',data:null})} onComplete={async id => { try { await api.completeReminder(id); load('reminders'); } catch(e){E(e.message);} }} onDelete={async id => { try { await api.deleteReminder(id); load('reminders'); } catch(e){E(e.message);} }} />}
-        {tab === 'portfolio' && <PortfolioTab items={portfolio} onAdd={() => setModal({type:'portfolio_form',data:null})} onEdit={p => setModal({type:'portfolio_form',data:p})} onDelete={async id => { try { await api.deletePortfolio(id); load('portfolio'); } catch(e){E(e.message);} }} onToggleFeatured={async item => { try { await api.updatePortfolio(item._id,{featured:!item.featured}); load('portfolio'); } catch(e){E(e.message);} }} />}
-        {tab === 'phase2'    && <Phase2AdminTab requests={phase2Requests} products={phase2Products} onAddProduct={() => setModal({type:'phase2_product_form',data:null})} onEditProduct={p => setModal({type:'phase2_product_form',data:p})} onDeleteProduct={async id => { try { await api.deletePhase2Product(id); load('phase2'); } catch(e){E(e.message);} }} onRequestStatus={async (id,status) => { try { await api.updatePhase2Request(id,{status}); load('phase2'); } catch(e){E(e.message);} }} onProductToggle={async product => { try { await api.updatePhase2Product(product._id,{published:!product.published}); load('phase2'); } catch(e){E(e.message);} }} />}
+        {tab === 'quotes'    && <QuotesTab    quotes={quotes} onView={q => setModal({type:'quote_view',data:q})} onAdd={() => setModal({type:'quote_form',data:null})} onEdit={q => setModal({type:'quote_form',data:q})} onDelete={async id => { try { await api.deleteQuote(id); load('quotes'); } catch(e){E(e.message);} }} onStatus={async (id,s) => { try { await api.updateQuote(id,{status:s}); load('quotes'); } catch(e){E(e.message);} }} />}
+        {tab === 'reminders' && <RemindersTab reminders={reminders} onAdd={() => setModal({type:'reminder_form',data:null})} onEdit={r => setModal({type:'reminder_form',data:r})} onComplete={async id => { try { await api.completeReminder(id); load('reminders'); } catch(e){E(e.message);} }} onDelete={async id => { try { await api.deleteReminder(id); load('reminders'); } catch(e){E(e.message);} }} />}
+        {tab === 'portfolio' && <PortfolioTab items={portfolio} onAdd={() => setModal({type:'portfolio_form',data:null})} onEdit={p => setModal({type:'portfolio_form',data:p})} onDelete={async id => { try { await api.deletePortfolio(id); load('portfolio'); } catch(e){E(e.message);} }} onTogglePublished={async item => { try { await api.updatePortfolio(item._id,{published: item.published === false}); load('portfolio'); } catch(e){E(e.message);} }} />}
+        {tab === 'phase2'    && <Phase2AdminTab requests={phase2Requests} products={phase2Products} onAddProduct={() => setModal({type:'phase2_product_form',data:null})} onEditProduct={p => setModal({type:'phase2_product_form',data:p})} onDeleteProduct={async id => { try { await api.deletePhase2Product(id); load('phase2'); } catch(e){E(e.message);} }} onDeleteRequest={async id => { try { await api.deletePhase2Request(id); load('phase2'); } catch(e){E(e.message);} }} onRequestStatus={async (id,status) => { try { await api.updatePhase2Request(id,{status}); load('phase2'); } catch(e){E(e.message);} }} onProductToggle={async product => { try { await api.updatePhase2Product(product._id,{published:!product.published}); load('phase2'); } catch(e){E(e.message);} }} />}
         {tab === 'prospects' && <ProspectTab onError={E} />}
         {tab === 'stats'     && <StatsTab     stats={stats} />}
       </div>
@@ -261,7 +352,7 @@ export default function Admin() {
 // ══════════════════════════════════════════════════════════════════════════════
 // PIPELINE TAB
 // ══════════════════════════════════════════════════════════════════════════════
-function Phase2AdminTab({ requests, products, onAddProduct, onEditProduct, onDeleteProduct, onRequestStatus, onProductToggle }) {
+function Phase2AdminTab({ requests, products, onAddProduct, onEditProduct, onDeleteProduct, onDeleteRequest, onRequestStatus, onProductToggle }) {
   const [requestType, setRequestType] = useState('all');
   const [productType, setProductType] = useState('all');
 
@@ -317,6 +408,7 @@ function Phase2AdminTab({ requests, products, onAddProduct, onEditProduct, onDel
                   <select className="border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold outline-none bg-white" value={item.status || 'new'} onChange={e=>onRequestStatus(item._id, e.target.value)}>
                     {PHASE2_REQUEST_STATUSES.map(status => <option key={status} value={status}>{status.replace(/_/g,' ')}</option>)}
                   </select>
+                  <Btn small variant="danger" onClick={() => onDeleteRequest(item._id)}>Delete</Btn>
                 </div>
                 <div className="mt-3 grid gap-2 sm:grid-cols-3 text-xs text-gray-500">
                   <div><span className="font-bold text-gray-700">Country:</span> {item.country || item.countries?.join(', ') || '-'}</div>
@@ -427,13 +519,28 @@ function Phase2ProductForm({ data, onClose, onSave, onError }) {
     tags: Array.isArray(data?.tags) ? data.tags.join(', ') : data?.tags || '',
   });
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const productFileRef = useRef(null);
   const set = (key, value) => setF(current => ({ ...current, [key]: value }));
+
+  const handleImageFile = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) { onError('Image too large - max 8MB'); return; }
+    setUploadingImage(true);
+    try {
+      const uploaded = await api.uploadImage(file, 'thebrandhelper/products');
+      set('image', uploaded.data?.secure_url || uploaded.data?.url || '');
+    } catch (e) { onError(e.message); }
+    finally { setUploadingImage(false); event.target.value = ''; }
+  };
 
   const save = async () => {
     if (!f.title) return;
     setSaving(true);
     try {
-      const { _id, __v, createdAt, updatedAt, ...payload } = f;
+      const payload = { ...f };
+      ['_id', '__v', 'createdAt', 'updatedAt'].forEach((field) => { delete payload[field]; });
       if (data?._id) await api.updatePhase2Product(data._id, payload);
       else await api.createPhase2Product(payload);
       onSave();
@@ -454,7 +561,21 @@ function Phase2ProductForm({ data, onClose, onSave, onError }) {
         <div><Lbl>Description</Lbl><textarea className={`${inp} resize-none`} rows={4} value={f.description} onChange={e=>set('description',e.target.value)} placeholder="Public description. Avoid exposing sensitive dataset details."/></div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3"><div><Lbl>Scale / Availability</Lbl><input className={inp} value={f.scale} onChange={e=>set('scale',e.target.value)} placeholder="Large internal collection, limited..."/></div><div><Lbl>Price Label</Lbl><input className={inp} value={f.price_label} onChange={e=>set('price_label',e.target.value)} placeholder="Request pricing, deposit options..."/></div></div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3"><div><Lbl>Applications</Lbl><input className={inp} value={f.applications} onChange={e=>set('applications',e.target.value)} placeholder="OCR, NLP, QA"/></div><div><Lbl>Features</Lbl><input className={inp} value={f.features} onChange={e=>set('features',e.target.value)} placeholder="Demo, screenshots, support"/></div></div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3"><div><Lbl>Image URL</Lbl><input className={inp} value={f.image} onChange={e=>set('image',e.target.value)} placeholder="https://..."/></div><div><Lbl>Demo URL</Lbl><input className={inp} value={f.demo_url} onChange={e=>set('demo_url',e.target.value)} placeholder="https://..."/></div><div><Lbl>Sample URL</Lbl><input className={inp} value={f.sample_url} onChange={e=>set('sample_url',e.target.value)} placeholder="private sample link"/></div></div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <Lbl>Image</Lbl>
+            <div className="flex gap-2">
+              <input className={inp} value={f.image} onChange={e=>set('image',e.target.value)} placeholder="https://..."/>
+              <button type="button" onClick={()=>productFileRef.current?.click()} disabled={uploadingImage} className="shrink-0 rounded-xl border border-gray-200 px-4 text-xs font-bold text-gray-600 transition hover:border-black disabled:opacity-40">
+                {uploadingImage ? 'Uploading...' : 'Upload'}
+              </button>
+            </div>
+            <input ref={productFileRef} type="file" accept="image/*" className="hidden" onChange={handleImageFile}/>
+          </div>
+          <div><Lbl>Demo URL</Lbl><input className={inp} value={f.demo_url} onChange={e=>set('demo_url',e.target.value)} placeholder="https://..."/></div>
+          <div><Lbl>Sample URL</Lbl><input className={inp} value={f.sample_url} onChange={e=>set('sample_url',e.target.value)} placeholder="private sample link"/></div>
+        </div>
+        {f.image && <div className="h-24 overflow-hidden rounded-xl bg-gray-100"><img src={f.image} alt="Product preview" className="h-full w-full object-cover" decoding="async" onError={e=>e.currentTarget.style.display='none'}/></div>}
         <div><Lbl>Tags</Lbl><input className={inp} value={f.tags} onChange={e=>set('tags',e.target.value)} placeholder="comma separated"/></div>
         <div><Lbl>Internal Notes</Lbl><textarea className={`${inp} resize-none`} rows={3} value={f.internal_notes} onChange={e=>set('internal_notes',e.target.value)} placeholder="Private notes for sales and operations."/></div>
         <div className="flex flex-wrap gap-3">
@@ -656,7 +777,7 @@ function ProjectsTab({ projects, onView, onAdd, onEdit, onDelete }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // QUOTES TAB
 // ══════════════════════════════════════════════════════════════════════════════
-function QuotesTab({ quotes, onView, onAdd, onDelete, onStatus }) {
+function QuotesTab({ quotes, onView, onAdd, onEdit, onDelete, onStatus }) {
   return (
     <div>
       <div className="flex justify-between items-center mb-5 flex-wrap gap-3">
@@ -681,6 +802,7 @@ function QuotesTab({ quotes, onView, onAdd, onDelete, onStatus }) {
                 value={q.status} onChange={e => onStatus(q._id, e.target.value)}>
                 {QUOTE_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
+              <Btn small variant="outline" onClick={() => onEdit(q)}>Edit</Btn>
               <Btn small variant="danger" onClick={() => onDelete(q._id)}>Del</Btn>
             </div>
           </div>
@@ -694,11 +816,11 @@ function QuotesTab({ quotes, onView, onAdd, onDelete, onStatus }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // REMINDERS TAB
 // ══════════════════════════════════════════════════════════════════════════════
-function RemindersTab({ reminders, onAdd, onComplete, onDelete }) {
+function RemindersTab({ reminders, onAdd, onEdit, onComplete, onDelete }) {
   const overdue  = reminders.filter(r => new Date(r.due_date) < new Date());
   const upcoming = reminders.filter(r => new Date(r.due_date) >= new Date());
   const Row = ({ r }) => (
-    <div className={`bg-white rounded-xl p-4 flex items-center gap-3 ${new Date(r.due_date) < new Date() ? 'border-l-4 border-red-500' : 'border-l-4 border-yellow-400'}`}>
+    <div className={`bg-white rounded-xl p-4 flex items-center gap-3 cursor-pointer hover:shadow-md transition ${new Date(r.due_date) < new Date() ? 'border-l-4 border-red-500' : 'border-l-4 border-yellow-400'}`} onClick={() => onEdit(r)}>
       <div className="flex-1 min-w-0">
         <p className="font-bold text-sm">{r.title}</p>
         {r.note && <p className="text-xs text-gray-400 mt-0.5">{r.note}</p>}
@@ -706,7 +828,7 @@ function RemindersTab({ reminders, onAdd, onComplete, onDelete }) {
           {new Date(r.due_date) < new Date() ? '⚠️ Overdue · ' : '📅 '}{fmtDate(r.due_date)}
         </p>
       </div>
-      <div className="flex gap-2 shrink-0">
+      <div className="flex gap-2 shrink-0" onClick={e => e.stopPropagation()}>
         <Btn small variant="success" onClick={() => onComplete(r._id)}>Done ✓</Btn>
         <Btn small variant="danger"  onClick={() => onDelete(r._id)}>Del</Btn>
       </div>
@@ -728,7 +850,8 @@ function RemindersTab({ reminders, onAdd, onComplete, onDelete }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // PORTFOLIO TAB
 // ══════════════════════════════════════════════════════════════════════════════
-function PortfolioTab({ items, onAdd, onEdit, onDelete, onToggleFeatured }) {
+function PortfolioTab({ items, onAdd, onEdit, onDelete, onTogglePublished }) {
+  const published = items.filter(i => i.published !== false).length;
   const featured = items.filter(i => i.featured).length;
   return (
     <div>
@@ -736,9 +859,10 @@ function PortfolioTab({ items, onAdd, onEdit, onDelete, onToggleFeatured }) {
         <div>
           <h2 className="text-xl font-extrabold">Portfolio ({items.length})</h2>
           <p className="text-xs text-gray-400 mt-0.5">
-            <span className="text-green-600 font-bold">{featured} public</span>
+            <span className="text-green-600 font-bold">{published} public</span>
             {" · "}
-            <span className="text-gray-400">{items.length - featured} hidden</span>
+            <span className="text-gray-400">{items.length - published} hidden</span>
+            <span className="text-red-600 font-bold"> / {featured} featured</span>
             {" · "}
             <span className="text-gray-500">Toggle visibility with the PUBLIC/HIDDEN button on each card</span>
           </p>
@@ -760,29 +884,30 @@ function PortfolioTab({ items, onAdd, onEdit, onDelete, onToggleFeatured }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {items.map(item => (
-          <div key={item._id} className={`bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition border-2 ${item.featured ? "border-green-400" : "border-gray-100"}`}>
+          <div key={item._id} className={`bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition border-2 ${item.published !== false ? "border-green-400" : "border-gray-100"}`}>
             {/* Visibility banner */}
-            <div className={`px-4 py-2 flex items-center justify-between ${item.featured ? "bg-green-50" : "bg-gray-50"}`}>
+            <div className={`px-4 py-2 flex items-center justify-between ${item.published !== false ? "bg-green-50" : "bg-gray-50"}`}>
               <div className="flex items-center gap-2">
-                <span className={`w-2.5 h-2.5 rounded-full ${item.featured ? "bg-green-500" : "bg-gray-300"}`}/>
-                <span className={`text-xs font-extrabold uppercase tracking-widest ${item.featured ? "text-green-700" : "text-gray-400"}`}>
-                  {item.featured ? "PUBLIC  -  shown on site" : "HIDDEN  -  not shown"}
+                <span className={`w-2.5 h-2.5 rounded-full ${item.published !== false ? "bg-green-500" : "bg-gray-300"}`}/>
+                <span className={`text-xs font-extrabold uppercase tracking-widest ${item.published !== false ? "text-green-700" : "text-gray-400"}`}>
+                  {item.published !== false ? "PUBLIC  -  shown on site" : "HIDDEN  -  not shown"}
                 </span>
+                {item.featured && <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-600">Featured</span>}
               </div>
               <button
-                onClick={() => onToggleFeatured(item)}
+                onClick={() => onTogglePublished(item)}
                 className={`text-xs font-bold px-3 py-1 rounded-full transition
-                  ${item.featured
+                  ${item.published !== false
                     ? "bg-gray-200 text-gray-600 hover:bg-red-100 hover:text-red-600"
                     : "bg-green-500 text-white hover:bg-green-600"
                   }`}>
-                {item.featured ? "Hide" : "Make Public"}
+                {item.published !== false ? "Hide" : "Make Public"}
               </button>
             </div>
 
             <div className="h-36 bg-gray-100 flex items-center justify-center overflow-hidden relative">
               {item.image
-                ? <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                ? <img src={item.image} alt={item.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                 : <span className="text-4xl">🖥️</span>
               }
             </div>
@@ -902,7 +1027,7 @@ function LeadForm({ data, onClose, onSave, onError }) {
   );
 }
 
-function LeadView({ data, onClose, onConvert, onUpdate, onError }) {
+function LeadView({ data, onClose, onConvert, onError }) {
   const [notes, setNotes] = useState([]);
   const [note,  setNote]  = useState('');
   const [type,  setType]  = useState('note');
@@ -972,7 +1097,7 @@ function ClientForm({ data, onClose, onSave, onError }) {
   );
 }
 
-function ClientView({ data, onClose, onUpdate, onError }) {
+function ClientView({ data, onClose, onError }) {
   const [client, setClient] = useState(data);
   const [projects, setProjects] = useState([]);
   const [notes,    setNotes]    = useState([]);
@@ -1144,7 +1269,7 @@ function ProjectView({ data, onClose, onUpdate, onError }) {
   const refresh = useCallback(async () => {
     try { const r=await api.getProject(data._id); setProject(r.data); setMilestones(r.data.milestones||[]); setMeetings(r.data.meetings||[]); setNotes(r.data.notes||[]); }
     catch(e) { onError(e.message); }
-  }, [data._id]);
+  }, [data._id, onError]);
   useEffect(()=>{ refresh(); },[refresh]);
   const addMs  = async () => { if(!newMs) return; try { await api.addMilestone(data._id,{title:newMs}); setNewMs(''); refresh(); } catch(e){onError(e.message);} };
   const toggleMs = async id => { try { await api.toggleMilestone(id); refresh(); onUpdate(); } catch(e){onError(e.message);} };
@@ -1189,7 +1314,7 @@ function ProjectView({ data, onClose, onUpdate, onError }) {
   );
 }
 
-function QuoteForm({ data, leads, clients, onClose, onSave, onError }) {
+function QuoteForm({ data, clients, onClose, onSave, onError }) {
   const [f, setF] = useState({ client_name:'', client_email:'', client_phone:'', business_name:'', items:[{description:'',amount:0}], discount:0, deposit_percent:30, currency:'USD', valid_days:14, notes:'', status:'draft', ...data });
   const [saving, setSaving] = useState(false);
   const set = (k,v) => setF(p=>({...p,[k]:v}));
@@ -1200,7 +1325,7 @@ function QuoteForm({ data, leads, clients, onClose, onSave, onError }) {
   const total    = subtotal-(f.discount||0);
   const deposit  = Math.round(total*(f.deposit_percent/100));
   const fillFrom = id => { const c=clients.find(x=>x._id===id); if(c){set('client_name',c.name);set('business_name',c.business_name||'');set('client_email',c.email||'');set('client_phone',c.phone||'');} };
-  const save = async () => { setSaving(true); try { if(data?._id) await api.updateQuote(data._id,f); else await api.createQuote(f); onSave(); } catch(e){onError(e.message);} finally{setSaving(false);} };
+  const save = async () => { setSaving(true); try { const payload = cleanQuotePayload(f); if(data?._id) await api.updateQuote(data._id,payload); else await api.createQuote(payload); onSave(); } catch(e){onError(e.message);} finally{setSaving(false);} };
   return (
     <Modal title={data?'Edit Quote':'New Quote'} onClose={onClose} wide>
       <div className="flex flex-col gap-4">
@@ -1222,8 +1347,21 @@ function QuoteForm({ data, leads, clients, onClose, onSave, onError }) {
   );
 }
 
-function QuoteView({ data, onClose }) {
+function QuoteView({ data, onClose, onSent, onError }) {
   const q=data; const total=q.total||0; const deposit=q.deposit_amount||0;
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [sentMessage, setSentMessage] = useState('');
+  const sendEmail = async () => {
+    if (!q.client_email) { onError?.('Quote has no client email'); return; }
+    setSendingEmail(true);
+    setSentMessage('');
+    try {
+      await api.sendQuoteEmail(q._id);
+      setSentMessage('Quote email sent through Resend.');
+      onSent?.();
+    } catch(e) { onError?.(e.message); }
+    finally { setSendingEmail(false); }
+  };
   return (
     <Modal title={`Quote ${q.quote_number}`} onClose={onClose} wide>
       <div className="flex flex-col gap-5">
@@ -1240,8 +1378,10 @@ function QuoteView({ data, onClose }) {
         </div>
         <div className="bg-blue-50 rounded-xl p-4 text-sm"><p className="font-bold text-blue-800 mb-1">Payment</p><p className="text-blue-700">30% deposit to start · Payoneer invoice · bank, card, or mobile money accepted</p></div>
         {q.notes&&<div className="bg-gray-50 rounded-xl p-4 text-sm"><p className="font-bold mb-1">Notes</p><p className="text-gray-600">{q.notes}</p></div>}
+        {sentMessage&&<div className="rounded-xl bg-green-50 px-4 py-3 text-sm font-bold text-green-700">{sentMessage}</div>}
         <div className="flex gap-3 pt-2">
           <Btn onClick={()=>window.print()}>Print / Save PDF</Btn>
+          <Btn variant="outline" onClick={sendEmail} disabled={sendingEmail || !q.client_email}>{sendingEmail ? 'Sending...' : 'Email quote'}</Btn>
           <a href={`https://wa.me/233501657205?text=${encodeURIComponent(`Quote ${q.quote_number}  -  Total: $${total.toLocaleString()} · Deposit: $${deposit.toLocaleString()}`)}`} target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 text-sm font-bold bg-green-500 text-white rounded-xl hover:bg-green-600 transition">💬 Send on WhatsApp</a>
           <Btn variant="outline" onClick={onClose}>Close</Btn>
         </div>
@@ -1251,7 +1391,7 @@ function QuoteView({ data, onClose }) {
 }
 
 function ReminderForm({ data, leads, clients, projects, onClose, onSave, onError }) {
-  const [f, setF] = useState({ title:"", note:"", due_date:"", lead_id:"", client_id:"", project_id:"", ...data });
+  const [f, setF] = useState({ title:"", note:"", lead_id:"", client_id:"", project_id:"", ...data, due_date: toDateTimeLocal(data?.due_date) });
   const [saving, setSaving] = useState(false);
   const set = (k,v) => setF(p=>({...p,[k]:v}));
 
@@ -1308,15 +1448,21 @@ function ReminderForm({ data, leads, clients, projects, onClose, onSave, onError
 }
 
 function PortfolioForm({ data, onClose, onSave, onError }) {
-  const [f, setF] = useState({ title:'', category:'Website Design', description:'', image:'', link:'', featured:false, ...data, tags:Array.isArray(data?.tags)?data.tags.join(', '):data?.tags||'' });
-  const [imgMode, setImgMode] = useState(data?.image?.startsWith('data:')?'upload':'url');
+  const [f, setF] = useState({ title:'', category:'Website Design', description:'', image:'', link:'', published:true, featured:false, ...data, tags:Array.isArray(data?.tags)?data.tags.join(', '):data?.tags||'' });
+  const [imgMode, setImgMode] = useState('url');
   const [saving,  setSaving]  = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const fileRef = useRef(null);
   const set = (k,v) => setF(p=>({...p,[k]:v}));
   const handleFile = async e => {
     const file=e.target.files?.[0]; if(!file) return;
-    if(file.size>2*1024*1024){onError('Image too large  -  max 2MB'); return;}
-    const reader=new FileReader(); reader.onload=()=>set('image',reader.result); reader.readAsDataURL(file);
+    if(file.size>8*1024*1024){onError('Image too large - max 8MB'); return;}
+    setUploadingImage(true);
+    try {
+      const uploaded = await api.uploadImage(file, 'thebrandhelper/portfolio');
+      set('image', uploaded.data?.secure_url || uploaded.data?.url || '');
+    } catch(e) { onError(e.message); }
+    finally { setUploadingImage(false); e.target.value = ''; }
   };
   const save = async () => {
     if (!f.title||!f.description) return;
@@ -1332,12 +1478,15 @@ function PortfolioForm({ data, onClose, onSave, onError }) {
         <div>
           <Lbl>Image</Lbl>
           <div className="flex gap-2 mb-3"><button onClick={()=>setImgMode('url')} className={`px-4 py-2 rounded-lg text-xs font-bold transition border ${imgMode==='url'?'bg-black text-white border-black':'border-gray-200 text-gray-500'}`}>Link URL</button><button onClick={()=>setImgMode('upload')} className={`px-4 py-2 rounded-lg text-xs font-bold transition border ${imgMode==='upload'?'bg-black text-white border-black':'border-gray-200 text-gray-500'}`}>Upload File</button></div>
-          {imgMode==='url'?<input className={inp} value={f.image.startsWith('data:')?'':f.image} onChange={e=>set('image',e.target.value)} placeholder="https://..."/>:<div onClick={()=>fileRef.current?.click()} className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-red-400 transition">{f.image?.startsWith('data:')?<p className="text-sm text-green-600 font-bold">Image loaded</p>:<><p className="text-2xl mb-1">📁</p><p className="text-sm text-gray-500">Click to upload (max 2MB)</p></>}</div>}
+          {imgMode==='url'?<input className={inp} value={f.image} onChange={e=>set('image',e.target.value)} placeholder="https://..."/>:<div onClick={()=>!uploadingImage&&fileRef.current?.click()} className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-red-400 transition">{uploadingImage?<p className="text-sm text-blue-600 font-bold">Uploading to Cloudinary...</p>:f.image?<p className="text-sm text-green-600 font-bold">Image uploaded</p>:<><p className="text-2xl mb-1">📁</p><p className="text-sm text-gray-500">Click to upload (max 8MB)</p></>}</div>}
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile}/>
-          {f.image&&<div className="h-28 rounded-xl overflow-hidden bg-gray-100 mt-2"><img src={f.image} alt="preview" className="w-full h-full object-cover" onError={e=>e.target.style.display='none'}/></div>}
+          {f.image&&<div className="h-28 rounded-xl overflow-hidden bg-gray-100 mt-2"><img src={f.image} alt="preview" className="w-full h-full object-cover" decoding="async" onError={e=>e.target.style.display='none'}/></div>}
         </div>
         <div className="grid grid-cols-2 gap-3"><div><Lbl>Live Link</Lbl><input className={inp} value={f.link} onChange={e=>set('link',e.target.value)} placeholder="https://..."/></div><div><Lbl>Tags (comma separated)</Lbl><input className={inp} value={f.tags} onChange={e=>set('tags',e.target.value)} placeholder="React, E-commerce"/></div></div>
-        <label className="flex items-center gap-3 cursor-pointer"><button onClick={()=>set('featured',!f.featured)} className={`w-12 h-6 rounded-full transition relative shrink-0 ${f.featured?'bg-red-600':'bg-gray-200'}`}><span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${f.featured?'left-6':'left-0.5'}`}/></button><span className="text-sm font-bold">Featured on Home page</span></label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex items-center gap-3 cursor-pointer rounded-xl border border-gray-100 bg-gray-50 p-3"><button onClick={()=>set('published',!f.published)} className={`w-12 h-6 rounded-full transition relative shrink-0 ${f.published?'bg-green-500':'bg-gray-200'}`}><span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${f.published?'left-6':'left-0.5'}`}/></button><span className="text-sm font-bold">Published on Portfolio page</span></label>
+          <label className="flex items-center gap-3 cursor-pointer rounded-xl border border-gray-100 bg-gray-50 p-3"><button onClick={()=>set('featured',!f.featured)} className={`w-12 h-6 rounded-full transition relative shrink-0 ${f.featured?'bg-red-600':'bg-gray-200'}`}><span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${f.featured?'left-6':'left-0.5'}`}/></button><span className="text-sm font-bold">Featured highlight</span></label>
+        </div>
         <div className="flex gap-3 pt-2"><Btn onClick={save} disabled={!f.title||!f.description||saving}>{saving?'Saving...':'Save'}</Btn><Btn variant="outline" onClick={onClose}>Cancel</Btn></div>
       </div>
     </Modal>

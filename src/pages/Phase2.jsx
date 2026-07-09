@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { FiInfo } from "react-icons/fi";
 import { getPhase2Products, submitPhase2Request } from "../utils/api";
+import ApiIssueReport from "../components/ApiIssueReport";
 
 import dataHeroImg from "../photos/AI Data Marketplace image.png";
 import dataCollectionImg from "../photos/Ai-data-collection.jpg";
@@ -75,23 +77,24 @@ const publicPathways = [
 const pageConfig = {
   data: {
     eyebrow: "AI Data Marketplace",
-    title: "Datasets, custom data collection, and licensing for AI teams.",
+    seoTitle: "AI Data and Datasets | OCR, Handwritten and African Language Data",
+    title: "Real-world datasets, custom data collection, and licensing for AI teams.",
     description:
-      "The BrandHelper helps companies access controlled training data for OCR, speech AI, language AI, document AI, computer vision, and research projects.",
+      "The BrandHelper helps AI teams access controlled datasets for OCR, handwritten documents, African languages, speech AI, document AI, computer vision, and research projects.",
     requestType: "dataset_interest",
     productType: "dataset",
     primaryCta: "Request Dataset Access",
     secondaryCta: "Discuss Custom Data",
     canonical: "https://thebrandhelper.com/ai-data",
     image: dataHeroImg,
-    audience: "AI companies, machine-learning teams, researchers, startups, universities, product teams, and organizations that need reliable data.",
+    audience: "For AI teams that know a model is only as useful as the data behind it. We support AI companies, machine-learning teams, researchers, startups, universities, product teams, and organizations that need reliable data.",
     privacyNote: "We do not expose full proprietary datasets, exact private quantities, sensitive samples, or final commercial pricing publicly. Serious buyers can request controlled access.",
     marketplaceEyebrow: "Dataset Catalogue",
     marketplaceTitle: "Preview controlled data products without exposing the full dataset.",
     marketplaceText: "Each dataset card shows enough for a serious buyer to understand the use case, then moves the conversation into sample review, licence terms, and admin approval.",
     capabilitiesEyebrow: "Dataset Supply",
     capabilitiesTitle: "From handwritten pages to custom data collection.",
-    capabilitiesText: "Use this page when you need data itself: documents, images, text, audio, speech, OCR samples, metadata, or new data collected around a project brief.",
+    capabilitiesText: "Use this page when your model needs data that matches real documents, real handwriting, real local language, real speech, or real environments. We can supply existing controlled data or collect new data around a project brief.",
     pipelineEyebrow: "Dataset sales flow",
     pipelineTitle: "Valuable data stays controlled from first enquiry to delivery.",
     pipelineText: "Visitors can preview or request access, but full delivery is reviewed first so pricing, licence, intended use, and buyer details are properly captured.",
@@ -182,26 +185,45 @@ const pageConfig = {
     ],
     models: ["Direct dataset sale", "Non-exclusive or exclusive licensing", "Research or commercial AI training licence", "Per-page, per-record, per-minute, or bulk pricing", "Custom collection from new contributors"],
     process: ["Free sample preview or private sample request", "Buyer details and intended use captured", "Licence option reviewed", "Checkout or custom quote agreed", "Admin reviews valuable datasets before delivery", "Dataset access is released manually or by approved delivery flow"],
+    faqs: [
+      {
+        question: "Can I buy or license a full AI dataset immediately?",
+        answer: "Some datasets can move to checkout, but valuable proprietary data is reviewed first. We confirm the buyer, use case, licence type, and delivery terms before full access is released."
+      },
+      {
+        question: "Do you provide handwritten or OCR datasets?",
+        answer: "Yes. The BrandHelper supports handwritten document data, scanned document samples, OCR review data, and custom document AI data collection."
+      },
+      {
+        question: "Can you collect African language text or speech data?",
+        answer: "Yes. We can organize language, speech, translation, transcription, and local evaluation projects around native speakers and dialect knowledge."
+      },
+      {
+        question: "Can I request a custom dataset for my AI project?",
+        answer: "Yes. Tell us the data type, language, country, volume, format, licence need, and intended AI use. We will help shape a practical data collection or licensing plan."
+      }
+    ],
   },
   projects: {
     eyebrow: "AI Project Support",
+    seoTitle: "AI Project Support | Data Collection, Annotation and Evaluation Teams",
     title: "Managed contributors and project teams for AI training work.",
     description:
-      "We can help AI companies recruit, screen, train, coordinate, and manage contributors for data collection, annotation, evaluation, localization, and quality assurance.",
+      "The BrandHelper helps AI companies recruit, screen, coordinate, and manage contributors for data collection, annotation, model evaluation, localization, OCR, and quality assurance.",
     requestType: "ai_project",
     productType: "ai_service",
     primaryCta: "Request Project Support",
     secondaryCta: "Request Contributors",
     canonical: "https://thebrandhelper.com/ai-projects",
     image: projectHeroImg,
-    audience: "AI labs, data vendors, startups, platforms, research teams, and international companies that need a managed local or regional workforce.",
+    audience: "For teams that cannot afford slow recruitment, scattered contributors, and unclear quality. We support AI labs, data vendors, startups, platforms, research teams, and international companies that need a managed local or regional workforce.",
     privacyNote: "Project details can be handled under confidentiality. Public forms collect the requirement first; sensitive guidelines and files can be shared later.",
     marketplaceEyebrow: "Project Support Menu",
     marketplaceTitle: "Choose the work you need people to help deliver.",
     marketplaceText: "This page is about managed execution: contributors, evaluators, annotators, language support, vendor operations, and quality checks for AI projects.",
     capabilitiesEyebrow: "Managed AI Operations",
     capabilitiesTitle: "We organize people, tasks, guidelines, quality, and reporting.",
-    capabilitiesText: "Use this page when you already have a project and need a reliable team or vendor partner to recruit, coordinate, train, and manage contributors.",
+    capabilitiesText: "Use this page when the work needs real people: annotators, evaluators, data collectors, reviewers, linguists, local contributors, or a vendor partner who can keep the work organized.",
     pipelineEyebrow: "AI project intake",
     pipelineTitle: "A project request becomes a managed delivery conversation.",
     pipelineText: "We capture the scope first, then review skills, languages, countries, task volume, timeline, confidentiality, and the delivery model.",
@@ -261,26 +283,45 @@ const pageConfig = {
     ],
     models: ["Internal team delivery", "Dedicated contributor recruitment", "Managed vendor service", "Specialist language teams", "Project-based or ongoing operations"],
     process: ["Project requirement review", "Contributor profile and skill planning", "Recruitment or shortlist", "Onboarding and guideline training", "Delivery and quality checks", "Reporting and follow-up"],
+    faqs: [
+      {
+        question: "What kind of AI projects can The BrandHelper support?",
+        answer: "We can support data collection, annotation, validation, transcription, translation, AI response evaluation, OCR review, language evaluation, and human feedback workflows."
+      },
+      {
+        question: "Can you manage contributors for us?",
+        answer: "Yes. We can help with recruitment, screening, onboarding, guideline distribution, task coordination, quality checks, communication, reporting, and payment coordination."
+      },
+      {
+        question: "Can you support African language or local market AI projects?",
+        answer: "Yes. We can help source contributors with local language, dialect, cultural, regional, and country-specific knowledge."
+      },
+      {
+        question: "Can you work under confidentiality?",
+        answer: "Yes. Public forms collect the basic scope first. Sensitive guidelines, files, and project materials can be handled later under the right confidentiality process."
+      }
+    ],
   },
   talent: {
     eyebrow: "Talent Network",
+    seoTitle: "Request Talent or Join the Network | Developers, AI Contributors and Linguists",
     title: "Request skilled people, or join the network for future projects.",
     description:
-      "Companies, agencies, and AI teams can ask us to find the right people for a project. Skilled professionals can also sign up so we can match them when suitable work comes in.",
+      "Companies can request developers, AI contributors, evaluators, annotators, translators, linguists, and project teams. Skilled professionals can join the network for future matching.",
     requestType: "talent_request",
     productType: "ai_service",
     primaryCta: "Request Talent",
     secondaryCta: "Join as Talent",
     canonical: "https://thebrandhelper.com/talent",
     image: talentHeroImg,
-    audience: "For clients: tell us the role, skills, language, country, timeline, and budget. For professionals: share your background, CV, links, skills, languages, and availability so we can match you properly.",
+    audience: "",
     privacyNote: "Talent profiles stay private. We use the information to match people to real project needs, and we only share a profile with a client when the fit and permission are clear.",
     marketplaceEyebrow: "Talent Paths",
     marketplaceTitle: "Companies can request people. Professionals can join the network.",
     marketplaceText: "This page has two clear jobs: help clients ask for talent, and help skilled people submit enough professional detail for future matching.",
     capabilitiesEyebrow: "Talent Matching",
     capabilitiesTitle: "Skills, language, country, availability, and proof all matter.",
-    capabilitiesText: "Use this page when you need developers, contributors, evaluators, translators, researchers, or local-language specialists, or when you want to be considered for future work.",
+    capabilitiesText: "Use this page when you need people who match the work, not just names on a list. We look at skills, country, language, availability, proof of work, and fit before recommending talent.",
     pipelineEyebrow: "Talent request flow",
     pipelineTitle: "Every profile and talent request becomes searchable for matching.",
     pipelineText: "We collect professional details, CV or portfolio links, language ability, country, work type, availability, and project fit before recommending anyone.",
@@ -340,26 +381,45 @@ const pageConfig = {
     ],
     models: ["One freelancer", "Multiple contributors", "Complete managed team", "Short-term support", "Long-term contract", "Project-based delivery"],
     process: ["Company submits requirements", "BrandHelper reviews needed roles", "Contributor database is searched", "Candidates are shortlisted", "Client receives options", "Placement or project tracking begins"],
+    faqs: [
+      {
+        question: "Can companies request talent from The BrandHelper?",
+        answer: "Yes. Companies and agencies can request one freelancer, several contributors, or a managed team for web development, software, AI projects, language work, research, or digital operations."
+      },
+      {
+        question: "Can freelancers and contributors sign up?",
+        answer: "Yes. Professionals can join the talent network by sharing their CV, LinkedIn, portfolio, country of residence, native languages, skills, work experience, availability, and preferred project type."
+      },
+      {
+        question: "Are talent profiles public?",
+        answer: "No. Profiles are kept private and used for matching. We only present a profile when there is a suitable project and permission is clear."
+      },
+      {
+        question: "Can you find African language contributors?",
+        answer: "Yes. We can support needs around Twi, Fante, Ewe, Ga, Hausa, English, French, and other Ghanaian or African languages and dialects as the network grows."
+      }
+    ],
   },
   products: {
     eyebrow: "Ready-Built Websites and Digital Products",
+    seoTitle: "Ready-Built Websites and Digital Products | The BrandHelper",
     title: "Websites, platforms, and software concepts ready to customize.",
     description:
-      "Businesses can browse ready-built websites and product concepts, request demos, discuss customization, or purchase a reserved build path.",
+      "Browse ready-built websites, business platforms, landing pages, software concepts, dataset products, and digital products that can be customized for your business.",
     requestType: "product_enquiry",
     productType: "website",
     primaryCta: "Discuss a Product",
     secondaryCta: "Request Similar Website",
     canonical: "https://thebrandhelper.com/digital-products",
     image: productsHeroImg,
-    audience: "Businesses that need a website or platform faster than starting from a blank page, while still getting BrandHelper customization and support.",
+    audience: "For businesses that want to launch faster without accepting a generic template. Start from a product that is already shaped, then let The BrandHelper customize it for your brand and goals.",
     privacyNote: "Some demos and prices may be public, while exclusive products, source files, and deeper customization details are handled after enquiry.",
     marketplaceEyebrow: "Product Shelf",
     marketplaceTitle: "Browse digital products that can become your next launch.",
     marketplaceText: "This page is about speed: preview a product, reserve a build, show interest, or request a similar website for your own business.",
     capabilitiesEyebrow: "Product Delivery",
     capabilitiesTitle: "Ready-made concepts with BrandHelper customization.",
-    capabilitiesText: "Use this page when you want a website or digital platform faster than a full blank-page build, but still need content, branding, and handover support.",
+    capabilitiesText: "Use this page when you want speed, but still need brand changes, content, images, contact details, product updates, payment direction, and handover support.",
     pipelineEyebrow: "Product sales flow",
     pipelineTitle: "A product interest can become a reservation, demo, or custom quote.",
     pipelineText: "Buyers can ask questions first, reserve with a commitment payment, or request a similar product tailored to their business.",
@@ -422,6 +482,24 @@ const pageConfig = {
     ],
     models: ["60% commitment payment for website products", "Remaining 40% before launch or handover", "Show interest before payment", "Custom version quote", "Dataset products can use full payment after review"],
     process: ["Buyer previews the product", "Buyer pays 60% commitment or shows interest", "Buyer details are captured", "Admin marks product reserved or pending customization", "Customization details are collected", "Remaining balance is paid before final launch"],
+    faqs: [
+      {
+        question: "Are ready-built websites the same as templates?",
+        answer: "No. These are ready-built or almost-ready website concepts that can be customized with your brand, pages, images, text, contact details, and business requirements."
+      },
+      {
+        question: "Can I discuss a product before paying?",
+        answer: "Yes. You can show interest, request a demo, discuss customization, or ask for something similar before making a commitment payment."
+      },
+      {
+        question: "What happens after I pay the 60% commitment?",
+        answer: "The product is treated as reserved or pending customization. We collect your business details, branding, content, images, contact information, and launch needs."
+      },
+      {
+        question: "Can I also see The BrandHelper portfolio?",
+        answer: "Yes. The portfolio page shows real projects and helps you decide whether you want a custom build or a ready-built product."
+      }
+    ],
   },
 };
 
@@ -541,7 +619,7 @@ function ProductCard({ item, onRequest, mode, fallbackImage, requestLabel = "Req
     <article className="flex h-full flex-col overflow-hidden rounded-lg border border-gray-100 bg-white shadow-sm">
       {image && (
         <div className="h-48 bg-gray-50">
-          <img src={image} alt={item.title} className="h-full w-full object-contain p-3" />
+          <img src={image} alt={item.title} className="h-full w-full object-contain p-3" loading="lazy" decoding="async" />
         </div>
       )}
       <div className="flex flex-1 flex-col p-5">
@@ -572,11 +650,11 @@ function ProductCard({ item, onRequest, mode, fallbackImage, requestLabel = "Req
               ? "rounded bg-black px-4 py-2 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-red-600"
               : "rounded border border-gray-200 px-4 py-2 text-xs font-bold uppercase tracking-wide text-gray-700 transition hover:border-black";
             return canPreview ? (
-              <a key={button.label} href={item.demo_url || item.sample_url} target="_blank" rel="noopener noreferrer" className={className}>
+              <a key={button.label} href={item.demo_url || item.sample_url} target="_blank" rel="noopener noreferrer" className={className} aria-label={`${button.label} for ${item.title}`}>
                 {button.label}
               </a>
             ) : (
-              <button key={button.label} type="button" onClick={() => onRequest(button.action, item)} className={className}>
+              <button key={button.label} type="button" onClick={() => onRequest(button.action, item)} className={className} aria-label={`${button.label} for ${item.title}`}>
                 {button.label}
               </button>
             );
@@ -631,6 +709,7 @@ function Phase2Form({ config, mode, activeRequest, onClearRequest }) {
   const [requestKind, setRequestKind] = useState(config.requestType);
   const [selectedSupport, setSelectedSupport] = useState([]);
   const [status, setStatus] = useState("idle");
+  const [requestIssue, setRequestIssue] = useState(null);
 
   const update = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
 
@@ -659,6 +738,27 @@ function Phase2Form({ config, mode, activeRequest, onClearRequest }) {
     message: form.message || requestDefaults.message,
   });
 
+  const buildRequestReportText = () => {
+    const data = formWithRequestDefaults();
+    return [
+      `${config.eyebrow} request - The BrandHelper`,
+      "",
+      `Request type: ${activeRequestKind}`,
+      `Name: ${data.contact_name}`,
+      `Company: ${data.company}`,
+      `Email: ${data.email}`,
+      `Phone: ${data.phone || data.whatsapp}`,
+      `Country: ${data.residence_country || data.country}`,
+      `Project: ${data.project_title || data.project_type}`,
+      `Timeline: ${data.timeline || data.availability}`,
+      `Budget: ${data.budget || data.expected_rate}`,
+      selectedSupport.length ? `Support: ${selectedSupport.join(", ")}` : "",
+      "",
+      "Message:",
+      data.message,
+    ].filter(Boolean).join("\n");
+  };
+
   const toggleSupport = (item) => {
     setSelectedSupport((current) => current.includes(item) ? current.filter((value) => value !== item) : [...current, item]);
   };
@@ -666,6 +766,7 @@ function Phase2Form({ config, mode, activeRequest, onClearRequest }) {
   const submit = async (event) => {
     event.preventDefault();
     setStatus("sending");
+    setRequestIssue(null);
 
     const submissionForm = formWithRequestDefaults();
     const isContributorApplication = activeRequestKind === "contributor_application";
@@ -741,6 +842,7 @@ function Phase2Form({ config, mode, activeRequest, onClearRequest }) {
       onClearRequest?.();
     } catch (error) {
       console.warn("Platform request:", error);
+      setRequestIssue(error);
       setStatus("error");
     }
   };
@@ -751,10 +853,10 @@ function Phase2Form({ config, mode, activeRequest, onClearRequest }) {
   const actionChoices = isTalent ? (isContributor ? contributorInterestAreas : talentRequestNeeds) : config.actions;
 
   return (
-    <form onSubmit={submit} className="rounded-lg border border-gray-100 bg-white p-5 shadow-sm md:p-7">
+    <form onSubmit={submit} className="rounded-lg border border-gray-100 bg-white p-5 shadow-sm md:p-7" aria-labelledby="platform-request-title">
       <div className="mb-6">
         <p className="mb-2 text-xs font-bold uppercase tracking-widest text-red-600">{isContributor ? "Contributor application" : config.primaryCta}</p>
-        <h2 className="text-2xl font-semibold md:text-3xl">{isContributor ? "Join our AI and digital talent network" : isTalent ? "Request talent from us" : "Tell us what you need"}</h2>
+        <h2 id="platform-request-title" className="text-2xl font-semibold md:text-3xl">{isContributor ? "Join our AI and digital talent network" : isTalent ? "Request talent from us" : "Tell us what you need"}</h2>
         <p className="mt-2 text-sm leading-relaxed text-gray-500">{config.formIntro}</p>
       </div>
 
@@ -768,8 +870,10 @@ function Phase2Form({ config, mode, activeRequest, onClearRequest }) {
             <button
               key={item.key}
               type="button"
+              aria-pressed={activeRequestKind === item.key}
               onClick={() => {
                 setRequestKind(item.key);
+                setRequestIssue(null);
                 onClearRequest?.();
               }}
               className={`rounded-lg border px-4 py-3 text-left text-sm font-bold transition ${activeRequestKind === item.key ? "border-black bg-black text-white" : "border-gray-200 text-gray-600 hover:border-black"}`}
@@ -790,7 +894,7 @@ function Phase2Form({ config, mode, activeRequest, onClearRequest }) {
       {activeRequest && (
         <div className="mb-5 rounded-lg border border-red-100 bg-red-50 p-4 text-sm text-red-800">
           Requesting: <span className="font-bold">{activeRequest.action}</span>{activeRequest.item?.title ? ` for ${activeRequest.item.title}` : ""}
-          <button type="button" onClick={onClearRequest} className="ml-3 font-bold underline">clear</button>
+          <button type="button" onClick={onClearRequest} className="ml-3 font-bold underline" aria-label="Clear selected request">clear</button>
         </div>
       )}
 
@@ -802,20 +906,23 @@ function Phase2Form({ config, mode, activeRequest, onClearRequest }) {
             value={valueFor(field.key)}
             onChange={update(field.key)}
             placeholder={field.placeholder}
+            aria-label={field.placeholder}
             type={field.type || "text"}
             required={field.required}
+            autoComplete={field.key === "email" ? "email" : field.key === "phone" || field.key === "whatsapp" ? "tel" : field.key === "contact_name" ? "name" : field.key === "company" ? "organization" : undefined}
           />
         ))}
       </div>
 
       <div className="mt-5">
         <p className="mb-3 text-xs font-bold uppercase tracking-widest text-gray-500">{isContributor ? "Areas of interest" : "Support required"}</p>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" aria-label={isContributor ? "Areas of interest" : "Support required"}>
           {actionChoices.map((item) => (
             <button
               key={item}
               type="button"
               onClick={() => toggleSupport(item)}
+              aria-pressed={selectedSupport.includes(item)}
               className={`rounded border px-3 py-2 text-xs font-bold transition ${selectedSupport.includes(item) ? "border-black bg-black text-white" : "border-gray-200 text-gray-500 hover:border-black"}`}
             >
               {item}
@@ -829,6 +936,7 @@ function Phase2Form({ config, mode, activeRequest, onClearRequest }) {
         value={valueFor("message")}
         onChange={update("message")}
         placeholder={isContributor ? "Add anything else we should know before matching you to future projects." : "Describe the request, project need, preferred talent profile, confidentiality needs, or anything important."}
+        aria-label={isContributor ? "Additional contributor information" : "Additional request details"}
       />
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row">
@@ -849,8 +957,10 @@ function Phase2Form({ config, mode, activeRequest, onClearRequest }) {
         </a>
       </div>
 
-      {status === "sent" && <p className="mt-4 text-sm font-semibold text-green-700">Request received. We will follow up with the next step.</p>}
-      {status === "error" && <p className="mt-4 text-sm font-semibold text-red-600">Could not submit through the server. Please use WhatsApp while we check the connection.</p>}
+      {status === "sent" && <p className="mt-4 text-sm font-semibold text-green-700" role="status" aria-live="polite">Request received. We will follow up with the next step.</p>}
+      {status === "error" && (
+        <ApiIssueReport error={requestIssue} context={`${config.eyebrow} request`} payloadText={buildRequestReportText()} className="mt-4" />
+      )}
     </form>
   );
 }
@@ -859,6 +969,7 @@ export default function Phase2({ mode = "data" }) {
   const config = pageConfig[mode] || pageConfig.data;
   const [products, setProducts] = useState([]);
   const [activeRequest, setActiveRequest] = useState(null);
+  const [showAudienceInfo, setShowAudienceInfo] = useState(false);
   const requestRef = useRef(null);
 
   useEffect(() => {
@@ -884,6 +995,49 @@ export default function Phase2({ mode = "data" }) {
     return config.catalog;
   }, [products, config.catalog]);
 
+  const pageSchema = useMemo(() => {
+    const faqs = config.faqs || [];
+    return {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "@id": `${config.canonical}#webpage`,
+          "url": config.canonical,
+          "name": config.seoTitle || `${config.eyebrow} | The BrandHelper`,
+          "description": config.description,
+          "isPartOf": { "@id": "https://thebrandhelper.com/#website" },
+          "about": {
+            "@type": "Service",
+            "name": config.eyebrow,
+            "provider": { "@id": "https://thebrandhelper.com/#organization" },
+            "description": config.description
+          }
+        },
+        faqs.length > 0 ? {
+          "@type": "FAQPage",
+          "@id": `${config.canonical}#faq`,
+          "mainEntity": faqs.map((item) => ({
+            "@type": "Question",
+            "name": item.question,
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": item.answer
+            }
+          }))
+        } : null,
+        {
+          "@type": "BreadcrumbList",
+          "@id": `${config.canonical}#breadcrumb`,
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://thebrandhelper.com/" },
+            { "@type": "ListItem", "position": 2, "name": config.eyebrow, "item": config.canonical }
+          ]
+        }
+      ].filter(Boolean)
+    };
+  }, [config]);
+
   const startRequest = (action, item = null) => {
     setActiveRequest({ action, item });
     requestRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -892,9 +1046,17 @@ export default function Phase2({ mode = "data" }) {
   return (
     <div className="bg-white text-black overflow-x-hidden">
       <Helmet>
-        <title>{config.eyebrow} | The BrandHelper</title>
+        <title>{config.seoTitle || `${config.eyebrow} | The BrandHelper`}</title>
         <meta name="description" content={config.description} />
         <link rel="canonical" href={config.canonical} />
+        <meta property="og:title" content={config.seoTitle || `${config.eyebrow} | The BrandHelper`} />
+        <meta property="og:description" content={config.description} />
+        <meta property="og:image" content="https://thebrandhelper.com/logo-tbh-wordmark.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={config.seoTitle || `${config.eyebrow} | The BrandHelper`} />
+        <meta name="twitter:description" content={config.description} />
+        <meta name="twitter:image" content="https://thebrandhelper.com/logo-tbh-wordmark.png" />
+        <script type="application/ld+json">{JSON.stringify(pageSchema)}</script>
       </Helmet>
 
       <section className="bg-black px-6 py-14 text-white md:py-20">
@@ -903,9 +1065,25 @@ export default function Phase2({ mode = "data" }) {
             <p className="mb-4 text-xs font-bold uppercase tracking-widest text-red-500">{config.eyebrow}</p>
             <h1 className="mb-6 max-w-3xl text-4xl font-extrabold leading-tight md:text-6xl">{config.title}</h1>
             <p className="mb-7 max-w-2xl text-base leading-relaxed text-gray-300 md:text-lg">{config.description}</p>
-            <div className="mb-7 rounded-lg border border-white/10 bg-white/5 p-4">
-              <p className="text-sm leading-relaxed text-gray-300">{config.audience}</p>
-            </div>
+            {config.audience && (
+              <div className="relative mb-7">
+                <button
+                  type="button"
+                  onClick={() => setShowAudienceInfo((current) => !current)}
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white hover:text-black"
+                  aria-expanded={showAudienceInfo}
+                  aria-label="View product note"
+                  title="View product note"
+                >
+                  <FiInfo size={20} />
+                </button>
+                {showAudienceInfo && (
+                  <div className="mt-3 max-w-xl rounded-lg border border-white/10 bg-white p-4 text-sm leading-relaxed text-gray-700 shadow-2xl">
+                    {config.audience}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="flex flex-wrap gap-3">
               <button type="button" onClick={() => startRequest(config.primaryCta)} className="rounded bg-red-600 px-6 py-3 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-white hover:text-black">
                 {config.primaryCta}
@@ -921,7 +1099,7 @@ export default function Phase2({ mode = "data" }) {
             </div>
           </div>
           <div className="h-[300px] overflow-hidden rounded-lg border border-white/10 md:h-[460px]">
-            <img src={config.image} alt={config.eyebrow} className="h-full w-full object-cover" />
+            <img src={config.image} alt={config.eyebrow} className="h-full w-full object-cover" decoding="async" fetchPriority="high" />
           </div>
         </div>
       </section>
@@ -932,6 +1110,7 @@ export default function Phase2({ mode = "data" }) {
             <Link
               key={item.to}
               to={item.to}
+              aria-current={item.mode === mode ? "page" : undefined}
               className={`shrink-0 rounded px-4 py-2 text-sm font-bold ${item.mode === mode ? "bg-black text-white" : "text-gray-500 hover:bg-gray-100"}`}
             >
               {item.label}
@@ -1002,6 +1181,25 @@ export default function Phase2({ mode = "data" }) {
         </div>
       </section>
 
+      {config.faqs?.length > 0 && (
+        <section className="bg-[#F5F5F5] px-6 py-16 md:py-20">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-10 max-w-2xl">
+              <p className="mb-3 text-xs font-bold uppercase tracking-widest text-red-600">Common Questions</p>
+              <h2 className="text-3xl font-semibold md:text-4xl">Clear answers before you send a request.</h2>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              {config.faqs.map((item) => (
+                <article key={item.question} className="rounded-lg border border-gray-100 bg-white p-5">
+                  <h3 className="text-base font-semibold">{item.question}</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-gray-600">{item.answer}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="bg-black px-6 py-16 text-white">
         <div className="mx-auto max-w-6xl">
           <div className="mb-8 grid gap-5 md:grid-cols-[0.8fr_1.2fr] md:items-end">
@@ -1034,7 +1232,7 @@ export default function Phase2({ mode = "data" }) {
             </p>
             {mode === "talent" && (
               <div className="mb-6 overflow-hidden rounded-lg border border-gray-100 bg-gray-50">
-                <img src={talentFormImg} alt="Talent application form" className="h-52 w-full object-contain p-3" />
+                <img src={talentFormImg} alt="Talent application form" className="h-52 w-full object-contain p-3" loading="lazy" decoding="async" />
               </div>
             )}
             <div className="space-y-3">
@@ -1077,9 +1275,9 @@ export default function Phase2({ mode = "data" }) {
       <section className="bg-black px-6 py-16 text-white">
         <div className="mx-auto grid max-w-6xl gap-6 md:grid-cols-[1fr_auto] md:items-center">
           <div>
-            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-red-500">Final Positioning</p>
-            <h2 className="mb-3 text-3xl font-semibold md:text-4xl">Data when companies need data. People when companies need people. Technology when companies need technology.</h2>
-            <p className="max-w-2xl text-gray-400">The BrandHelper becomes a technology and AI enablement partner supplying data, talent, project support, and ready-built digital solutions.</p>
+            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-red-500">What You Can Ask For</p>
+            <h2 className="mb-3 text-3xl font-semibold md:text-4xl">Data when you need data. People when you need people. Technology when you need technology.</h2>
+            <p className="max-w-2xl text-gray-400">Tell us what you are trying to build, train, collect, staff, or launch. We will help you shape the next step in plain language.</p>
           </div>
           <Link to="/contact" className="rounded bg-white px-7 py-3 text-sm font-bold uppercase tracking-wide text-black transition hover:bg-red-600 hover:text-white">
             General Contact

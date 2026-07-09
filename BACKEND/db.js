@@ -5,6 +5,8 @@
 const mongoose = require('mongoose');
 
 mongoose.set('bufferCommands', false);
+mongoose.set('sanitizeFilter', true);
+mongoose.set('strictQuery', true);
 
 const DB_STATES = {
   0: 'disconnected',
@@ -28,6 +30,9 @@ async function connect() {
     dbName: process.env.MONGODB_DB_NAME || 'thebrandhelperdb',
     serverSelectionTimeoutMS: Number(process.env.MONGODB_SERVER_SELECTION_TIMEOUT_MS || 10000),
     socketTimeoutMS: 45000,
+    maxPoolSize: Number(process.env.MONGODB_MAX_POOL_SIZE || 10),
+    minPoolSize: Number(process.env.MONGODB_MIN_POOL_SIZE || 0),
+    maxIdleTimeMS: Number(process.env.MONGODB_MAX_IDLE_TIME_MS || 30000),
     family: 4,
   }).catch((error) => {
     lastConnectionError = error?.message || 'MongoDB connection failed';
@@ -236,6 +241,7 @@ const portfolioSchema = new mongoose.Schema({
   image:       { type: String, default: '' },
   link:        { type: String, default: '' },
   tags:        { type: [String], default: [] },
+  published:   { type: Boolean, default: true, index: true },
   featured:    { type: Boolean, default: false },
 }, { timestamps: true });
 
@@ -372,6 +378,59 @@ const prospectSchema = new mongoose.Schema({
   // Link to lead if converted
   lead_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Lead', default: null },
 }, { timestamps: true });
+
+// -- Query indexes -------------------------------------------------------------
+leadSchema.index({ status: 1, createdAt: -1 });
+leadSchema.index({ email: 1 });
+leadSchema.index({ follow_up_date: 1, follow_up_sent: 1 });
+leadSchema.index({ converted_to_client: 1 });
+
+clientSchema.index({ status: 1, createdAt: -1 });
+clientSchema.index({ email: 1 });
+clientSchema.index({ name: 'text', business_name: 'text', email: 'text' });
+
+projectSchema.index({ client_id: 1, createdAt: -1 });
+projectSchema.index({ status: 1, createdAt: -1 });
+projectSchema.index({ deadline: 1 });
+projectSchema.index({ balance_paid: 1 });
+
+milestoneSchema.index({ project_id: 1, order: 1 });
+milestoneSchema.index({ due_date: 1, completed: 1 });
+
+meetingSchema.index({ date: 1, completed: 1 });
+meetingSchema.index({ lead_id: 1, date: -1 });
+meetingSchema.index({ client_id: 1, date: -1 });
+meetingSchema.index({ project_id: 1, date: -1 });
+
+noteSchema.index({ lead_id: 1, createdAt: -1 });
+noteSchema.index({ client_id: 1, createdAt: -1 });
+noteSchema.index({ project_id: 1, createdAt: -1 });
+
+quoteSchema.index({ status: 1, createdAt: -1 });
+quoteSchema.index({ client_email: 1 });
+quoteSchema.index({ lead_id: 1, createdAt: -1 });
+quoteSchema.index({ client_id: 1, createdAt: -1 });
+
+reminderSchema.index({ completed: 1, due_date: 1 });
+reminderSchema.index({ lead_id: 1, due_date: -1 });
+reminderSchema.index({ client_id: 1, due_date: -1 });
+reminderSchema.index({ project_id: 1, due_date: -1 });
+
+portfolioSchema.index({ published: 1, featured: -1, createdAt: -1 });
+portfolioSchema.index({ category: 1, createdAt: -1 });
+
+productSchema.index({ published: 1, featured: -1, createdAt: -1 });
+productSchema.index({ product_type: 1, published: 1, featured: -1 });
+productSchema.index({ status: 1, createdAt: -1 });
+
+phase2RequestSchema.index({ status: 1, createdAt: -1 });
+phase2RequestSchema.index({ request_type: 1, status: 1, createdAt: -1 });
+phase2RequestSchema.index({ email: 1 });
+
+prospectSchema.index({ outreach_status: 1, createdAt: -1 });
+prospectSchema.index({ tag: 1, createdAt: -1 });
+prospectSchema.index({ country: 1, website_status: 1 });
+prospectSchema.index({ business_name: 'text', niche: 'text', location: 'text', email: 'text' });
 
 // -- Export all models ---------------------------------------------------------
 function getDatabaseStatus() {

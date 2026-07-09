@@ -8,6 +8,7 @@ require('dotenv').config();
 const express = require('express');
 const cors    = require('cors');
 const bcrypt  = require('bcryptjs');
+const crypto  = require('crypto');
 const {
   connect, Lead, Client, Project,
   Milestone, Meeting, Note, Quote,
@@ -18,7 +19,7 @@ const {
 
 const app    = express();
 const PORT   = process.env.PORT || 4000;
-const SECRET = process.env.ADMIN_SECRET || 'change_this_secret';
+const SECRET = (process.env.ADMIN_SECRET || 'change_this_secret').trim();
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || process.env.ADMIN_RESET_NOTIFY_EMAILS || '')
   .split(',')
   .map(email => email.trim().toLowerCase())
@@ -30,8 +31,11 @@ const RESET_NOTIFY_EMAILS = (process.env.ADMIN_RESET_NOTIFY_EMAILS || process.en
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || '';
 const ADMIN_MASTER_PIN = process.env.ADMIN_MASTER_PIN || '';
-const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
-const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || '';
+const RESEND_API_KEY = (process.env.RESEND_API_KEY || '').trim();
+const RESEND_FROM_EMAIL = (process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || '').trim();
+const CLOUDINARY_CLOUD_NAME = (process.env.CLOUDINARY_CLOUD_NAME || '').trim();
+const CLOUDINARY_API_KEY = (process.env.CLOUDINARY_API_KEY || '').trim();
+const CLOUDINARY_API_SECRET = (process.env.CLOUDINARY_API_SECRET || '').trim();
 const ADMIN_NOTIFY_EMAILS = (
   process.env.ADMIN_NOTIFY_EMAILS ||
   process.env.ADMIN_RESET_NOTIFY_EMAILS ||
@@ -41,35 +45,61 @@ const ADMIN_NOTIFY_EMAILS = (
   .split(',')
   .map(email => email.trim())
   .filter(Boolean);
+const ALLOW_LOCAL_ORIGINS = (process.env.ALLOW_LOCAL_ORIGINS || '').trim().toLowerCase() === 'true';
 
 // -- CORS ----------------------------------------------------------------------
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
-  .split(',').map(o => o.trim()).filter(Boolean);
+  .split(',')
+  .map(origin => origin.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
+function isAllowedLocalOrigin(origin = '') {
+  try {
+    const { hostname } = new URL(origin);
+    return ['localhost', '127.0.0.1', '::1'].includes(hostname);
+  } catch {
+    return false;
+  }
+}
 
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin) return cb(null, true);
-    if (allowedOrigins.includes(origin)) return cb(null, true);
-    if (process.env.NODE_ENV !== 'production' && origin?.includes('localhost')) return cb(null, true);
+    const cleanOrigin = origin.replace(/\/$/, '');
+    if (allowedOrigins.includes(cleanOrigin)) return cb(null, true);
+    if ((process.env.NODE_ENV !== 'production' || ALLOW_LOCAL_ORIGINS) && isAllowedLocalOrigin(cleanOrigin)) return cb(null, true);
     cb(new Error(`CORS: ${origin} not allowed`));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'X-Admin-Secret'],
 }));
 
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ limit: '15mb' }));
+
+app.use((e, _req, res, next) => {
+  if (e instanceof SyntaxError && e.status === 400 && 'body' in e) {
+    return res.status(400).json({ success: false, status: 400, error: 'Invalid JSON request body' });
+  }
+  next(e);
+});
 
 // -- Auth middleware -----------------------------------------------------------
 function auth(req, res, next) {
   if (req.headers['x-admin-secret'] !== SECRET) {
-    return res.status(401).json({ error: 'Unauthorised' });
+    return res.status(401).json({ success: false, status: 401, error: 'Unauthorised' });
   }
   next();
 }
 
 // -- Helper --------------------------------------------------------------------
 const ok  = (res, data, status = 200) => res.status(status).json({ success: true, data });
-const err = (res, e, status = 500)    => res.status(status).json({ error: e?.message || e });
+const fail = (res, status, e, extra = {}) => res.status(status).json({
+  success: false,
+  status,
+  error: e?.message || String(e || 'Request failed'),
+  ...extra,
+});
+const err = (res, e, status = 500)    => fail(res, status, e);
 const toArray = (value) => Array.isArray(value)
   ? value
   : String(value || '').split(',').map(item => item.trim()).filter(Boolean);
@@ -165,6 +195,76 @@ async function acknowledgeLead(lead) {
   });
 }
 
+function isImageDataUrl(value = '') {
+  return /^data:image\/(png|jpe?g|webp|gif|avif);base64,/i.test(String(value));
+}
+
+function cloudinarySignature(params) {
+  const payload = Object.keys(params)
+    .sort()
+    .map(key => `${key}=${params[key]}`)
+    .join('&');
+  return crypto
+    .createHash('sha1')
+    .update(`${payload}${CLOUDINARY_API_SECRET}`)
+    .digest('hex');
+}
+
+function safeCloudinaryFolder(folder = '') {
+  const clean = String(folder || '')
+    .replace(/\\/g, '/')
+    .replace(/[^a-zA-Z0-9/_-]/g, '-')
+    .replace(/\/+/g, '/')
+    .replace(/^\/|\/$/g, '');
+  return clean || 'thebrandhelper/uploads';
+}
+
+async function uploadImageToCloudinary(dataUrl, options = {}) {
+  if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
+    throw new Error('Cloudinary is not configured on the backend');
+  }
+  if (!isImageDataUrl(dataUrl)) throw new Error('Only base64 image uploads are supported');
+
+  const base64 = String(dataUrl).split(',')[1] || '';
+  const bytes = Buffer.byteLength(base64, 'base64');
+  const maxBytes = Number(process.env.CLOUDINARY_MAX_UPLOAD_MB || 8) * 1024 * 1024;
+  if (bytes > maxBytes) throw new Error(`Image is too large. Max ${Math.round(maxBytes / 1024 / 1024)}MB`);
+
+  const timestamp = Math.floor(Date.now() / 1000);
+  const folder = safeCloudinaryFolder(options.folder);
+  const params = { folder, timestamp };
+  const signature = cloudinarySignature(params);
+  const form = new FormData();
+  form.append('file', dataUrl);
+  form.append('api_key', CLOUDINARY_API_KEY);
+  form.append('timestamp', String(timestamp));
+  form.append('folder', folder);
+  form.append('signature', signature);
+
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+    method: 'POST',
+    body: form,
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error?.message || `Cloudinary upload failed (${response.status})`);
+
+  return {
+    url: result.secure_url,
+    secure_url: result.secure_url,
+    public_id: result.public_id,
+    width: result.width,
+    height: result.height,
+    bytes: result.bytes,
+    format: result.format,
+  };
+}
+
+async function normalizeImageField(value, folder) {
+  if (!isImageDataUrl(value)) return value || '';
+  const uploaded = await uploadImageToCloudinary(value, { folder });
+  return uploaded.secure_url;
+}
+
 // -- Health --------------------------------------------------------------------
 async function healthPayload() {
   const database = getDatabaseStatus();
@@ -208,9 +308,39 @@ app.get('/health', async (_req, res) => {
 
 app.use('/api', requireDb);
 
+app.post('/api/admin/uploads/image', auth, async (req, res) => {
+  try {
+    const uploaded = await uploadImageToCloudinary(req.body.file || req.body.dataUrl, {
+      folder: req.body.folder || 'thebrandhelper/uploads',
+    });
+    ok(res, uploaded, 201);
+  } catch (e) { err(res, e, 400); }
+});
+
 // ══════════════════════════════════════════════════════════════════════════════
 // LEADS  -  public POST (from forms), admin for everything else
 // ══════════════════════════════════════════════════════════════════════════════
+
+app.post('/api/admin/email/test', auth, async (req, res) => {
+  try {
+    const result = await sendEmail({
+      to: req.body.to || ADMIN_NOTIFY_EMAILS,
+      subject: 'The BrandHelper Resend test',
+      text: compactLines([
+        'Resend is connected for The BrandHelper backend.',
+        `Sent: ${new Date().toISOString()}`,
+        `Environment: ${process.env.NODE_ENV || 'development'}`,
+      ]).join('\n'),
+    });
+
+    if (!result.sent) {
+      return res.status(result.skipped ? 400 : 502).json({
+        error: result.skipped ? 'Resend is not configured on the backend' : (result.error || 'Resend email failed'),
+      });
+    }
+    ok(res, { message: 'Resend test email sent' });
+  } catch (e) { err(res, e); }
+});
 
 // Create lead from form (public) OR manually (admin)
 app.post('/api/leads', async (req, res) => {
@@ -260,7 +390,7 @@ app.get('/api/leads',        auth, async (req, res) => {
   try {
     const filter = {};
     if (req.query.status) filter.status = req.query.status;
-    const leads = await Lead.find(filter).sort({ createdAt: -1 });
+    const leads = await Lead.find(filter).sort({ createdAt: -1 }).lean();
     res.json({ success: true, data: leads, count: leads.length });
   } catch (e) { err(res, e); }
 });
@@ -361,7 +491,7 @@ app.get('/api/clients',         auth, async (req, res) => {
   try {
     const filter = {};
     if (req.query.status) filter.status = req.query.status;
-    const clients = await Client.find(filter).sort({ createdAt: -1 });
+    const clients = await Client.find(filter).sort({ createdAt: -1 }).lean();
     res.json({ success: true, data: clients, count: clients.length });
   } catch (e) { err(res, e); }
 });
@@ -401,7 +531,7 @@ app.delete('/api/clients/:id',  auth, async (req, res) => {
 
 app.post('/api/projects',        auth, async (req, res) => {
   try {
-    const project = await Project.create(cleanIds(req.body));
+    const project = await Project.create(await prepareProjectPayload(req.body));
     ok(res, project, 201);
   } catch (e) { err(res, e); }
 });
@@ -413,7 +543,8 @@ app.get('/api/projects',         auth, async (req, res) => {
     if (req.query.client_id) filter.client_id = req.query.client_id;
     const projects = await Project.find(filter)
       .populate('client_id', 'name business_name email phone')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     res.json({ success: true, data: projects, count: projects.length });
   } catch (e) { err(res, e); }
 });
@@ -434,7 +565,7 @@ app.get('/api/projects/:id',     auth, async (req, res) => {
 
 app.put('/api/projects/:id',     auth, async (req, res) => {
   try {
-    const project = await Project.findByIdAndUpdate(req.params.id, cleanIds(req.body), { new: true });
+    const project = await Project.findByIdAndUpdate(req.params.id, await prepareProjectPayload(req.body), { new: true });
     if (!project) return res.status(404).json({ error: 'Not found' });
     ok(res, project);
   } catch (e) { err(res, e); }
@@ -498,7 +629,7 @@ app.get('/api/meetings',        auth, async (req, res) => {
     const filter = {};
     if (req.query.client_id)  filter.client_id  = req.query.client_id;
     if (req.query.project_id) filter.project_id = req.query.project_id;
-    const meetings = await Meeting.find(filter).sort({ date: 1 });
+    const meetings = await Meeting.find(filter).sort({ date: 1 }).lean();
     res.json({ success: true, data: meetings, count: meetings.length });
   } catch (e) { err(res, e); }
 });
@@ -534,7 +665,7 @@ app.get('/api/notes',        auth, async (req, res) => {
     if (req.query.lead_id)    filter.lead_id    = req.query.lead_id;
     if (req.query.client_id)  filter.client_id  = req.query.client_id;
     if (req.query.project_id) filter.project_id = req.query.project_id;
-    const notes = await Note.find(filter).sort({ createdAt: -1 });
+    const notes = await Note.find(filter).sort({ createdAt: -1 }).lean();
     res.json({ success: true, data: notes, count: notes.length });
   } catch (e) { err(res, e); }
 });
@@ -556,20 +687,57 @@ async function nextQuoteNumber() {
   return `TBH-${String(count + 1).padStart(4, '0')}`;
 }
 
+function quoteTotals(body = {}) {
+  const subtotal = (Array.isArray(body.items) ? body.items : [])
+    .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  const discount = Number(body.discount) || 0;
+  const depositPercent = Number(body.deposit_percent) || 30;
+  const total = subtotal - discount;
+  return {
+    subtotal,
+    total,
+    deposit_amount: Math.round(total * (depositPercent / 100)),
+  };
+}
+
+function cleanQuotePayload(body = {}) {
+  const payload = { ...body };
+  ['_id', '__v', 'createdAt', 'updatedAt', 'quote_number', 'subtotal', 'total', 'deposit_amount']
+    .forEach((field) => { delete payload[field]; });
+  return payload;
+}
+
+function quoteEmailText(quote = {}) {
+  const items = (Array.isArray(quote.items) ? quote.items : [])
+    .map((item) => `- ${item.description || 'Item'}: ${quote.currency || 'USD'} ${Number(item.amount || 0).toLocaleString()}`);
+
+  return compactLines([
+    `Hello ${quote.client_name || quote.business_name || 'there'},`,
+    '',
+    `Here is your quote from The BrandHelper: ${quote.quote_number || ''}`,
+    '',
+    'Scope:',
+    ...items,
+    '',
+    `Total: ${quote.currency || 'USD'} ${Number(quote.total || 0).toLocaleString()}`,
+    `Deposit (${quote.deposit_percent || 30}%): ${quote.currency || 'USD'} ${Number(quote.deposit_amount || 0).toLocaleString()}`,
+    quote.valid_days ? `Valid for: ${quote.valid_days} days` : '',
+    quote.notes ? `Notes: ${quote.notes}` : '',
+    '',
+    'Reply to this email and we will help you move the project forward.',
+    '',
+    'The BrandHelper Team',
+  ]).join('\n');
+}
+
 app.post('/api/quotes',        auth, async (req, res) => {
   try {
-    const body     = req.body;
-    const subtotal = (body.items || []).reduce((s, i) => s + (i.amount || 0), 0);
-    const discount = body.discount || 0;
-    const total    = subtotal - discount;
-    const deposit  = Math.round(total * ((body.deposit_percent || 30) / 100));
+    const body = cleanQuotePayload(req.body);
 
     const quote = await Quote.create({
       ...body,
-      quote_number:    await nextQuoteNumber(),
-      subtotal,
-      total,
-      deposit_amount:  deposit,
+      quote_number: await nextQuoteNumber(),
+      ...quoteTotals(body),
     });
     ok(res, quote, 201);
   } catch (e) { err(res, e); }
@@ -577,7 +745,7 @@ app.post('/api/quotes',        auth, async (req, res) => {
 
 app.get('/api/quotes',         auth, async (req, res) => {
   try {
-    const quotes = await Quote.find().sort({ createdAt: -1 });
+    const quotes = await Quote.find().sort({ createdAt: -1 }).lean();
     res.json({ success: true, data: quotes, count: quotes.length });
   } catch (e) { err(res, e); }
 });
@@ -592,8 +760,45 @@ app.get('/api/quotes/:id',     auth, async (req, res) => {
 
 app.put('/api/quotes/:id',     auth, async (req, res) => {
   try {
-    const quote = await Quote.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const existing = await Quote.findById(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Not found' });
+
+    const payload = cleanQuotePayload(req.body);
+    if (
+      payload.items !== undefined ||
+      payload.discount !== undefined ||
+      payload.deposit_percent !== undefined
+    ) {
+      Object.assign(payload, quoteTotals({ ...existing.toObject(), ...payload }));
+    }
+
+    const quote = await Quote.findByIdAndUpdate(req.params.id, payload, { new: true });
     ok(res, quote);
+  } catch (e) { err(res, e); }
+});
+
+app.post('/api/quotes/:id/send-email', auth, async (req, res) => {
+  try {
+    const quote = await Quote.findById(req.params.id);
+    if (!quote) return res.status(404).json({ error: 'Not found' });
+    if (!quote.client_email) return res.status(400).json({ error: 'Quote has no client email' });
+
+    const result = await sendEmail({
+      to: quote.client_email,
+      subject: `Quote ${quote.quote_number} from The BrandHelper`,
+      text: quoteEmailText(quote.toObject()),
+      replyTo: ADMIN_NOTIFY_EMAILS[0],
+    });
+
+    if (!result.sent) {
+      return res.status(result.skipped ? 400 : 502).json({
+        error: result.skipped ? 'Resend is not configured on the backend' : (result.error || 'Resend email failed'),
+      });
+    }
+
+    if (quote.status === 'draft') quote.status = 'sent';
+    await quote.save();
+    ok(res, { message: 'Quote email sent', data: quote });
   } catch (e) { err(res, e); }
 });
 
@@ -616,6 +821,23 @@ function cleanIds(body) {
   return cleaned;
 }
 
+async function prepareProjectPayload(body = {}) {
+  const cleaned = cleanIds(body);
+  const manualName = String(cleaned.client_name_manual || '').trim();
+  delete cleaned.client_name_manual;
+
+  if (!cleaned.client_id && manualName) {
+    const client = await Client.create({
+      name: manualName,
+      source: 'manual',
+      notes: cleaned.title ? `Created from project: ${cleaned.title}` : 'Created from project form',
+    });
+    cleaned.client_id = client._id;
+  }
+
+  return cleaned;
+}
+
 app.post('/api/reminders',        auth, async (req, res) => {
   try {
     const r = await Reminder.create(cleanIds(req.body));
@@ -627,14 +849,14 @@ app.get('/api/reminders',         auth, async (req, res) => {
   try {
     const filter = { completed: false };
     if (req.query.all === 'true') delete filter.completed;
-    const reminders = await Reminder.find(filter).sort({ due_date: 1 });
+    const reminders = await Reminder.find(filter).sort({ due_date: 1 }).lean();
     res.json({ success: true, data: reminders, count: reminders.length });
   } catch (e) { err(res, e); }
 });
 
 app.put('/api/reminders/:id',     auth, async (req, res) => {
   try {
-    const r = await Reminder.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const r = await Reminder.findByIdAndUpdate(req.params.id, cleanIds(req.body), { new: true });
     ok(res, r);
   } catch (e) { err(res, e); }
 });
@@ -657,23 +879,38 @@ app.delete('/api/reminders/:id',  auth, async (req, res) => {
 // PORTFOLIO (public read, admin write)
 // ══════════════════════════════════════════════════════════════════════════════
 
+async function cleanPortfolioPayload(body = {}) {
+  const payload = { ...body };
+  ['_id', '__v', 'createdAt', 'updatedAt'].forEach((field) => { delete payload[field]; });
+  if (payload.tags !== undefined) payload.tags = toArray(payload.tags);
+  if (payload.image !== undefined) payload.image = await normalizeImageField(payload.image, 'thebrandhelper/portfolio');
+  return payload;
+}
+
 app.get('/api/portfolio',          async (_req, res) => {
   try {
-    const items = await Portfolio.find().sort({ createdAt: -1 });
+    const items = await Portfolio.find({ published: { $ne: false } }).sort({ featured: -1, createdAt: -1 }).lean();
+    res.json({ success: true, data: items, count: items.length });
+  } catch (e) { err(res, e); }
+});
+
+app.get('/api/admin/portfolio', auth, async (_req, res) => {
+  try {
+    const items = await Portfolio.find().sort({ published: -1, featured: -1, createdAt: -1 }).lean();
     res.json({ success: true, data: items, count: items.length });
   } catch (e) { err(res, e); }
 });
 
 app.post('/api/portfolio',         auth, async (req, res) => {
   try {
-    const item = await Portfolio.create(req.body);
+    const item = await Portfolio.create(await cleanPortfolioPayload(req.body));
     ok(res, item, 201);
   } catch (e) { err(res, e); }
 });
 
 app.put('/api/portfolio/:id',      auth, async (req, res) => {
   try {
-    const item = await Portfolio.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const item = await Portfolio.findByIdAndUpdate(req.params.id, await cleanPortfolioPayload(req.body), { new: true });
     ok(res, item);
   } catch (e) { err(res, e); }
 });
@@ -758,7 +995,11 @@ app.get('/api/stats', auth, async (_req, res) => {
 app.get('/api/auth/status', async (_req, res) => {
   try {
     const auth = await Auth.findOne();
-    res.json({ configured: !!auth, password_enabled: Boolean(ADMIN_PASSWORD || ADMIN_PASSWORD_HASH) });
+    res.json({
+      configured: !!auth,
+      password_enabled: Boolean((ADMIN_PASSWORD || ADMIN_PASSWORD_HASH) && ADMIN_EMAILS.length),
+      admin_emails_configured: Boolean(ADMIN_EMAILS.length),
+    });
   } catch (e) { err(res, e); }
 });
 
@@ -797,10 +1038,12 @@ app.post('/api/auth/password-login', async (req, res) => {
   try {
     const email = String(req.body.email || '').trim().toLowerCase();
     const password = String(req.body.password || '');
-    if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+    if (!email || !password) return fail(res, 400, 'Email and password required');
+    if (!ADMIN_EMAILS.length) return fail(res, 503, 'Admin email login is not configured on the server');
+    if (!ADMIN_PASSWORD && !ADMIN_PASSWORD_HASH) return fail(res, 503, 'Admin password login is not configured on the server');
     const emailOk = isAdminEmail(email);
     const passwordOk = await isAdminPassword(password);
-    if (!emailOk || !passwordOk) return res.status(401).json({ success: false, error: 'Invalid admin login' });
+    if (!emailOk || !passwordOk) return fail(res, 401, 'Invalid admin login');
     res.json({ success: true, type: 'password' });
   } catch (e) { err(res, e); }
 });
@@ -897,7 +1140,7 @@ app.get('/api/prospects', auth, async (req, res) => {
     if (req.query.tag)     filter.tag             = req.query.tag;
     if (req.query.country) filter.country         = req.query.country;
     if (req.query.website_status) filter.website_status = req.query.website_status;
-    const prospects = await Prospect.find(filter).sort({ createdAt: -1 });
+    const prospects = await Prospect.find(filter).sort({ createdAt: -1 }).lean();
     res.json({ success: true, data: prospects, count: prospects.length });
   } catch (e) { err(res, e); }
 });
@@ -965,13 +1208,23 @@ app.post('/api/prospects/:id/convert', auth, async (req, res) => {
 });
 
 // -- 404 -----------------------------------------------------------------------
+async function cleanProductPayload(body = {}) {
+  const payload = { ...body };
+  ['_id', '__v', 'createdAt', 'updatedAt'].forEach((field) => { delete payload[field]; });
+  if (payload.applications !== undefined) payload.applications = toArray(payload.applications);
+  if (payload.features !== undefined) payload.features = toArray(payload.features);
+  if (payload.tags !== undefined) payload.tags = toArray(payload.tags);
+  if (payload.image !== undefined) payload.image = await normalizeImageField(payload.image, 'thebrandhelper/products');
+  return payload;
+}
+
 app.get('/api/phase2/products', async (req, res) => {
   try {
     const filter = { published: true };
     if (req.query.type) filter.product_type = req.query.type;
     if (req.query.status) filter.status = req.query.status;
     if (req.query.featured === 'true') filter.featured = true;
-    const products = await Product.find(filter).sort({ featured: -1, createdAt: -1 });
+    const products = await Product.find(filter).sort({ featured: -1, createdAt: -1 }).lean();
     ok(res, products);
   } catch (e) { err(res, e); }
 });
@@ -981,31 +1234,21 @@ app.get('/api/admin/phase2/products', auth, async (req, res) => {
     const filter = {};
     if (req.query.type) filter.product_type = req.query.type;
     if (req.query.published) filter.published = req.query.published === 'true';
-    const products = await Product.find(filter).sort({ createdAt: -1 });
+    const products = await Product.find(filter).sort({ createdAt: -1 }).lean();
     res.json({ success: true, data: products, count: products.length });
   } catch (e) { err(res, e); }
 });
 
 app.post('/api/admin/phase2/products', auth, async (req, res) => {
   try {
-    const body = req.body || {};
-    const product = await Product.create({
-      ...body,
-      applications: toArray(body.applications),
-      features: toArray(body.features),
-      tags: toArray(body.tags),
-    });
+    const product = await Product.create(await cleanProductPayload(req.body));
     ok(res, product, 201);
   } catch (e) { err(res, e); }
 });
 
 app.put('/api/admin/phase2/products/:id', auth, async (req, res) => {
   try {
-    const body = req.body || {};
-    const update = { ...body };
-    if (body.applications !== undefined) update.applications = toArray(body.applications);
-    if (body.features !== undefined) update.features = toArray(body.features);
-    if (body.tags !== undefined) update.tags = toArray(body.tags);
+    const update = await cleanProductPayload(req.body);
     const product = await Product.findByIdAndUpdate(req.params.id, update, { new: true });
     if (!product) return res.status(404).json({ error: 'Not found' });
     ok(res, product);
@@ -1073,7 +1316,7 @@ app.get('/api/admin/phase2/requests', auth, async (req, res) => {
     const filter = {};
     if (req.query.type) filter.request_type = req.query.type;
     if (req.query.status) filter.status = req.query.status;
-    const requests = await Phase2Request.find(filter).sort({ createdAt: -1 });
+    const requests = await Phase2Request.find(filter).sort({ createdAt: -1 }).lean();
     res.json({ success: true, data: requests, count: requests.length });
   } catch (e) { err(res, e); }
 });
@@ -1086,8 +1329,19 @@ app.put('/api/admin/phase2/requests/:id', auth, async (req, res) => {
   } catch (e) { err(res, e); }
 });
 
-app.use((req, res) => res.status(404).json({ error: `${req.method} ${req.path} not found` }));
-app.use((e, _req, res, _next) => { console.error(e.message); res.status(500).json({ error: e.message }); });
+app.delete('/api/admin/phase2/requests/:id', auth, async (req, res) => {
+  try {
+    await Phase2Request.findByIdAndDelete(req.params.id);
+    ok(res, { message: 'Deleted' });
+  } catch (e) { err(res, e); }
+});
+
+app.use((req, res) => fail(res, 404, `${req.method} ${req.path} not found`));
+app.use((e, _req, res, _next) => {
+  const status = e?.message?.startsWith('CORS:') ? 403 : Number(e?.status || e?.statusCode || 500);
+  console.error(e.message);
+  fail(res, Number.isFinite(status) ? status : 500, e);
+});
 
 // -- Start ---------------------------------------------------------------------
 /* Legacy crash-on-connect startup disabled.

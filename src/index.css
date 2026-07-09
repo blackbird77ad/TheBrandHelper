@@ -64,6 +64,30 @@ table {
   max-width: 100%;
 }
 
+:focus-visible {
+  outline: 3px solid #fbbf24;
+  outline-offset: 3px;
+}
+
+.skip-link {
+  position: fixed;
+  left: 1rem;
+  top: 0.75rem;
+  z-index: 1000;
+  transform: translateY(-160%);
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #000;
+  padding: 0.75rem 1rem;
+  font-weight: 800;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
 @media (max-width: 360px) {
   body {
     font-size: 15px;
@@ -116,7 +140,70 @@ table {
   animation: blueprintShine 2.8s ease-in-out infinite;
 }
 
+@keyframes portfolioFounderFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes portfolioFounderMarquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes portfolioFounderShine {
+  0% { transform: translateX(-130%); }
+  45%, 100% { transform: translateX(130%); }
+}
+
+.portfolio-founder-copy {
+  animation: portfolioFounderFloat 8s ease-in-out infinite;
+}
+
+.portfolio-founder-marquee {
+  overflow: hidden;
+}
+
+.portfolio-founder-marquee-track {
+  display: flex;
+  width: max-content;
+  gap: 2rem;
+  animation: portfolioFounderMarquee 26s linear infinite;
+}
+
+.portfolio-founder-marquee-track span {
+  white-space: nowrap;
+  color: #4b5563;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.portfolio-founder-action {
+  position: relative;
+  overflow: hidden;
+}
+
+.portfolio-founder-action::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-130%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  animation: portfolioFounderShine 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
   .blueprint-float,
   .blueprint-shine {
     animation: none;

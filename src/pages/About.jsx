@@ -89,7 +89,7 @@ export default function About() {
             </p>
           </div>
           <div className="rounded-xl overflow-hidden order-first md:order-last">
-            <img src={storyImg} alt="Our Story" className="w-full h-[320px] md:h-[480px] object-cover object-center" />
+            <img src={storyImg} alt="Our Story" className="w-full h-[320px] md:h-[480px] object-cover object-center" decoding="async" fetchPriority="high" />
           </div>
         </div>
       </section>
@@ -152,7 +152,7 @@ export default function About() {
       <section className="py-20 md:py-28 bg-white">
         <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 md:gap-16 items-center">
           <div className="rounded-xl overflow-hidden">
-            <img src={missionImg} alt="Our Mission" className="w-full h-[300px] md:h-[400px] object-cover object-center" />
+            <img src={missionImg} alt="Our Mission" className="w-full h-[300px] md:h-[400px] object-cover object-center" loading="lazy" decoding="async" />
           </div>
           <div>
             <p className="text-red-600 text-xs font-bold uppercase tracking-widest mb-4">Our Mission</p>

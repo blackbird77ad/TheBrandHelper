@@ -12,5 +12,35 @@ services:
         generateValue: true   # Render auto-generates a secure random value
       - key: MONGODB_URI
         sync: false
+      - key: MONGODB_DB_NAME
+        value: thebrandhelperdb
+      - key: MONGODB_SERVER_SELECTION_TIMEOUT_MS
+        value: "10000"
+      - key: MONGODB_MAX_POOL_SIZE
+        value: "10"
+      - key: MONGODB_MIN_POOL_SIZE
+        value: "0"
+      - key: MONGODB_MAX_IDLE_TIME_MS
+        value: "30000"
       - key: ALLOWED_ORIGINS
         value: https://thebrandhelper.com,https://www.thebrandhelper.com
+      - key: ALLOW_LOCAL_ORIGINS
+        value: "true"
+      - key: ADMIN_EMAILS
+        value: blackbird77ad@gmail.com,davida@thebrandhelper.com
+      - key: ADMIN_RESET_NOTIFY_EMAILS
+        value: blackbird77ad@gmail.com,davida@thebrandhelper.com
+      - key: ADMIN_NOTIFY_EMAILS
+        value: blackbird77ad@gmail.com,davida@thebrandhelper.com
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        value: The BrandHelper <notifications@thebrandhelper.com>
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: CLOUDINARY_MAX_UPLOAD_MB
+        value: "8"

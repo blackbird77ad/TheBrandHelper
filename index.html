@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
-    <title>The BrandHelper | Web Development, Products and Digital Services</title>
-    <meta name="description" content="The BrandHelper builds websites, web platforms, ready-made digital products, and business systems for companies that need clean execution and real online growth." />
-    <meta name="keywords" content="web development Ghana, website design Accra, website development Africa, digital products, ready-built websites, web platforms, digital services, The BrandHelper" />
+    <title>The BrandHelper | Web Development, AI Data and Digital Products</title>
+    <meta name="description" content="The BrandHelper builds business websites, web platforms, ready-built digital products, AI datasets, and managed project support for companies in Ghana and worldwide." />
+    <meta name="keywords" content="web development Ghana, website design Accra, business website Ghana, ecommerce website Ghana, ready-built websites, AI data Ghana, OCR dataset, African language AI data, AI project support, talent sourcing Ghana, The BrandHelper" />
     <meta name="author" content="The BrandHelper" />
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
     <link rel="canonical" href="https://thebrandhelper.com/" />
@@ -15,9 +15,9 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="The BrandHelper" />
     <meta property="og:url" content="https://thebrandhelper.com/" />
-    <meta property="og:title" content="The BrandHelper | Web Development and Digital Products" />
-    <meta property="og:description" content="Websites, web platforms, digital products, services, AI data, project support, and talent sourcing for serious businesses." />
-    <meta property="og:image" content="https://thebrandhelper.com/logo-tbh.png" />
+    <meta property="og:title" content="The BrandHelper | Web Development, AI Data and Digital Products" />
+    <meta property="og:description" content="Professional websites, web platforms, AI-ready data, digital products, and project support for businesses that need to look credible and work better online." />
+    <meta property="og:image" content="https://thebrandhelper.com/logo-tbh-wordmark.png" />
     <meta property="og:image:width" content="1544" />
     <meta property="og:image:height" content="377" />
     <meta property="og:image:alt" content="The BrandHelper logo" />
@@ -25,9 +25,9 @@
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@thebrandhelper" />
-    <meta name="twitter:title" content="The BrandHelper | Web Development and Digital Products" />
-    <meta name="twitter:description" content="Websites, web platforms, digital products, services, AI data, project support, and talent sourcing for serious businesses." />
-    <meta name="twitter:image" content="https://thebrandhelper.com/logo-tbh.png" />
+    <meta name="twitter:title" content="The BrandHelper | Web Development, AI Data and Digital Products" />
+    <meta name="twitter:description" content="Websites, platforms, ready-built products, AI datasets, and managed project support for growing businesses." />
+    <meta name="twitter:image" content="https://thebrandhelper.com/logo-tbh-wordmark.png" />
 
     <meta name="geo.region" content="GH" />
     <meta name="geo.placename" content="Accra, Ghana" />
@@ -53,51 +53,79 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "ProfessionalService",
-      "name": "The BrandHelper",
-      "alternateName": "TheBrandHelper",
-      "url": "https://thebrandhelper.com",
-      "logo": "https://thebrandhelper.com/logo-tbh.png",
-      "image": "https://thebrandhelper.com/logo-tbh.png",
-      "description": "The BrandHelper builds websites, web platforms, ready-made digital products, and business systems for companies in Ghana and worldwide.",
-      "priceRange": "$$",
-      "currenciesAccepted": "USD, GHS",
-      "paymentAccepted": "Bank Transfer, Mobile Money, Card",
-      "areaServed": ["GH", "US", "GB", "worldwide"],
-      "serviceType": [
-        "Website Design",
-        "Website Development",
-        "E-commerce Development",
-        "Ready-Built Websites",
-        "Digital Products",
-        "Ads Management",
-        "Brand Strategy",
-        "Business Email Setup",
-        "AI Data Services",
-        "Talent Sourcing"
-      ],
-      "address": {
-        "@type": "PostalAddress",
-        "addressLocality": "Accra",
-        "addressCountry": "GH"
-      },
-      "contactPoint": [
+      "@graph": [
         {
-          "@type": "ContactPoint",
-          "telephone": "+233-50-165-7205",
-          "contactType": "customer service",
-          "availableLanguage": ["English"]
+          "@type": "Organization",
+          "@id": "https://thebrandhelper.com/#organization",
+          "name": "The BrandHelper",
+          "alternateName": "TheBrandHelper",
+          "url": "https://thebrandhelper.com",
+          "logo": "https://thebrandhelper.com/logo-tbh-wordmark.png",
+          "email": "davida@thebrandhelper.com",
+          "sameAs": ["https://wa.me/233501657205"],
+          "contactPoint": [
+            {
+              "@type": "ContactPoint",
+              "telephone": "+233-50-165-7205",
+              "contactType": "customer service",
+              "availableLanguage": ["English"]
+            },
+            {
+              "@type": "ContactPoint",
+              "telephone": "+233-54-889-4600",
+              "contactType": "sales",
+              "availableLanguage": ["English"]
+            }
+          ]
         },
         {
-          "@type": "ContactPoint",
-          "telephone": "+233-54-889-4600",
-          "contactType": "sales",
-          "availableLanguage": ["English"]
+          "@type": "WebSite",
+          "@id": "https://thebrandhelper.com/#website",
+          "url": "https://thebrandhelper.com",
+          "name": "The BrandHelper",
+          "publisher": { "@id": "https://thebrandhelper.com/#organization" },
+          "inLanguage": "en"
+        },
+        {
+          "@type": "ProfessionalService",
+          "@id": "https://thebrandhelper.com/#service",
+          "name": "The BrandHelper",
+          "url": "https://thebrandhelper.com",
+          "image": "https://thebrandhelper.com/logo-tbh-wordmark.png",
+          "description": "The BrandHelper builds websites, web platforms, ready-built digital products, AI data solutions, and managed project support for companies in Ghana and worldwide.",
+          "priceRange": "$$",
+          "currenciesAccepted": "USD, GHS",
+          "paymentAccepted": "Bank Transfer, Mobile Money, Card",
+          "areaServed": ["GH", "US", "GB", "Worldwide"],
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Accra",
+            "addressCountry": "GH"
+          },
+          "knowsAbout": [
+            "Website development",
+            "Business websites",
+            "E-commerce websites",
+            "Ready-built websites",
+            "AI datasets",
+            "OCR data",
+            "African language data",
+            "AI project support",
+            "Talent sourcing"
+          ],
+          "hasOfferCatalog": {
+            "@type": "OfferCatalog",
+            "name": "The BrandHelper Services",
+            "itemListElement": [
+              { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Web Development" } },
+              { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Ready-Built Websites and Digital Products" } },
+              { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "AI Data and Dataset Services" } },
+              { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "AI Project Support" } },
+              { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Talent and Contributor Sourcing" } },
+              { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Business Email, Ads and Brand Strategy" } }
+            ]
+          }
         }
-      ],
-      "email": "davida@thebrandhelper.com",
-      "sameAs": [
-        "https://wa.me/233501657205"
       ]
     }
     </script>

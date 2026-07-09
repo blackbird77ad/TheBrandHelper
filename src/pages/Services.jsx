@@ -2,8 +2,8 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 
-import websiteDesignImg  from "../photos/website-page-inner-hero-img-1.webp";
-import websiteManageImg  from "../photos/Website Management1.png";
+import websiteDesignImg  from "../photos/webdev-heropage.jpg";
+import websiteManageImg  from "../photos/website-management-optimized.jpg";
 import businessEmailImg  from "../photos/Professional Business Email - service page.webp";
 import adsManagementImg  from "../photos/Facebook-Ads.webp";
 import brandStrategyImg  from "../photos/Brand Strategy-image2-new.webp";
@@ -20,7 +20,7 @@ const coreServices = [
     image: websiteDesignImg,
     badge: "Most Popular",
     description:
-      "Modern, responsive websites built to convert  -  from simple 6-page brochure sites to full platforms with user accounts, payments, and custom dashboards.",
+      "Modern, responsive websites built to convert, from simple 6-page brochure sites to full platforms with user accounts, payments, and custom dashboards.",
     points: ["Mobile-first & fast", "SEO optimised", "Domain & hosting included", "Payment & booking integrations"],
   },
   {
@@ -44,7 +44,7 @@ const coreServices = [
     image: adsManagementImg,
     badge: null,
     description:
-      "End-to-end Facebook, Instagram, and Google ad campaign management  -  strategy, creative, targeting, and reporting done for you.",
+      "End-to-end Facebook, Instagram, and Google ad campaign management with strategy, creative, targeting, and reporting done for you.",
     points: ["Facebook & Instagram ads", "Google Ads", "Creative & copywriting", "Weekly reporting"],
   },
   {
@@ -93,30 +93,48 @@ const supportServices = [
   },
 ];
 
+const servicesSchema = {
+  "@context": "https://schema.org",
+  "@type": "OfferCatalog",
+  "@id": "https://thebrandhelper.com/services#catalog",
+  "name": "The BrandHelper Services",
+  "url": "https://thebrandhelper.com/services",
+  "itemListElement": coreServices.map((service) => ({
+    "@type": "Offer",
+    "itemOffered": {
+      "@type": "Service",
+      "name": service.name,
+      "description": service.description,
+      "provider": { "@id": "https://thebrandhelper.com/#organization" }
+    }
+  }))
+};
+
 export default function Services() {
   return (
     <div className="bg-white text-black overflow-x-hidden">
       <Helmet>
-        <title>Services | The BrandHelper  -  Website Design, Ads, Brand Strategy</title>
-        <meta name="description" content="Website design and development, ads management, brand strategy, business email setup, website management, and consulting. Transparent pricing, real results." />
+        <title>Services | Website Development, Ads, Email and Brand Strategy</title>
+        <meta name="description" content="The BrandHelper provides website development, website management, business email setup, ads management, brand strategy, consulting, AI tools, and digital support." />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href="https://thebrandhelper.com/services" />
         <meta property="og:type"        content="website" />
         <meta property="og:url"         content="https://thebrandhelper.com/services" />
-        <meta property="og:title"       content="Services | The BrandHelper  -  Website Design, Ads, Brand Strategy" />
-        <meta property="og:description" content="Professional digital services: website design, Facebook and Google ads, brand strategy, business email, and more. Starting from $150." />
-        <meta property="og:image"       content="https://thebrandhelper.com/images/og-image.jpg" />
+        <meta property="og:title"       content="Services | Website Development, Ads, Email and Brand Strategy" />
+        <meta property="og:description" content="Website development, website management, business email, ads, brand strategy, AI tools, and practical digital support." />
+        <meta property="og:image"       content="https://thebrandhelper.com/logo-tbh-wordmark.png" />
         <meta name="twitter:card"        content="summary_large_image" />
         <meta name="twitter:title"       content="Services | The BrandHelper" />
-        <meta name="twitter:description" content="Website design, ads management, brand strategy and more. Transparent pricing, real results." />
-        <meta name="twitter:image"       content="https://thebrandhelper.com/images/og-image.jpg" />
+        <meta name="twitter:description" content="Website development, ads management, business email, brand strategy, AI tools, and digital support." />
+        <meta name="twitter:image"       content="https://thebrandhelper.com/logo-tbh-wordmark.png" />
+        <script type="application/ld+json">{JSON.stringify(servicesSchema)}</script>
       </Helmet>
 
       {/* -- HERO -- */}
       <section className="bg-black text-white py-20 md:py-28 px-6 relative overflow-hidden">
         {/* Background image with overlay */}
         <div className="absolute inset-0 z-0">
-          <img src={heroImg} alt="" className="w-full h-full object-cover object-center opacity-20" />
+          <img src={heroImg} alt="" className="w-full h-full object-cover object-center opacity-20" decoding="async" fetchPriority="high" />
           <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent" />
         </div>
         <div className="max-w-5xl mx-auto relative z-10">
@@ -126,7 +144,7 @@ export default function Services() {
             <span className="text-red-600">Real Businesses</span>
           </h1>
           <p className="text-gray-300 text-lg md:text-xl max-w-2xl mb-10 leading-relaxed">
-            Done-for-you digital solutions for serious founders who want structure, visibility, and real results  -  not theory.
+            Done-for-you digital solutions for serious founders who want structure, visibility, and real results, not theory.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link to="/contact/requirements"
@@ -168,6 +186,8 @@ export default function Services() {
                     src={service.image}
                     alt={service.name}
                     className="w-full h-full object-contain object-center p-3 transition duration-500"
+                    loading="lazy"
+                    decoding="async"
                   />
                   {service.badge && (
                     <span className="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full">

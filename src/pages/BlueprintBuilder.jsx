@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { submitLead } from '../utils/api';
+import ApiIssueReport from '../components/ApiIssueReport';
 import blueprintHeroImg from '../photos/blueprint-heropage.webp';
 
 const APPS_SCRIPT_URL = import.meta.env.VITE_BLUEPRINT_APPS_SCRIPT_URL || import.meta.env.VITE_APPS_SCRIPT_URL || '';
@@ -690,6 +691,7 @@ function ChoiceCard({ selected, label, sub, onClick, accent = '#e11d48' }) {
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={selected}
       className={`rounded-lg border p-3 text-left transition-all ${selected ? 'shadow-lg' : 'hover:-translate-y-0.5 hover:shadow-md'}`}
       style={{
         borderColor: selected ? accent : 'rgba(17,24,39,0.08)',
@@ -721,6 +723,7 @@ function ToggleChip({ selected, label, sub, onClick, accent = '#e11d48' }) {
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={selected}
       className="rounded-lg border px-3 py-2.5 text-left transition-all"
       style={{
         borderColor: selected ? accent : 'rgba(17,24,39,0.08)',
@@ -788,7 +791,7 @@ function DevicePreview({ device, form, theme, previews }) {
           <div className="relative flex items-center justify-between rounded-lg px-3 py-2 text-[10px]" style={{ background: 'rgba(255,255,255,0.06)', color: theme.ink }}>
             <div className="flex items-center gap-2">
               {previews.logoPreview ? (
-                <img src={previews.logoPreview} alt="Logo preview" className="h-6 w-6 rounded-md object-cover" />
+                <img src={previews.logoPreview} alt="Logo preview" className="h-6 w-6 rounded-md object-cover" decoding="async" />
               ) : (
                 <div className="flex h-6 w-6 items-center justify-center rounded-md text-[9px] font-black" style={{ background: theme.accent, color: '#111' }}>
                   {logoText}
@@ -897,6 +900,7 @@ function BlueprintBuilder() {
   const [summaryCopied, setSummaryCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [serverIssue, setServerIssue] = useState(null);
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -1036,11 +1040,13 @@ function BlueprintBuilder() {
     setForm(DEFAULT_FORM);
     setPreviewAssets({ logoPreview: '', inspirationPreviews: [] });
     setSubmitted(false);
+    setServerIssue(null);
     setRestoredMessage('Saved progress cleared. Starter blueprint loaded.');
   };
 
   const handleSubmit = async () => {
     setSubmitting(true);
+    setServerIssue(null);
 
     const payload = {
       to_email: 'davida@thebrandhelper.com',
@@ -1080,6 +1086,7 @@ function BlueprintBuilder() {
       await submitLead(payload);
     } catch (error) {
       console.warn('Server:', error);
+      setServerIssue(error);
     }
 
     setSubmitting(false);
@@ -1146,7 +1153,7 @@ function BlueprintBuilder() {
           </div>
           <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
             <div className="mb-4 overflow-hidden rounded-lg border border-white/10 bg-black/20">
-              <img src={blueprintHeroImg} alt="Blueprint planning preview" className="h-36 w-full object-cover" />
+              <img src={blueprintHeroImg} alt="Blueprint planning preview" className="h-36 w-full object-cover" loading="lazy" decoding="async" />
             </div>
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -1253,6 +1260,7 @@ function BlueprintBuilder() {
                       value={form.businessGoal}
                       onChange={(event) => setField('businessGoal', event.target.value)}
                       rows={4}
+                      aria-label="Business purpose"
                       className="mt-3 w-full rounded-lg border border-white/10 bg-white/5 px-4 py-4 text-sm text-white outline-none transition placeholder:text-gray-500 focus:border-white/30"
                       placeholder="What should this project help the business do? Example: increase direct orders, look more premium, reduce WhatsApp confusion, or give staff a better dashboard."
                     />
@@ -1309,6 +1317,7 @@ function BlueprintBuilder() {
                         <input
                           type="color"
                           value={color}
+                          aria-label={index === 0 ? 'Primary brand color' : index === 1 ? 'Accent brand color' : 'Soft tone brand color'}
                           onChange={(event) => {
                             const next = [...form.palette];
                             next[index] = event.target.value;
@@ -1409,7 +1418,7 @@ function BlueprintBuilder() {
                   <label className="rounded-lg border border-white/10 bg-black/20 p-5">
                     <div className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">Upload logo</div>
                     <div className="mt-3 rounded-lg border border-dashed border-white/15 px-4 py-6 text-sm text-gray-300">
-                      <input type="file" accept="image/*" onChange={handleLogoUpload} className="mb-3 block w-full text-xs text-gray-400" />
+                      <input type="file" accept="image/*" onChange={handleLogoUpload} aria-label="Upload logo" className="mb-3 block w-full text-xs text-gray-400" />
                       <div>{form.logoName || 'No logo uploaded yet'}</div>
                       <div className="mt-2 text-xs text-gray-500">Logo preview is used only inside this blueprint session.</div>
                     </div>
@@ -1417,7 +1426,7 @@ function BlueprintBuilder() {
                   <label className="rounded-lg border border-white/10 bg-black/20 p-5">
                     <div className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">Upload inspiration screenshots</div>
                     <div className="mt-3 rounded-lg border border-dashed border-white/15 px-4 py-6 text-sm text-gray-300">
-                      <input type="file" accept="image/*" multiple onChange={handleInspirationUpload} className="mb-3 block w-full text-xs text-gray-400" />
+                      <input type="file" accept="image/*" multiple onChange={handleInspirationUpload} aria-label="Upload inspiration screenshots" className="mb-3 block w-full text-xs text-gray-400" />
                       <div>{form.inspirationNames.join(', ') || 'No inspiration files uploaded yet'}</div>
                       <div className="mt-2 text-xs text-gray-500">We keep the file names in the brief and use previews only on this device.</div>
                     </div>
@@ -1623,6 +1632,7 @@ function BlueprintBuilder() {
                       value={form.budgetNote}
                       onChange={(event) => setField('budgetNote', event.target.value)}
                       rows={3}
+                      aria-label="Target budget or negotiation note"
                       className="mt-3 w-full rounded-lg border border-white/10 bg-black/20 px-4 py-4 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
                       placeholder="Example: We are trying to stay near $1,200 if phase one can cover homepage, store, and checkout."
                     />
@@ -1636,6 +1646,7 @@ function BlueprintBuilder() {
                       value={form.phaseRequest}
                       onChange={(event) => setField('phaseRequest', event.target.value)}
                       rows={3}
+                      aria-label="Preferred phase one scope"
                       className="mt-3 w-full rounded-lg border border-white/10 bg-black/20 px-4 py-4 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
                       placeholder="Example: Phase one should include the public marketing site, WhatsApp conversion, and booking form. Admin dashboard can come later."
                     />
@@ -1659,18 +1670,24 @@ function BlueprintBuilder() {
                       <input
                         value={form.clientName}
                         onChange={(event) => setField('clientName', event.target.value)}
+                        aria-label="Your name"
+                        autoComplete="name"
                         className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
                         placeholder="Your name"
                       />
                       <input
                         value={form.businessName}
                         onChange={(event) => setField('businessName', event.target.value)}
+                        aria-label="Business name"
+                        autoComplete="organization"
                         className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
                         placeholder="Business name"
                       />
                       <input
                         value={form.email}
                         onChange={(event) => setField('email', event.target.value)}
+                        aria-label="Email address"
+                        autoComplete="email"
                         className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
                         placeholder="Email address"
                         type="email"
@@ -1678,6 +1695,8 @@ function BlueprintBuilder() {
                       <input
                         value={form.phone}
                         onChange={(event) => setField('phone', event.target.value)}
+                        aria-label="Phone or WhatsApp"
+                        autoComplete="tel"
                         className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
                         placeholder="Phone / WhatsApp"
                       />
@@ -1689,6 +1708,7 @@ function BlueprintBuilder() {
                       value={form.extraNotes}
                       onChange={(event) => setField('extraNotes', event.target.value)}
                       rows={7}
+                      aria-label="Extra notes for the team"
                       className="mt-4 w-full rounded-lg border border-white/10 bg-black/20 px-4 py-4 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
                       placeholder="Anything that should not be missed? Example: must feel trustworthy, mobile users matter most, team prefers WhatsApp handoff, admin should stay simple, etc."
                     />
@@ -1741,6 +1761,9 @@ function BlueprintBuilder() {
                       <p className="mt-2 text-sm leading-relaxed text-green-100/90">
                         Your blueprint has been sent into the email + CRM intake flow. You can now share the link, export the brief, or message the summary on WhatsApp for faster alignment.
                       </p>
+                      {serverIssue && (
+                        <ApiIssueReport error={serverIssue} context="Interactive blueprint builder" payloadText={summary} dark className="mt-4" />
+                      )}
                       <div className="mt-4 flex flex-wrap gap-3">
                         <a
                           href={`https://wa.me/233501657205?text=${encodeURIComponent(summary)}`}
@@ -1831,7 +1854,7 @@ function BlueprintBuilder() {
                 <div className="mt-3 grid grid-cols-3 gap-3">
                   {previewAssets.inspirationPreviews.map((preview) => (
                     <div key={preview} className="overflow-hidden rounded-lg border border-white/10 bg-white/5">
-                      <img src={preview} alt="Inspiration preview" className="h-24 w-full object-cover" />
+                      <img src={preview} alt="Inspiration preview" className="h-24 w-full object-cover" loading="lazy" decoding="async" />
                     </div>
                   ))}
                 </div>

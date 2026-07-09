@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 
 const WHATSAPP_GROUP = "https://chat.whatsapp.com/HpS3JYpWejM7L2sfVOSvek?mode=gi_t";
 const ADMIN_WHATSAPP = "https://wa.me/+233544930276";
@@ -7,6 +8,10 @@ const ADMIN_WHATSAPP = "https://wa.me/+233544930276";
 export default function Success() {
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-6 py-20">
+      <Helmet>
+        <title>Request Received | The BrandHelper</title>
+        <meta name="robots" content="noindex,nofollow" />
+      </Helmet>
       <div className="max-w-2xl mx-auto text-center text-white">
 
         <div className="text-6xl mb-6">🎉</div>

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import logo from "../photos/logo-tbh-wordmark-tight.png";
+import logo from "../photos/logo-tbh-wordmark-tight-optimized.jpg";
 import { requestAppNotification } from "../utils/pwa";
 
 const WHATSAPP = "https://wa.me/233501657205";
@@ -80,7 +80,7 @@ export default function Footer() {
       <div className="mx-auto grid max-w-6xl gap-10 px-6 py-12 lg:grid-cols-[1.25fr_2fr]">
         <div>
           <Link to="/" className="inline-flex items-center overflow-hidden rounded-sm" aria-label="The BrandHelper home">
-            <img src={logo} alt="The BrandHelper" className="h-16 w-auto max-w-[310px] object-contain" />
+            <img src={logo} alt="The BrandHelper" className="h-16 w-auto max-w-[310px] object-contain" loading="lazy" decoding="async" />
           </Link>
           <p className="mt-5 max-w-sm text-sm leading-relaxed text-gray-400">
             The BrandHelper builds websites, digital products, business services, AI data support, and talent pipelines for growing businesses.
@@ -91,7 +91,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="grid gap-8 sm:grid-cols-3">
+        <nav className="grid gap-8 sm:grid-cols-3" aria-label="Footer navigation">
           {groups.map((group) => (
             <div key={group.title}>
               <h4 className="mb-4 text-xs font-bold uppercase tracking-widest text-red-500">{group.title}</h4>
@@ -104,7 +104,7 @@ export default function Footer() {
               </ul>
             </div>
           ))}
-        </div>
+        </nav>
       </div>
 
       <div className="border-t border-white/10 px-6 py-5">
@@ -114,8 +114,8 @@ export default function Footer() {
             <Link to="/about" className="transition hover:text-white">About</Link>
             <Link to="/portfolio" className="transition hover:text-white">Portfolio</Link>
             <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" className="transition hover:text-green-400">WhatsApp</a>
-            <button type="button" onClick={enableAlerts} className="transition hover:text-white">Enable Alerts</button>
-            {alertStatus && <span className="text-gray-400">{alertStatus}</span>}
+            <button type="button" onClick={enableAlerts} className="transition hover:text-white" aria-describedby={alertStatus ? "footer-alert-status" : undefined}>Enable Alerts</button>
+            {alertStatus && <span id="footer-alert-status" className="text-gray-400" role="status" aria-live="polite">{alertStatus}</span>}
           </div>
         </div>
       </div>

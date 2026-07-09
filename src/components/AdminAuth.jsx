@@ -13,6 +13,9 @@
 
 import React, { useState, useEffect } from "react";
 import bcrypt from "bcryptjs";
+import { FiEye, FiEyeOff } from "react-icons/fi";
+import ApiIssueReport from "./ApiIssueReport";
+import { API_BASE, ApiRequestError, apiRequest, describeApiError, isReportableApiIssue } from "../utils/api";
 
 const SESSION_KEY   = "tbh_admin_session";
 const SALT_ROUNDS   = 10;
@@ -20,8 +23,6 @@ const MAX_ATTEMPTS  = 5;
 const LOCKOUT_MS    = 15 * 60 * 1000;
 const ATTEMPT_KEY   = "tbh_fail_count";
 const LOCKOUT_KEY   = "tbh_lockout_until";
-
-const BASE          = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
 // -- Session helpers (sessionStorage only  -  clears on tab close) ---------------
 const isSession  = () => sessionStorage.getItem(SESSION_KEY) === "1";
@@ -41,21 +42,18 @@ function isLockedOut()   {
 function lockOut()       { sessionStorage.setItem(LOCKOUT_KEY, String(Date.now() + LOCKOUT_MS)); }
 function getLockoutMins(){ return Math.ceil((parseInt(sessionStorage.getItem(LOCKOUT_KEY)||"0") - Date.now()) / 60000); }
 
-// -- Server calls --------------------------------------------------------------
 async function apiGet(path) {
-  const r = await fetch(`${BASE}${path}`);
-  return r.json();
+  return apiRequest(path);
 }
 async function apiPost(path, body) {
-  const r = await fetch(`${BASE}${path}`, {
+  return apiRequest(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  return r.json();
 }
 async function apiPostWithSecret(path, secret, body = {}) {
-  const r = await fetch(`${BASE}${path}`, {
+  return apiRequest(path, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -63,7 +61,22 @@ async function apiPostWithSecret(path, secret, body = {}) {
     },
     body: JSON.stringify(body),
   });
-  return r.json();
+}
+
+function connectionErrorMessage(error) {
+  const details = describeApiError(error);
+  if (/Database unavailable/i.test(details.message)) {
+    return `Database unavailable (${details.status}). See report details below.`;
+  }
+  if (isReportableApiIssue(error)) {
+    if (error.isNetwork) return `Could not reach the admin API at ${API_BASE}. See report details below.`;
+    return `Admin API error (${details.status}). See report details below.`;
+  }
+  return details.message || "Request failed";
+}
+
+function AdminSupportFallback({ error, context }) {
+  return <ApiIssueReport error={error} context={context} className="mt-3" />;
 }
 // -- Tiny UI pieces ------------------------------------------------------------
 function BrandHeader({ sub }) {
@@ -79,7 +92,7 @@ function BrandHeader({ sub }) {
 
 function PinDots({ length, error }) {
   return (
-    <div className="flex gap-3 justify-center my-4">
+    <div className="flex gap-3 justify-center my-4" role="status" aria-label={`${length} PIN digits entered`}>
       {[0,1,2,3,4,5].map(i => (
         <div key={i} className={`w-4 h-4 rounded-full border-2 transition-all duration-150
           ${length > i
@@ -102,7 +115,8 @@ function NumPad({ onDigit, onDelete, onSubmit, label, disabled }) {
           if (k === null) return <div key={i} />;
           const isDel = k === "⌫";
           return (
-            <button key={i} disabled={disabled}
+            <button key={i} type="button" disabled={disabled}
+              aria-label={isDel ? "Delete last digit" : `Enter digit ${k}`}
               onClick={() => isDel ? onDelete() : onDigit(String(k))}
               className={`h-14 rounded-2xl text-lg font-bold transition active:scale-95
                 ${isDel ? "bg-gray-100 text-gray-500 hover:bg-gray-200" : "bg-gray-50 text-black hover:bg-gray-100"}
@@ -111,7 +125,7 @@ function NumPad({ onDigit, onDelete, onSubmit, label, disabled }) {
             </button>
           );
         })}
-        <button disabled={disabled} onClick={onSubmit}
+        <button type="button" disabled={disabled} onClick={onSubmit}
           className="col-span-3 h-12 rounded-2xl bg-black text-white font-extrabold text-sm
             hover:bg-red-600 transition active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed mt-1">
           {label}
@@ -129,6 +143,7 @@ function SetupScreen({ onDone }) {
   const [step,    setStep]    = useState(0);
   const [pins,    setPins]    = useState(["","","",""]);
   const [error,   setError]   = useState("");
+  const [apiIssue, setApiIssue] = useState(null);
   const [saving,  setSaving]  = useState(false);
 
   const current = pins[step];
@@ -139,6 +154,7 @@ function SetupScreen({ onDone }) {
 
   const handleNext = async () => {
     setError("");
+    setApiIssue(null);
     if (current.length < 4) { setError("Minimum 4 digits"); return; }
 
     // Confirm steps  -  check match
@@ -158,8 +174,9 @@ function SetupScreen({ onDone }) {
       if (!res.success) { setError(res.error || "Setup failed"); setSaving(false); return; }
       startSession();
       onDone();
-    } catch {
-      setError("Server error  -  is the server running?");
+    } catch (error) {
+      setError(connectionErrorMessage(error));
+      setApiIssue(isReportableApiIssue(error) ? error : null);
       setSaving(false);
     }
   };
@@ -178,6 +195,7 @@ function SetupScreen({ onDone }) {
 
         <PinDots length={current.length} error={!!error} />
         {error && <p className="text-red-500 text-xs text-center font-bold mb-3">{error}</p>}
+        <AdminSupportFallback error={apiIssue} context="Admin first-time setup" />
 
         <NumPad
           onDigit={handleDigit}
@@ -204,10 +222,12 @@ function EmergencyResetFlow({ onDone, onCancel }) {
   const [confirm, setConfirm] = useState("");
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
+  const [apiIssue, setApiIssue] = useState(null);
 
   const reset = async (event) => {
     event.preventDefault();
     setError("");
+    setApiIssue(null);
     if (!secret.trim()) { setError("Enter the server admin secret"); return; }
     if (confirm.trim().toUpperCase() !== "RESET") { setError("Type RESET to confirm"); return; }
     setStatus("saving");
@@ -222,8 +242,9 @@ function EmergencyResetFlow({ onDone, onCancel }) {
       endSession();
       setStatus("done");
       setTimeout(onDone, 900);
-    } catch {
-      setError("Server unreachable - check the backend");
+    } catch (error) {
+      setError(connectionErrorMessage(error));
+      setApiIssue(isReportableApiIssue(error) ? error : null);
       setStatus("idle");
     }
   };
@@ -243,6 +264,7 @@ function EmergencyResetFlow({ onDone, onCancel }) {
             onChange={(event) => setSecret(event.target.value)}
             className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-black"
             placeholder="Enter ADMIN_SECRET"
+            aria-label="Server admin secret"
             autoComplete="off"
           />
         </div>
@@ -253,11 +275,13 @@ function EmergencyResetFlow({ onDone, onCancel }) {
             onChange={(event) => setConfirm(event.target.value)}
             className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-black"
             placeholder="RESET"
+            aria-label="Type RESET to confirm"
             autoComplete="off"
           />
         </div>
-        {error && <p className="mt-4 text-center text-xs font-bold text-red-600">{error}</p>}
-        {status === "done" && <p className="mt-4 text-center text-xs font-bold text-green-700">PINs cleared. Opening setup...</p>}
+        {error && <p className="mt-4 text-center text-xs font-bold text-red-600" role="alert">{error}</p>}
+        <AdminSupportFallback error={apiIssue} context="Admin emergency reset" />
+        {status === "done" && <p className="mt-4 text-center text-xs font-bold text-green-700" role="status" aria-live="polite">PINs cleared. Opening setup...</p>}
         <button
           type="submit"
           disabled={status === "saving" || status === "done"}
@@ -281,19 +305,22 @@ function ResetRequestFlow({ onCancel }) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
+  const [apiIssue, setApiIssue] = useState(null);
 
   const submit = async (event) => {
     event.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
     setError("");
+    setApiIssue(null);
     if (!cleanEmail) { setError("Enter your admin email"); return; }
     setStatus("sending");
 
     try {
       const res = await apiPost("/api/auth/request-reset", { email: cleanEmail });
       setStatus(res.email_sent ? "sent" : "logged");
-    } catch {
-      setError("Could not submit reset request. Check the backend connection.");
+    } catch (error) {
+      setError(connectionErrorMessage(error));
+      setApiIssue(isReportableApiIssue(error) ? error : null);
       setStatus("idle");
     }
   };
@@ -312,12 +339,14 @@ function ResetRequestFlow({ onCancel }) {
           onChange={(event) => setEmail(event.target.value)}
           className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-black"
           placeholder="admin@email.com"
+          aria-label="Admin email"
           autoComplete="email"
         />
-        {error && <p className="mt-4 text-center text-xs font-bold text-red-600">{error}</p>}
-        {status === "sent" && <p className="mt-4 text-center text-xs font-bold text-green-700">Reset request emailed and logged.</p>}
+        {error && <p className="mt-4 text-center text-xs font-bold text-red-600" role="alert">{error}</p>}
+        <AdminSupportFallback error={apiIssue} context="Admin reset request" />
+        {status === "sent" && <p className="mt-4 text-center text-xs font-bold text-green-700" role="status" aria-live="polite">Reset request emailed and logged.</p>}
         {status === "logged" && (
-          <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-center">
+          <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-center" role="status" aria-live="polite">
             <p className="text-xs font-bold text-amber-700">Request logged. Resend is not configured on the backend yet, so no automatic email was sent.</p>
           </div>
         )}
@@ -340,12 +369,14 @@ function ResetRequestFlow({ onCancel }) {
   );
 }
 
-function LoginScreen({ onUnlock, onResetAuth }) {
+function LoginScreen({ onUnlock, onResetAuth, initialIssue }) {
   const [pin,        setPin]        = useState("");
   const [mode,       setMode]       = useState("pin"); // "pin" | "master"
   const [email,      setEmail]      = useState("");
   const [password,   setPassword]   = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error,      setError]      = useState("");
+  const [apiIssue,   setApiIssue]   = useState(initialIssue || null);
   const [checking,   setChecking]   = useState(false);
   const [locked,     setLocked]     = useState(isLockedOut);
   const [emergency,  setEmergency]  = useState(false);
@@ -364,8 +395,8 @@ function LoginScreen({ onUnlock, onResetAuth }) {
 
   const attempt = async () => {
     if (locked || checking) return;
-    if (pin.length < 4) { setError("Enter at least 4 digits"); return; }
-    setChecking(true); setError("");
+    if (pin.length < 4) { setApiIssue(null); setError("Enter at least 4 digits"); return; }
+    setChecking(true); setError(""); setApiIssue(null);
     try {
       const res = await apiPost("/api/auth/verify", { pin });
       if (res.success) {
@@ -383,15 +414,18 @@ function LoginScreen({ onUnlock, onResetAuth }) {
         else           { setError(`Incorrect PIN. ${left} attempt${left !== 1 ? "s" : ""} left.`); }
         setPin("");
       }
-    } catch { setError("Server unreachable  -  check connection"); }
+    } catch (error) {
+      setError(connectionErrorMessage(error));
+      setApiIssue(isReportableApiIssue(error) ? error : null);
+    }
     setChecking(false);
   };
 
   const attemptPassword = async (event) => {
     event.preventDefault();
     if (locked || checking) return;
-    if (!email.trim() || !password) { setError("Enter admin email and password"); return; }
-    setChecking(true); setError("");
+    if (!email.trim() || !password) { setApiIssue(null); setError("Enter admin email and password"); return; }
+    setChecking(true); setError(""); setApiIssue(null);
     try {
       const res = await apiPost("/api/auth/password-login", {
         email: email.trim().toLowerCase(),
@@ -408,8 +442,9 @@ function LoginScreen({ onUnlock, onResetAuth }) {
         else { setError(`Invalid admin login. ${left} attempt${left !== 1 ? "s" : ""} left.`); }
         setPassword("");
       }
-    } catch {
-      setError("Server unreachable  -  check connection");
+    } catch (error) {
+      setError(connectionErrorMessage(error));
+      setApiIssue(isReportableApiIssue(error) ? error : null);
     }
     setChecking(false);
   };
@@ -434,13 +469,15 @@ function LoginScreen({ onUnlock, onResetAuth }) {
         {/* Mode toggle */}
         <div className="flex gap-2 justify-center mb-5">
           {[["pin","Admin PIN"],["password","Password"],["master","Reset PIN"]].map(([m, label]) => (
-            <button key={m} onClick={() => { setMode(m); setPin(""); setPassword(""); setError(""); }}
+            <button key={m} type="button" aria-pressed={mode === m} onClick={() => { setMode(m); setPin(""); setPassword(""); setError(""); setApiIssue(null); }}
               className={`px-4 py-1.5 rounded-full text-xs font-bold transition
                 ${mode === m ? "bg-black text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
               {label}
             </button>
           ))}
         </div>
+
+        {!error && <AdminSupportFallback error={apiIssue} context="Admin auth status check" />}
 
         {locked ? (
           <div className="text-center py-8">
@@ -459,17 +496,31 @@ function LoginScreen({ onUnlock, onResetAuth }) {
                   onChange={(event) => setEmail(event.target.value)}
                   className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-black"
                   placeholder="Admin email"
+                  aria-label="Admin email"
                   autoComplete="email"
                 />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-black"
-                  placeholder="Admin password"
-                  autoComplete="current-password"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    className="w-full rounded-2xl border border-gray-200 px-4 py-3 pr-12 text-sm outline-none focus:border-black"
+                    placeholder="Admin password"
+                    aria-label="Admin password"
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((current) => !current)}
+                    className="absolute inset-y-0 right-3 flex items-center text-gray-400 transition hover:text-black"
+                    aria-label={showPassword ? "Hide admin password" : "Show admin password"}
+                    title={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                  </button>
+                </div>
                 {error && <p className="text-red-500 text-xs text-center font-bold">{error}</p>}
+                <AdminSupportFallback error={apiIssue} context="Admin password login" />
                 <button
                   type="submit"
                   disabled={checking || locked}
@@ -482,6 +533,7 @@ function LoginScreen({ onUnlock, onResetAuth }) {
               <>
                 <PinDots length={pin.length} error={!!error} />
                 {error && <p className="text-red-500 text-xs text-center font-bold mb-3">{error}</p>}
+                <AdminSupportFallback error={apiIssue} context={mode === "master" ? "Admin master PIN login" : "Admin PIN login"} />
                 <NumPad
                   onDigit={handleDigit}
                   onDelete={handleDelete}
@@ -495,14 +547,14 @@ function LoginScreen({ onUnlock, onResetAuth }) {
         )}
         <button
           type="button"
-          onClick={() => { setResetRequest(true); setPin(""); setError(""); }}
+          onClick={() => { setResetRequest(true); setPin(""); setError(""); setApiIssue(null); }}
           className="mt-5 w-full text-center text-xs font-bold text-gray-400 transition hover:text-black"
         >
           Email a reset request
         </button>
         <button
           type="button"
-          onClick={() => { setEmergency(true); setPin(""); setError(""); }}
+          onClick={() => { setEmergency(true); setPin(""); setError(""); setApiIssue(null); }}
           className="mt-3 w-full text-center text-xs font-bold text-gray-400 transition hover:text-red-600"
         >
           Forgot both PINs? Use server reset
@@ -518,6 +570,7 @@ function ResetPinFlow({ onDone, onCancel }) {
   const [step,    setStep]    = useState(0);
   const [vals,    setVals]    = useState(["","",""]);
   const [error,   setError]   = useState("");
+  const [apiIssue, setApiIssue] = useState(null);
   const [saving,  setSaving]  = useState(false);
 
   const current = vals[step];
@@ -527,6 +580,7 @@ function ResetPinFlow({ onDone, onCancel }) {
 
   const next = async () => {
     setError("");
+    setApiIssue(null);
     if (current.length < 4) { setError("Minimum 4 digits"); return; }
     if (step === 2 && current !== vals[1]) { setError("PINs don't match"); setVal(""); return; }
     if (step < 2)  { setStep(s => s+1); return; }
@@ -542,7 +596,11 @@ function ResetPinFlow({ onDone, onCancel }) {
       if (!res.success) { setError(res.error || "Reset failed"); setSaving(false); return; }
       clearAttempts();
       onDone();
-    } catch { setError("Server error"); setSaving(false); }
+    } catch (error) {
+      setError(connectionErrorMessage(error));
+      setApiIssue(isReportableApiIssue(error) ? error : null);
+      setSaving(false);
+    }
   };
 
   return (
@@ -554,11 +612,12 @@ function ResetPinFlow({ onDone, onCancel }) {
         </div>
         <PinDots length={current.length} error={!!error} />
         {error && <p className="text-red-500 text-xs text-center font-bold mb-3">{error}</p>}
+        <AdminSupportFallback error={apiIssue} context="Admin PIN reset" />
         <NumPad onDigit={digit} onDelete={del} onSubmit={next}
           label={saving ? "Saving..." : step === 2 ? "Save New PIN →" : "Next →"}
           disabled={saving}
         />
-        <button onClick={onCancel} className="w-full mt-4 text-xs text-gray-400 hover:text-black font-bold transition">
+        <button type="button" onClick={onCancel} className="w-full mt-4 text-xs text-gray-400 hover:text-black font-bold transition">
           Cancel
         </button>
       </div>
@@ -574,18 +633,18 @@ export function LogoutButton({ onLogout }) {
   if (confirm) return (
     <div className="flex items-center gap-2">
       <span className="text-xs text-white/70">Log out?</span>
-      <button onClick={() => { endSession(); onLogout(); }}
+      <button type="button" onClick={() => { endSession(); onLogout(); }}
         className="px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 transition">
         Yes
       </button>
-      <button onClick={() => setConfirm(false)}
+      <button type="button" onClick={() => setConfirm(false)}
         className="px-3 py-1.5 bg-white/10 text-white text-xs font-bold rounded-lg hover:bg-white/20 transition">
         No
       </button>
     </div>
   );
   return (
-    <button onClick={() => setConfirm(true)}
+    <button type="button" onClick={() => setConfirm(true)}
       className="px-3 py-1.5 bg-white/10 text-white/70 text-xs font-bold rounded-lg hover:bg-white/20 hover:text-white transition">
       🔒 Logout
     </button>
@@ -597,21 +656,31 @@ export function LogoutButton({ onLogout }) {
 // ══════════════════════════════════════════════════════════════════════════════
 export default function AdminAuth({ children }) {
   const [status, setStatus] = useState("loading"); // loading | setup | locked | unlocked
+  const [startupIssue, setStartupIssue] = useState(null);
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (isSession()) { setStatus("unlocked"); return; }
+    if (isSession()) { setStartupIssue(null); setStatus("unlocked"); return; }
 
     // Timeout after 6 seconds  -  fall through to login screen
-    const timeout = setTimeout(() => setStatus("locked"), 6000);
+    const timeout = setTimeout(() => {
+      setStartupIssue(new ApiRequestError("Admin auth status check timed out", {
+        isNetwork: true,
+        url: `${API_BASE}/api/auth/status`,
+        method: "GET",
+      }));
+      setStatus("locked");
+    }, 6000);
 
     apiGet("/api/auth/status")
       .then(res => {
         clearTimeout(timeout);
+        setStartupIssue(null);
         setStatus(res.configured ? "locked" : "setup");
       })
-      .catch(() => {
+      .catch((error) => {
         clearTimeout(timeout);
+        setStartupIssue(isReportableApiIssue(error) ? error : null);
         setStatus("locked");
       });
 
@@ -631,6 +700,6 @@ export default function AdminAuth({ children }) {
   );
 
   if (status === "setup")    return <SetupScreen  onDone={()    => setStatus("unlocked")} />;
-  if (status === "locked")   return <LoginScreen  onUnlock={()  => setStatus("unlocked")} onResetAuth={() => setStatus("setup")} />;
+  if (status === "locked")   return <LoginScreen  onUnlock={()  => setStatus("unlocked")} onResetAuth={() => setStatus("setup")} initialIssue={startupIssue} />;
   return children({ onLogout: () => setStatus("locked") });
 }

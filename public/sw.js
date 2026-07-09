@@ -1,4 +1,4 @@
-const CACHE_NAME = "brandhelper-pwa-v2";
+const CACHE_NAME = "brandhelper-pwa-v4";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
@@ -29,6 +29,26 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
+
+  if (url.origin !== self.location.origin || url.pathname.startsWith("/api/")) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  if (event.request.destination === "image" || url.pathname.startsWith("/assets/")) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request).then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          return response;
+        });
+      })
+    );
+    return;
+  }
 
   event.respondWith(
     fetch(event.request)

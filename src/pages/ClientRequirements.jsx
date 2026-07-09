@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { submitLead } from '../utils/api';
+import ApiIssueReport from '../components/ApiIssueReport';
 import formGuideImg from '../photos/fill-in-forms-use-this-by-the-side-of-a-form-which-has-no-images-yet.png';
 
 const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL || '';
@@ -65,20 +66,22 @@ const Label = ({ children, required }) => (
     {children}{required && <span className="text-red-500 ml-1">*</span>}
   </label>
 );
-const Input = (props) => (
-  <input {...props} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gray-800 transition-all bg-white" />
+const Input = ({ "aria-label": ariaLabel, placeholder, ...props }) => (
+  <input {...props} placeholder={placeholder} aria-label={ariaLabel || placeholder} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gray-800 transition-all bg-white" />
 );
-const Textarea = (props) => (
-  <textarea {...props} rows={3} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gray-800 transition-all bg-white resize-none" />
+const Textarea = ({ "aria-label": ariaLabel, placeholder, ...props }) => (
+  <textarea {...props} placeholder={placeholder} aria-label={ariaLabel || placeholder} rows={3} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gray-800 transition-all bg-white resize-none" />
 );
 const CheckPill = ({ label, checked, onChange }) => (
   <button type="button" onClick={onChange}
+    aria-pressed={checked}
     className={`px-4 py-2.5 rounded-2xl border-2 text-sm font-bold transition-all text-left ${checked ? 'border-red-600 bg-red-50 text-red-700' : 'border-gray-100 bg-white text-gray-600 hover:border-gray-300'}`}>
     {checked && <span className="mr-1">✓</span>}{label}
   </button>
 );
 const RadioCard = ({ label, sub, checked, onClick }) => (
   <button type="button" onClick={onClick}
+    aria-pressed={checked}
     className={`w-full text-left p-4 rounded-2xl border-2 transition-all ${checked ? 'border-red-600 bg-red-50' : 'border-gray-100 bg-white hover:border-gray-300'}`}>
     <div className="font-bold text-sm">{label}</div>
     {sub && <div className="text-xs text-gray-500 mt-0.5">{sub}</div>}
@@ -86,7 +89,7 @@ const RadioCard = ({ label, sub, checked, onClick }) => (
 );
 const StuckModal = ({ onClose }) => (
   <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={onClose}>
-    <div className="bg-white rounded-3xl p-7 max-w-sm w-full" onClick={e => e.stopPropagation()}>
+    <div className="bg-white rounded-3xl p-7 max-w-sm w-full" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Project brief help">
       <div className="text-2xl mb-1">😊 No worries!</div>
       <p className="text-gray-600 text-sm leading-relaxed mb-5">Fill in what you can  -  we'll go through the rest together.</p>
       <div className="flex flex-col gap-3">
@@ -106,7 +109,7 @@ const StuckModal = ({ onClose }) => (
           <div><div className="font-bold text-sm text-red-800">Book a Free Call</div><div className="text-xs text-red-600">Go through everything with us</div></div>
         </a>
       </div>
-      <button onClick={onClose} className="w-full mt-4 py-3 rounded-2xl border-2 border-gray-200 font-bold text-sm text-gray-500">
+      <button type="button" onClick={onClose} className="w-full mt-4 py-3 rounded-2xl border-2 border-gray-200 font-bold text-sm text-gray-500">
         Continue filling the form →
       </button>
     </div>
@@ -118,6 +121,7 @@ export default function ClientRequirements() {
   const [showStuck,  setShowStuck]  = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted,  setSubmitted]  = useState(false);
+  const [serverIssue, setServerIssue] = useState(null);
   const [copied,     setCopied]     = useState(false);
 
   // Step 0
@@ -220,6 +224,7 @@ export default function ClientRequirements() {
   // -- SINGLE SUBMIT: backend lead + optional Sheet → reveal WhatsApp ---------------------
   const handleSubmit = async () => {
     setSubmitting(true);
+    setServerIssue(null);
     const ind = INDUSTRIES.find(i => i.key === industry);
     const payload = {
       // -- Backend routing fields --
@@ -258,7 +263,7 @@ export default function ClientRequirements() {
     } catch (e) { console.warn('Sheets:', e); }
 
     // Server  -  stores lead in leads.json
-    try { await submitLead(payload); } catch (e) { console.warn('Server:', e); }
+    try { await submitLead(payload); } catch (e) { console.warn('Server:', e); setServerIssue(e); }
 
     setSubmitting(false);
     setSubmitted(true);
@@ -278,6 +283,7 @@ export default function ClientRequirements() {
     setHasLogo(''); setHasDomain(''); setDomainName(''); setHasProEmail(''); setHasPhotos('');
     setDriveLink(''); setMediaNote(''); setRecording(''); setExtraNotes('');
     setTier(''); setBudget(''); setTimeline(''); setSubmitted(false);
+    setServerIssue(null);
   };
 
   const canNext = [
@@ -299,7 +305,11 @@ export default function ClientRequirements() {
 
   return (
     <div className="min-h-screen bg-white text-black">
-      <Helmet><title>Project Requirements | The BrandHelper</title></Helmet>
+      <Helmet>
+        <title>Website Project Brief | The BrandHelper</title>
+        <meta name="description" content="Tell The BrandHelper about your website project, business goals, pages, features, budget, and timeline so we can recommend the right build plan." />
+        <link rel="canonical" href="https://thebrandhelper.com/contact/requirements" />
+      </Helmet>
       {showStuck && <StuckModal onClose={() => setShowStuck(false)} />}
 
       <div className="bg-black text-white px-6 py-10">
@@ -310,7 +320,7 @@ export default function ClientRequirements() {
             <p className="text-gray-400 text-sm max-w-lg mx-auto md:mx-0">Fill this in so we understand exactly what you need. Don't worry about getting everything perfect  -  just share what you can.</p>
           </div>
           <div className="hidden overflow-hidden rounded-2xl border border-white/10 bg-white/5 md:block">
-            <img src={formGuideImg} alt="Project brief form guide" className="h-44 w-full object-cover" />
+            <img src={formGuideImg} alt="Project brief form guide" className="h-44 w-full object-cover" loading="lazy" decoding="async" />
           </div>
         </div>
       </div>
@@ -321,7 +331,7 @@ export default function ClientRequirements() {
           <div className="flex items-center">
             {STEPS.map((s, i) => (
               <div key={s.title} className="flex items-center flex-1">
-                <button onClick={() => i < step && setStep(i)}
+                <button type="button" onClick={() => i < step && setStep(i)} disabled={i >= step} aria-current={i === step ? "step" : undefined} aria-label={`${s.title} step ${i + 1}`}
                   className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-extrabold shrink-0 border-2 transition-all
                     ${i < step ? 'bg-red-600 border-red-600 text-white cursor-pointer' : i === step ? 'bg-black border-black text-white' : 'bg-white border-gray-200 text-gray-400'}`}>
                   {i < step ? '✓' : i + 1}
@@ -348,7 +358,7 @@ export default function ClientRequirements() {
               <Label required>Industry</Label>
               <div className="grid grid-cols-2 gap-2">
                 {INDUSTRIES.map(ind => (
-                  <button key={ind.key} type="button" onClick={() => setIndustry(ind.key)}
+                  <button key={ind.key} type="button" onClick={() => setIndustry(ind.key)} aria-pressed={industry === ind.key}
                     className={`text-left px-3 py-2.5 rounded-xl border-2 text-sm transition-all ${industry === ind.key ? 'border-red-600 bg-red-50 font-bold' : 'border-gray-100 hover:border-gray-300'}`}>
                     {ind.emoji} {ind.label}
                   </button>
@@ -480,7 +490,7 @@ export default function ClientRequirements() {
                 <div className="flex gap-4 mt-2">
                   {[[color1, setColor1, 'Main'], [color2, setColor2, 'Second'], [color3, setColor3, 'Third']].map(([val, set, lbl]) => (
                     <div key={lbl} className="flex flex-col items-center gap-1">
-                      <input type="color" value={val} onChange={e => set(e.target.value)} className="w-12 h-12 rounded-xl border border-gray-200 cursor-pointer" />
+                      <input type="color" value={val} onChange={e => set(e.target.value)} aria-label={`${lbl} brand color`} className="w-12 h-12 rounded-xl border border-gray-200 cursor-pointer" />
                       <span className="text-xs text-gray-500">{lbl}</span>
                     </div>
                   ))}
@@ -654,6 +664,7 @@ export default function ClientRequirements() {
             {!submitted ? (
               <div className="flex flex-col gap-3">
                 <button
+                  type="button"
                   onClick={handleSubmit}
                   disabled={submitting}
                   className="w-full py-4 rounded-2xl bg-red-600 text-white font-extrabold text-base hover:bg-red-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
@@ -668,7 +679,7 @@ export default function ClientRequirements() {
                     </span>
                   ) : '🚀 Submit My Project Brief'}
                 </button>
-                <button onClick={copyAll}
+                <button type="button" onClick={copyAll}
                   className="w-full py-3 rounded-2xl border-2 border-black font-bold text-sm hover:bg-black hover:text-white transition-all">
                   {copied ? '✓ Copied!' : '📋 Copy Brief Summary'}
                 </button>
@@ -676,13 +687,17 @@ export default function ClientRequirements() {
             ) : (
               /* -- POST-SUBMIT: WhatsApp as next step -- */
               <div className="flex flex-col gap-3">
-                <div className="bg-green-50 border border-green-200 rounded-2xl p-5 text-center">
+                <div className="bg-green-50 border border-green-200 rounded-2xl p-5 text-center" role="status" aria-live="polite">
                   <div className="text-4xl mb-3">🎉</div>
                   <p className="font-extrabold text-green-800 text-lg mb-1">Brief received!</p>
                   <p className="text-green-600 text-sm leading-relaxed">
                     Your project brief has been logged and our team has been notified at <strong>davida@thebrandhelper.com</strong>. Next step  -  send it to us on WhatsApp so we can confirm and schedule your free consultation call.
                   </p>
                 </div>
+
+                {serverIssue && (
+                  <ApiIssueReport error={serverIssue} context="Project requirements brief" payloadText={buildSummary()} align="center" className="rounded-2xl p-5" />
+                )}
 
                 {/* PRIMARY next action */}
                 <a
@@ -699,11 +714,11 @@ export default function ClientRequirements() {
                 >
                   📅 Book Free Consultation Call
                 </a>
-                <button onClick={copyAll}
+                <button type="button" onClick={copyAll}
                   className="w-full py-3 rounded-2xl border-2 border-black font-bold text-sm hover:bg-black hover:text-white transition-all">
                   {copied ? '✓ Copied!' : '📋 Copy Full Brief'}
                 </button>
-                <button onClick={resetForm}
+                <button type="button" onClick={resetForm}
                   className="w-full py-3 rounded-2xl text-gray-400 font-bold text-sm hover:text-black transition-all">
                   Start Over
                 </button>
@@ -722,12 +737,12 @@ export default function ClientRequirements() {
         {step < 6 && (
           <div className="flex gap-3 mt-6">
             {step > 0 && (
-              <button onClick={() => setStep(s => s - 1)}
+              <button type="button" onClick={() => setStep(s => s - 1)}
                 className="flex-1 py-4 rounded-2xl border-2 border-gray-200 font-bold text-base hover:border-black transition-all">
                 ← Back
               </button>
             )}
-            <button onClick={() => canNext && setStep(s => s + 1)} disabled={!canNext}
+            <button type="button" onClick={() => canNext && setStep(s => s + 1)} disabled={!canNext}
               className={`flex-1 py-4 rounded-2xl font-extrabold text-base text-white transition-all
                 ${canNext ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
               {step === 5 ? 'Review my brief →' : 'Continue →'}
@@ -735,7 +750,7 @@ export default function ClientRequirements() {
           </div>
         )}
         {step < 6 && (
-          <button onClick={() => setStep(s => s + 1)}
+          <button type="button" onClick={() => setStep(s => s + 1)}
             className="w-full mt-3 py-3 rounded-2xl text-gray-400 font-bold text-sm border border-dashed border-gray-200 hover:border-gray-400 transition-all">
             Skip  -  I'll answer on the call →
           </button>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { submitLead } from '../utils/api';
+import ApiIssueReport from '../components/ApiIssueReport';
 import calculatorGuideImg from '../photos/customer-care-quote-forms-side-by-side.webp';
 
 // --- CREDENTIALS --------------------------------------------------------------
@@ -118,7 +119,7 @@ const fmt   = n => '$' + Math.round(n).toLocaleString();
 
 const StuckHelper = ({ onClose }) => (
   <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={onClose}>
-    <div className="bg-white rounded-3xl p-7 max-w-sm w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+    <div className="bg-white rounded-3xl p-7 max-w-sm w-full shadow-2xl" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Website pricing help">
       <div className="text-2xl mb-1">😊 No worries!</div>
       <p className="text-gray-600 text-sm leading-relaxed mb-5">Totally fine to feel unsure  -  let us walk you through everything personally.</p>
       <div className="flex flex-col gap-3">
@@ -139,7 +140,7 @@ const StuckHelper = ({ onClose }) => (
           <div><div className="font-bold text-sm text-red-800">Book a Free Session</div><div className="text-xs text-red-600">Go through everything with an expert</div></div>
         </a>
       </div>
-      <button onClick={onClose} className="w-full mt-4 py-3 rounded-2xl border-2 border-gray-200 font-bold text-sm text-gray-500 hover:border-gray-400 transition-all">
+      <button type="button" onClick={onClose} className="w-full mt-4 py-3 rounded-2xl border-2 border-gray-200 font-bold text-sm text-gray-500 hover:border-gray-400 transition-all">
         Continue on my own →
       </button>
     </div>
@@ -148,10 +149,10 @@ const StuckHelper = ({ onClose }) => (
 
 const ExplainModal = ({ feature, onClose }) => (
   <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={onClose}>
-    <div className="bg-white rounded-3xl p-7 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
-      <div className="text-xl font-extrabold mb-3">{feature.label}</div>
+    <div className="bg-white rounded-3xl p-7 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="feature-explain-title">
+      <div id="feature-explain-title" className="text-xl font-extrabold mb-3">{feature.label}</div>
       <p className="text-gray-600 text-sm leading-relaxed mb-6">{feature.explain}</p>
-      <button onClick={onClose} className="w-full py-3 rounded-2xl bg-black text-white font-bold text-sm">Got it ✓</button>
+      <button type="button" onClick={onClose} className="w-full py-3 rounded-2xl bg-black text-white font-bold text-sm">Got it ✓</button>
     </div>
   </div>
 );
@@ -169,6 +170,7 @@ export default function WebsiteCalc() {
   // -- new submit state --
   const [submitting, setSubmitting] = useState(false);
   const [submitted,  setSubmitted]  = useState(false);
+  const [serverIssue, setServerIssue] = useState(null);
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [step]);
 
@@ -217,6 +219,7 @@ export default function WebsiteCalc() {
   // -- SINGLE SUBMIT: backend lead + optional Sheet, then reveal WhatsApp ----------------
   const handleSubmit = async () => {
     setSubmitting(true);
+    setServerIssue(null);
     const ind     = INDUSTRIES.find(i => i.key === industry);
     const payload = {
       form_type:    'Calc Quote',
@@ -243,7 +246,7 @@ export default function WebsiteCalc() {
         full_brief: payload.full_brief,
         submitted_at: payload.submitted_at,
       });
-    } catch (e) { console.warn('Backend lead:', e); }
+    } catch (e) { console.warn('Backend lead:', e); setServerIssue(e); }
 
     // Google Sheet
     try {
@@ -265,7 +268,7 @@ export default function WebsiteCalc() {
   };
 
   const StuckBtn = () => (
-    <button onClick={() => setShowStuck(true)}
+    <button type="button" onClick={() => setShowStuck(true)}
       className="w-full mt-4 py-3 rounded-2xl border border-dashed border-gray-300 text-gray-400 font-bold text-sm hover:border-gray-500 hover:text-gray-600 transition-all flex items-center justify-center gap-2">
       😕 Feeling stuck? Talk to us →
     </button>
@@ -273,7 +276,11 @@ export default function WebsiteCalc() {
 
   return (
     <div className="min-h-screen bg-white text-black">
-      <Helmet><title>Website Pricing Calculator | The BrandHelper</title></Helmet>
+      <Helmet>
+        <title>Website Pricing Calculator | The BrandHelper</title>
+        <meta name="description" content="Estimate the cost of a business website, online store, booking system, dashboard, or custom web platform with The BrandHelper pricing calculator." />
+        <link rel="canonical" href="https://thebrandhelper.com/contact/calc" />
+      </Helmet>
       {showStuck && <StuckHelper onClose={() => setShowStuck(false)} />}
       {explain   && <ExplainModal feature={explain} onClose={() => setExplain(null)} />}
 
@@ -285,7 +292,7 @@ export default function WebsiteCalc() {
             <p className="text-gray-400 text-base max-w-lg mx-auto md:mx-0">Answer a few simple questions  -  no tech knowledge needed. Takes less than 2 minutes.</p>
           </div>
           <div className="hidden overflow-hidden rounded-2xl border border-white/10 bg-white/5 md:block">
-            <img src={calculatorGuideImg} alt="Pricing calculator guide" className="h-44 w-full object-contain p-3" />
+            <img src={calculatorGuideImg} alt="Pricing calculator guide" className="h-44 w-full object-contain p-3" loading="lazy" decoding="async" />
           </div>
         </div>
       </div>
@@ -295,7 +302,7 @@ export default function WebsiteCalc() {
           <div className="flex items-center">
             {STEPS.map((s, i) => (
               <div key={s} className="flex items-center flex-1">
-                <button onClick={() => i < step && setStep(i)}
+                <button type="button" onClick={() => i < step && setStep(i)} disabled={i >= step} aria-current={i === step ? "step" : undefined} aria-label={`${s} step ${i + 1}`}
                   className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-extrabold shrink-0 border-2 transition-all
                     ${i < step ? 'bg-red-600 border-red-600 text-white cursor-pointer' : i === step ? 'bg-black border-black text-white' : 'bg-white border-gray-200 text-gray-400'}`}>
                   {i < step ? '✓' : i + 1}
@@ -317,7 +324,7 @@ export default function WebsiteCalc() {
             <p className="text-gray-500 text-sm mb-6">Pick the one that fits best.</p>
             <div className="grid grid-cols-2 gap-3">
               {INDUSTRIES.map(ind => (
-                <button key={ind.key} onClick={() => setIndustry(ind.key)}
+                <button key={ind.key} type="button" onClick={() => setIndustry(ind.key)} aria-pressed={industry === ind.key}
                   className={`text-left p-4 rounded-2xl border-2 transition-all ${industry === ind.key ? 'border-red-600 bg-red-50' : 'border-gray-100 hover:border-gray-300 bg-white'}`}>
                   <div className="text-2xl mb-1">{ind.emoji}</div>
                   <div className="font-bold text-sm leading-tight">{ind.label}</div>
@@ -336,7 +343,7 @@ export default function WebsiteCalc() {
             <p className="text-gray-500 text-sm mb-6">Read each option carefully.</p>
             <div className="flex flex-col gap-5">
               {TIERS.map(t => (
-                <button key={t.key} onClick={() => { setTier(t.key); setAddons([]); setExtras([]); }}
+                <button key={t.key} type="button" onClick={() => { setTier(t.key); setAddons([]); setExtras([]); }} aria-pressed={tier === t.key}
                   className={`text-left p-5 rounded-2xl border-2 transition-all ${tier === t.key ? 'border-red-600 bg-red-50' : 'border-gray-100 hover:border-gray-300 bg-white'}`}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="font-extrabold text-lg">{t.emoji} {t.label}</div>
@@ -390,7 +397,7 @@ export default function WebsiteCalc() {
                     return (
                       <div key={f.key} className={`rounded-2xl border-2 transition-all ${on ? 'border-red-600 bg-red-50' : 'border-gray-100 bg-white'}`}>
                         <div className="flex items-start gap-3 p-4">
-                          <button onClick={() => toggleAddon(f.key)}
+                          <button type="button" onClick={() => toggleAddon(f.key)} aria-pressed={on} aria-label={`${on ? "Remove" : "Add"} ${f.label}`}
                             className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${on ? 'bg-red-600 border-red-600 text-white' : 'border-gray-300'}`}>
                             {on && <span className="text-xs font-bold">✓</span>}
                           </button>
@@ -400,7 +407,7 @@ export default function WebsiteCalc() {
                           </div>
                           <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
                             <span className="text-red-600 font-extrabold text-sm">{f.price === 0 ? 'Free' : `+${fmt(f.price)}`}</span>
-                            {f.explain && <button onClick={() => setExplain(f)} className="text-xs text-blue-500 underline">ℹ️ What's this?</button>}
+                            {f.explain && <button type="button" onClick={() => setExplain(f)} className="text-xs text-blue-500 underline">ℹ️ What's this?</button>}
                           </div>
                         </div>
                       </div>
@@ -421,7 +428,7 @@ export default function WebsiteCalc() {
                     return (
                       <div key={f.key} className={`rounded-2xl border-2 transition-all ${on ? 'border-orange-400 bg-orange-50' : 'border-gray-100 bg-white'}`}>
                         <div className="flex items-start gap-3 p-4">
-                          <button onClick={() => toggleExtra(f.key)}
+                          <button type="button" onClick={() => toggleExtra(f.key)} aria-pressed={on} aria-label={`${on ? "Remove" : "Add"} ${f.label}`}
                             className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${on ? 'bg-orange-400 border-orange-400 text-white' : 'border-gray-300'}`}>
                             {on && <span className="text-xs font-bold">✓</span>}
                           </button>
@@ -431,7 +438,7 @@ export default function WebsiteCalc() {
                           </div>
                           <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
                             <span className="text-orange-500 font-extrabold text-sm">+{fmt(f.price)}</span>
-                            {f.explain && <button onClick={() => setExplain(f)} className="text-xs text-blue-500 underline">ℹ️ What's this?</button>}
+                            {f.explain && <button type="button" onClick={() => setExplain(f)} className="text-xs text-blue-500 underline">ℹ️ What's this?</button>}
                           </div>
                         </div>
                       </div>
@@ -463,7 +470,7 @@ export default function WebsiteCalc() {
             <p className="text-gray-500 text-sm mb-6">If you can wait, you save money.</p>
             <div className="flex flex-col gap-4 mb-5">
               {TIMELINES.map(t => (
-                <button key={t.key} onClick={() => setTimeline(t.key)}
+                <button key={t.key} type="button" onClick={() => setTimeline(t.key)} aria-pressed={timeline === t.key}
                   className={`text-left p-5 rounded-2xl border-2 transition-all ${timeline === t.key ? 'border-red-600 bg-red-50' : 'border-gray-100 hover:border-gray-300 bg-white'}`}>
                   <div className="flex items-center justify-between">
                     <div>
@@ -558,6 +565,7 @@ export default function WebsiteCalc() {
               <div className="flex flex-col gap-3">
                 {/* PRIMARY: Single submit button */}
                 <button
+                  type="button"
                   onClick={handleSubmit}
                   disabled={submitting}
                   className="w-full py-4 rounded-2xl bg-red-600 text-white font-extrabold text-base hover:bg-red-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
@@ -572,11 +580,11 @@ export default function WebsiteCalc() {
                     </span>
                   ) : '🚀 Submit Quote & Get Started'}
                 </button>
-                <button onClick={copyQuote}
+                <button type="button" onClick={copyQuote}
                   className="w-full py-3 rounded-2xl border-2 border-black font-bold text-sm hover:bg-black hover:text-white transition-all">
                   {copied ? '✓ Copied!' : '📋 Copy Quote Summary'}
                 </button>
-                <button onClick={() => setStep(2)}
+                <button type="button" onClick={() => setStep(2)}
                   className="w-full py-3 rounded-2xl border border-gray-200 text-gray-500 font-bold text-sm hover:border-gray-400 transition-all">
                   ← Edit Features
                 </button>
@@ -584,11 +592,15 @@ export default function WebsiteCalc() {
             ) : (
               /* -- POST-SUBMIT STATE: WhatsApp as next step -- */
               <div className="flex flex-col gap-3">
-                <div className="bg-green-50 border border-green-200 rounded-2xl p-5 text-center">
+                <div className="bg-green-50 border border-green-200 rounded-2xl p-5 text-center" role="status" aria-live="polite">
                   <div className="text-3xl mb-2">✅</div>
                   <p className="font-extrabold text-green-800 text-base mb-1">Quote received! We'll be in touch soon.</p>
                   <p className="text-green-600 text-sm">Your estimate has been logged and we've been notified. Next step  -  send it to us on WhatsApp so we can confirm and schedule a call.</p>
                 </div>
+
+                {serverIssue && (
+                  <ApiIssueReport error={serverIssue} context="Website pricing calculator" payloadText={buildQuote()} align="center" className="rounded-2xl p-5" />
+                )}
 
                 <a
                   href={`https://wa.me/233501657205?text=${encodeURIComponent(buildQuote())}`}
@@ -604,11 +616,11 @@ export default function WebsiteCalc() {
                 >
                   📅 Book a Free Call
                 </a>
-                <button onClick={copyQuote}
+                <button type="button" onClick={copyQuote}
                   className="w-full py-3 rounded-2xl border-2 border-black font-bold text-sm hover:bg-black hover:text-white transition-all">
                   {copied ? '✓ Copied!' : '📋 Copy Quote'}
                 </button>
-                <button onClick={() => { setStep(0); setIndustry(''); setTier(''); setAddons([]); setExtras([]); setTimeline('standard'); setSubmitted(false); }}
+                <button type="button" onClick={() => { setStep(0); setIndustry(''); setTier(''); setAddons([]); setExtras([]); setTimeline('standard'); setSubmitted(false); setServerIssue(null); }}
                   className="w-full py-3 rounded-2xl text-gray-400 font-bold text-sm hover:text-black transition-all">
                   Start Over
                 </button>
@@ -627,12 +639,12 @@ export default function WebsiteCalc() {
         {step < 4 && (
           <div className="flex gap-3 mt-6">
             {step > 0 && (
-              <button onClick={() => setStep(s => s - 1)}
+              <button type="button" onClick={() => setStep(s => s - 1)}
                 className="flex-1 py-4 rounded-2xl border-2 border-gray-200 font-bold text-base hover:border-black transition-all">
                 ← Back
               </button>
             )}
-            <button onClick={() => canNext && setStep(s => s + 1)} disabled={!canNext}
+            <button type="button" onClick={() => canNext && setStep(s => s + 1)} disabled={!canNext}
               className={`flex-1 py-4 rounded-2xl font-extrabold text-base text-white transition-all
                 ${canNext ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
               {step === 3 ? 'See my quote →' : 'Continue →'}
@@ -640,7 +652,7 @@ export default function WebsiteCalc() {
           </div>
         )}
         {step === 2 && (
-          <button onClick={() => setStep(3)}
+          <button type="button" onClick={() => setStep(3)}
             className="w-full mt-3 py-3 rounded-2xl text-gray-400 font-bold text-sm border border-dashed border-gray-200 hover:border-gray-400 transition-all">
             Skip  -  decide on the call →
           </button>

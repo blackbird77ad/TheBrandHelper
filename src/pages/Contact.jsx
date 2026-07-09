@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { submitLead } from '../utils/api';
+import ApiIssueReport from "../components/ApiIssueReport";
 import contactInquiryImg from "../photos/Get In Touch-use this for the inquiry forms as side image.png";
 
 const APPS_SCRIPT_URL     = import.meta.env.VITE_CONTACT_APPS_SCRIPT_URL || import.meta.env.VITE_APPS_SCRIPT_URL || '';
@@ -39,6 +40,7 @@ function InquiryForm() {
   const [message,    setMessage]    = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted,  setSubmitted]  = useState(false);
+  const [backendIssue, setBackendIssue] = useState(null);
 
   const buildMessage = () => [
     `New Inquiry  -  The BrandHelper`,
@@ -56,6 +58,7 @@ function InquiryForm() {
     e.preventDefault();
     if (!name || !message) return;
     setSubmitting(true);
+    setBackendIssue(null);
 
     const payload = {
       to_email:     'davida@thebrandhelper.com',
@@ -74,7 +77,7 @@ function InquiryForm() {
     };
     try {
       await submitLead(payload);
-    } catch (e) { console.warn('Backend lead:', e); }
+    } catch (e) { console.warn('Backend lead:', e); setBackendIssue(e); }
 
     // Google Sheet
     try {
@@ -94,15 +97,23 @@ function InquiryForm() {
   if (submitted) return (
     <div className="flex flex-col gap-4">
       {/* Success state */}
-      <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center">
+      <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center" role="status" aria-live="polite">
         <div className="text-4xl mb-3">✅</div>
         <p className="font-extrabold text-green-800 text-lg mb-1">Message received!</p>
         <p className="text-green-600 text-sm leading-relaxed">
-          Your inquiry has been logged and our team has been notified. Send it to us on WhatsApp too for a faster reply.
+          Thank you. For a faster response, send the same message on WhatsApp, call us, or email us directly.
         </p>
       </div>
 
-      {/* WhatsApp as next step */}
+      <ApiIssueReport
+        error={backendIssue}
+        context="Contact quick inquiry"
+        payloadText={buildMessage()}
+        align="center"
+        className="rounded-2xl p-5"
+      />
+
+      {/* Fast-response actions */}
       <a
         href={`${WHATSAPP}?text=${encodeURIComponent(buildMessage())}`}
         target="_blank" rel="noopener noreferrer"
@@ -110,6 +121,20 @@ function InquiryForm() {
       >
         💬 Send on WhatsApp for Faster Reply
       </a>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <a
+          href={`tel:${PHONE1}`}
+          className="w-full rounded-2xl bg-black py-4 text-center text-base font-extrabold text-white transition-all hover:opacity-90"
+        >
+          Call
+        </a>
+        <a
+          href={`mailto:${EMAIL}`}
+          className="w-full rounded-2xl border-2 border-gray-200 py-4 text-center text-base font-extrabold text-gray-700 transition-all hover:border-black hover:text-black"
+        >
+          Email
+        </a>
+      </div>
       <a
         href={CALENDLY} target="_blank" rel="noopener noreferrer"
         className="w-full py-4 rounded-2xl bg-black text-white font-extrabold text-base text-center block hover:opacity-90 transition-all"
@@ -117,7 +142,8 @@ function InquiryForm() {
         📅 Book a Free Consultation Call
       </a>
       <button
-        onClick={() => setSubmitted(false)}
+        type="button"
+        onClick={() => { setSubmitted(false); setBackendIssue(null); }}
         className="w-full py-3 rounded-2xl border-2 border-gray-200 font-bold text-sm text-gray-500 hover:border-gray-400 transition-all"
       >
         Send another message
@@ -134,21 +160,21 @@ function InquiryForm() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div>
           <label className="block text-sm font-bold mb-2">Your name <span className="text-red-500">*</span></label>
-          <input className={inputClass} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Kofi Mensah" required />
+          <input className={inputClass} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Kofi Mensah" aria-label="Your name" autoComplete="name" required />
         </div>
         <div>
           <label className="block text-sm font-bold mb-2">Email address</label>
-          <input type="email" className={inputClass} value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" />
+          <input type="email" className={inputClass} value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" aria-label="Email address" autoComplete="email" />
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div>
           <label className="block text-sm font-bold mb-2">Phone / WhatsApp</label>
-          <input className={inputClass} value={phone} onChange={e => setPhone(e.target.value)} placeholder="+233 xx xxx xxxx" />
+          <input className={inputClass} value={phone} onChange={e => setPhone(e.target.value)} placeholder="+233 xx xxx xxxx" aria-label="Phone or WhatsApp" autoComplete="tel" />
         </div>
         <div>
           <label className="block text-sm font-bold mb-2">Service you're interested in</label>
-          <select className={inputClass} value={service} onChange={e => setService(e.target.value)}>
+          <select className={inputClass} value={service} onChange={e => setService(e.target.value)} aria-label="Service you are interested in">
             <option value="">Select a service...</option>
             {ALL_SERVICES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
@@ -160,6 +186,7 @@ function InquiryForm() {
           className={`${inputClass} resize-none`} rows={4}
           value={message} onChange={e => setMessage(e.target.value)} required
           placeholder="Tell us about your project, what you need, or any questions you have..."
+          aria-label="Your message"
         />
       </div>
 
@@ -202,6 +229,24 @@ const TABS = [
   { key: "calc",         label: "Pricing Calculator", desc: "Get an instant website estimate"        },
 ];
 
+const contactSeo = {
+  inquiry: {
+    title: "Contact The BrandHelper | Start a Website, Product or AI Request",
+    description: "Contact The BrandHelper to start a website project, ask about digital products, request AI data, discuss project support, or get help choosing the right next step.",
+    canonical: "https://thebrandhelper.com/contact",
+  },
+  requirements: {
+    title: "Website Project Brief | The BrandHelper",
+    description: "Fill a simple website project brief so The BrandHelper can understand your business, pages, features, budget, timeline, and quote the right solution.",
+    canonical: "https://thebrandhelper.com/contact/requirements",
+  },
+  calc: {
+    title: "Website Pricing Calculator | The BrandHelper",
+    description: "Use The BrandHelper website pricing calculator to estimate a business website, store, booking platform, dashboard, or custom web project in simple steps.",
+    canonical: "https://thebrandhelper.com/contact/calc",
+  },
+};
+
 // -- Lazy imports of the other two forms -----------------------------------
 import ClientRequirements from "./ClientRequirements";
 import WebsiteCalc from "./WebsiteCalc";
@@ -210,6 +255,7 @@ export default function Contact() {
   const { tab }      = useParams();
   const navigate     = useNavigate();
   const activeTab    = TABS.find(t => t.key === tab)?.key || "inquiry";
+  const seo          = contactSeo[activeTab] || contactSeo.inquiry;
 
   const setTab = (key) => navigate(`/contact/${key}`, { replace: true });
 
@@ -218,19 +264,19 @@ export default function Contact() {
   return (
     <div className="bg-white text-black min-h-screen">
       <Helmet>
-        <title>Contact The BrandHelper | Start a Project or Get a Quote</title>
-        <meta name="description" content="Ready to build your business online? Fill a project brief, get a website quote, or send a quick inquiry. The BrandHelper responds within 24 hours." />
+        <title>{seo.title}</title>
+        <meta name="description" content={seo.description} />
         <meta name="robots" content="index, follow" />
-        <link rel="canonical" href="https://thebrandhelper.com/contact" />
+        <link rel="canonical" href={seo.canonical} />
         <meta property="og:type"        content="website" />
-        <meta property="og:url"         content="https://thebrandhelper.com/contact" />
-        <meta property="og:title"       content="Contact The BrandHelper | Start a Project or Get a Quote" />
-        <meta property="og:description" content="Fill a project brief, use our pricing calculator, or send a quick message. We respond within 24 hours." />
-        <meta property="og:image"       content="https://thebrandhelper.com/images/og-image.jpg" />
+        <meta property="og:url"         content={seo.canonical} />
+        <meta property="og:title"       content={seo.title} />
+        <meta property="og:description" content={seo.description} />
+        <meta property="og:image"       content="https://thebrandhelper.com/logo-tbh-wordmark.png" />
         <meta name="twitter:card"        content="summary_large_image" />
-        <meta name="twitter:title"       content="Contact The BrandHelper" />
-        <meta name="twitter:description" content="Start a project, get a quote, or send a quick inquiry. We respond within 24 hours." />
-        <meta name="twitter:image"       content="https://thebrandhelper.com/images/og-image.jpg" />
+        <meta name="twitter:title"       content={seo.title} />
+        <meta name="twitter:description" content={seo.description} />
+        <meta name="twitter:image"       content="https://thebrandhelper.com/logo-tbh-wordmark.png" />
       </Helmet>
 
       {/* -- Hero -- */}
@@ -270,7 +316,9 @@ export default function Contact() {
             {TABS.map(({ key, label, desc }) => (
               <button
                 key={key}
+                type="button"
                 onClick={() => setTab(key)}
+                aria-pressed={activeTab === key}
                 className={`flex flex-col items-start py-4 px-5 md:px-7 border-b-2 transition-all whitespace-nowrap shrink-0
                   ${activeTab === key ? 'border-red-600 text-black' : 'border-transparent text-gray-400 hover:text-gray-700'}`}
               >
@@ -295,7 +343,7 @@ export default function Contact() {
               <InquiryForm />
             </div>
             <aside className="overflow-hidden rounded-2xl border border-gray-100 bg-[#F8F8F8]">
-              <img src={contactInquiryImg} alt="Contact inquiry support" className="h-72 w-full object-cover" />
+              <img src={contactInquiryImg} alt="Contact inquiry support" className="h-72 w-full object-cover" loading="lazy" decoding="async" />
               <div className="p-5">
                 <p className="text-xs font-bold uppercase tracking-widest text-red-600">Easy Start</p>
                 <h3 className="mt-2 text-lg font-extrabold">Tell us what you need in plain language.</h3>
