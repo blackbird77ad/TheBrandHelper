@@ -932,16 +932,35 @@ async function cleanPortfolioPayload(body = {}) {
   return payload;
 }
 
+const LEGACY_PORTFOLIO_IMAGES = {
+  '/images/og-image.jpg.svg': '/images/belle-kreyashon.svg',
+  '/images/Screenshot 2026-03-25 164016.png': '/images/faith-and-grace-catering.jpg',
+};
+
+function normalizePortfolioItem(item = {}) {
+  const image = String(item.image || '').trim();
+  return {
+    ...item,
+    image: image.startsWith('data:image/')
+      ? '/images/c2-drone-consult.jpg'
+      : LEGACY_PORTFOLIO_IMAGES[image] || image,
+  };
+}
+
 app.get('/api/portfolio',          async (_req, res) => {
   try {
-    const items = await Portfolio.find({ published: { $ne: false } }).sort({ featured: -1, createdAt: -1 }).lean();
-    res.json({ success: true, data: items, count: items.length });
+    const items = await Portfolio.find().sort({ featured: -1, createdAt: -1 }).lean();
+    const visible = items
+      .filter((item) => item.published !== false)
+      .map(normalizePortfolioItem);
+    res.json({ success: true, data: visible, count: visible.length });
   } catch (e) { err(res, e); }
 });
 
 app.get('/api/admin/portfolio', auth, async (_req, res) => {
   try {
-    const items = await Portfolio.find().sort({ published: -1, featured: -1, createdAt: -1 }).lean();
+    const items = (await Portfolio.find().sort({ published: -1, featured: -1, createdAt: -1 }).lean())
+      .map(normalizePortfolioItem);
     res.json({ success: true, data: items, count: items.length });
   } catch (e) { err(res, e); }
 });

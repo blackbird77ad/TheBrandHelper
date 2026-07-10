@@ -12,7 +12,7 @@ const PROJECTS = [
     title:       "Belle Kreyashon  -  Ghana's One-Stop Lifestyle Store",
     category:    "Website Design",
     featured:    true,
-    image:       "/images/og-image.jpg.svg",
+    image:       "/images/belle-kreyashon.svg",
     link:        "https://bellekreyashon.com",
     tags:        ["E-commerce", "React", "Node.js", "MongoDB", "Paystack", "Cloudinary", "Ghana"],
     description: `We built Belle Kreyashon  -  Ghana's boldest lifestyle e-commerce platform. Hair, beauty, fashion, skincare, health and gadgets  -  all in one place, built to move beyond WhatsApp selling and into a fully professional online store.
@@ -38,7 +38,7 @@ Running a product-based business in Ghana or West Africa? This is what's possibl
     title:       "Faith & Grace Catering  -  Full Food Ordering Platform",
     category:    "Website Design",
     featured:    true,
-    image:       "/images/Screenshot 2026-03-25 164016.png",
+    image:       "/images/faith-and-grace-catering.jpg",
     link:        "https://faithandgracecatering.com",
     tags:        ["Food & Restaurant", "React", "Order Management", "New Jersey", "Catering"],
     description: `We built Faith & Grace Catering a complete online ordering platform for their New Jersey-based catering business  -  serving individual meals and large party orders with zero friction.
