@@ -234,11 +234,20 @@ const reminderSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // -- PORTFOLIO PROJECT (existing) ----------------------------------------------
+const portfolioGallerySchema = new mongoose.Schema({
+  title:       { type: String, default: '' },
+  description: { type: String, default: '' },
+  image:       { type: String, default: '' },
+  alt:         { type: String, default: '' },
+  order:       { type: Number, default: 0 },
+}, { _id: false });
+
 const portfolioSchema = new mongoose.Schema({
   title:       { type: String, required: true, trim: true },
   category:    { type: String, default: 'Other' },
   description: { type: String, required: true, trim: true },
   image:       { type: String, default: '' },
+  gallery:     { type: [portfolioGallerySchema], default: [] },
   link:        { type: String, default: '' },
   tags:        { type: [String], default: [] },
   published:   { type: Boolean, default: true, index: true },

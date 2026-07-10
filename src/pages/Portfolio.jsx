@@ -78,6 +78,17 @@ function normalizeProjects(items) {
     image: item.image || "",
     link: item.link || "",
     tags: Array.isArray(item.tags) ? item.tags.filter(Boolean) : [],
+    gallery: Array.isArray(item.gallery)
+      ? item.gallery
+        .filter((entry) => entry?.image || entry?.title || entry?.description)
+        .slice(0, 5)
+        .map((entry, galleryIndex) => ({
+          title: entry.title || `Project page ${galleryIndex + 1}`,
+          description: entry.description || "",
+          image: entry.image || "",
+          alt: entry.alt || entry.title || item.title || `Project page ${galleryIndex + 1}`,
+        }))
+      : [],
   }));
 }
 
@@ -113,6 +124,29 @@ function ProjectImage({ project, className = "", eager = false }) {
       loading={eager ? "eager" : "lazy"}
       decoding="async"
       fetchPriority={eager ? "high" : "auto"}
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+function GalleryImage({ item }) {
+  const [failed, setFailed] = useState(false);
+
+  if (!item.image || failed) {
+    return (
+      <div className="flex h-44 items-center justify-center bg-gray-100 text-xs font-bold uppercase tracking-widest text-gray-400">
+        Project page
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={item.image}
+      alt={item.alt || item.title}
+      className="h-44 w-full object-cover"
+      loading="lazy"
+      decoding="async"
       onError={() => setFailed(true)}
     />
   );
@@ -508,6 +542,23 @@ export default function Portfolio() {
                     {selected.tags.map((tag) => (
                       <span key={tag} className="rounded-full bg-gray-100 px-3 py-1.5 text-xs font-bold text-gray-700">{tag}</span>
                     ))}
+                  </div>
+                )}
+
+                {selected.gallery?.length > 0 && (
+                  <div className="mt-7">
+                    <h3 className="text-sm font-extrabold uppercase tracking-widest text-black">Project pages</h3>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      {selected.gallery.map((item, galleryIndex) => (
+                        <figure key={`${item.title}-${galleryIndex}`} className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                          <GalleryImage item={item} />
+                          <figcaption className="p-3">
+                            <p className="text-sm font-extrabold text-black">{item.title}</p>
+                            {item.description && <p className="mt-1 text-xs leading-relaxed text-gray-600">{item.description}</p>}
+                          </figcaption>
+                        </figure>
+                      ))}
+                    </div>
                   </div>
                 )}
 

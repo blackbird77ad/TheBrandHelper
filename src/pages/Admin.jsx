@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
 import {
   FiBarChart2,
@@ -33,7 +33,7 @@ const QUOTE_STATUSES   = ['draft','sent','accepted','declined','expired'];
 const NOTE_TYPES       = ['note','call','email','whatsapp','meeting','other'];
 const MEETING_TYPES    = ['call','video','in_person','whatsapp'];
 const LEAD_SOURCES     = ['website','manual','referral','social','other'];
-const CATEGORIES       = ['Website Design','Brand Strategy','Ads Management','Technical Support','Other'];
+const CATEGORIES       = ['Website Design','Software Development','AI/ML Development','E-commerce','SaaS/Admin Systems','Brand Strategy','Ads Management','Technical Support','Other'];
 const PHASE2_PRODUCT_TYPES = ['dataset','website','software','digital_product','ai_service','other'];
 const PHASE2_PRODUCT_STATUSES = ['available','limited','licensing','custom_collection','coming_soon','request_access','sold','unavailable'];
 const PHASE2_REQUEST_TYPES = ['dataset_interest','ai_project','data_collection','talent_request','contributor_application','product_enquiry','general_phase2'];
@@ -861,7 +861,7 @@ function RemindersTab({ reminders, onAdd, onEdit, onComplete, onDelete }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // PORTFOLIO TAB
 // ══════════════════════════════════════════════════════════════════════════════
-function PortfolioTab({ items, onAdd, onEdit, onDelete, onTogglePublished }) {
+function LegacyPortfolioTab({ items, onAdd, onEdit, onDelete, onTogglePublished }) {
   const published = items.filter(i => i.published !== false).length;
   const featured = items.filter(i => i.featured).length;
   return (
@@ -954,6 +954,209 @@ function PortfolioTab({ items, onAdd, onEdit, onDelete, onTogglePublished }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // STATS TAB
 // ══════════════════════════════════════════════════════════════════════════════
+function PortfolioTab({ items, onAdd, onEdit, onDelete, onTogglePublished }) {
+  const pageSize = 10;
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
+  const [page, setPage] = useState(1);
+
+  const published = items.filter(i => i.published !== false).length;
+  const featured = items.filter(i => i.featured).length;
+  const categoryOptions = useMemo(() => {
+    const present = new Set(items.map(item => item.category).filter(Boolean));
+    return ['all', ...Array.from(present).sort()];
+  }, [items]);
+
+  const filteredItems = useMemo(() => {
+    const search = query.trim().toLowerCase();
+    const list = items.filter((item) => {
+      const galleryText = Array.isArray(item.gallery)
+        ? item.gallery.map(entry => `${entry.title || ''} ${entry.description || ''}`).join(' ')
+        : '';
+      const haystack = [
+        item.title,
+        item.category,
+        item.description,
+        item.link,
+        Array.isArray(item.tags) ? item.tags.join(' ') : item.tags,
+        galleryText,
+      ].join(' ').toLowerCase();
+      const statusOk =
+        statusFilter === 'all' ||
+        (statusFilter === 'public' && item.published !== false) ||
+        (statusFilter === 'hidden' && item.published === false) ||
+        (statusFilter === 'featured' && item.featured);
+      const categoryOk = categoryFilter === 'all' || item.category === categoryFilter;
+      return statusOk && categoryOk && (!search || haystack.includes(search));
+    });
+
+    return list.sort((a, b) => {
+      if (sortBy === 'oldest') return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+      if (sortBy === 'title') return String(a.title || '').localeCompare(String(b.title || ''));
+      if (sortBy === 'category') return String(a.category || '').localeCompare(String(b.category || ''));
+      if (sortBy === 'public') return Number(b.published !== false) - Number(a.published !== false);
+      if (sortBy === 'featured') return Number(Boolean(b.featured)) - Number(Boolean(a.featured));
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    });
+  }, [categoryFilter, items, query, sortBy, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageItems = filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const showStart = filteredItems.length ? (currentPage - 1) * pageSize + 1 : 0;
+  const showEnd = Math.min(currentPage * pageSize, filteredItems.length);
+
+  const resetPage = (callback) => {
+    callback();
+    setPage(1);
+  };
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-extrabold">Portfolio ({items.length})</h2>
+          <p className="mt-0.5 text-xs text-gray-400">
+            <span className="font-bold text-green-600">{published} public</span>
+            {' / '}
+            <span>{items.length - published} hidden</span>
+            {' / '}
+            <span className="font-bold text-red-600">{featured} featured</span>
+          </p>
+        </div>
+        <Btn onClick={onAdd}>+ Add Portfolio</Btn>
+      </div>
+
+      <div className="mb-5 grid gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm md:grid-cols-[1.4fr_0.75fr_0.75fr_0.75fr]">
+        <div>
+          <Lbl>Search projects</Lbl>
+          <input
+            className={inp}
+            value={query}
+            onChange={e => resetPage(() => setQuery(e.target.value))}
+            placeholder="Search title, details, tags, pages..."
+          />
+        </div>
+        <div>
+          <Lbl>Status</Lbl>
+          <select className={sel} value={statusFilter} onChange={e => resetPage(() => setStatusFilter(e.target.value))}>
+            <option value="all">All status</option>
+            <option value="public">Public</option>
+            <option value="hidden">Hidden</option>
+            <option value="featured">Featured</option>
+          </select>
+        </div>
+        <div>
+          <Lbl>Category</Lbl>
+          <select className={sel} value={categoryFilter} onChange={e => resetPage(() => setCategoryFilter(e.target.value))}>
+            {categoryOptions.map(category => (
+              <option key={category} value={category}>{category === 'all' ? 'All categories' : category}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <Lbl>Sort</Lbl>
+          <select className={sel} value={sortBy} onChange={e => resetPage(() => setSortBy(e.target.value))}>
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="title">Title A-Z</option>
+            <option value="category">Category A-Z</option>
+            <option value="public">Public first</option>
+            <option value="featured">Featured first</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 text-xs font-bold text-gray-500">
+        <p>Showing {showStart}-{showEnd} of {filteredItems.length} matched projects, 10 cards per page.</p>
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-full bg-green-500" /> Public</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-full bg-gray-300" /> Hidden</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-5">
+        {pageItems.map(item => {
+          const galleryCount = Array.isArray(item.gallery) ? item.gallery.filter(entry => entry.image).length : 0;
+          return (
+            <div key={item._id} className={`overflow-hidden rounded-2xl border-2 bg-white shadow-sm transition hover:shadow-md ${item.published !== false ? 'border-green-400' : 'border-gray-100'}`}>
+              <div className={`flex items-center justify-between gap-2 px-3 py-2 ${item.published !== false ? 'bg-green-50' : 'bg-gray-50'}`}>
+                <span className={`truncate text-[10px] font-extrabold uppercase tracking-widest ${item.published !== false ? 'text-green-700' : 'text-gray-400'}`}>
+                  {item.published !== false ? 'Public' : 'Hidden'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onTogglePublished(item)}
+                  className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold transition ${
+                    item.published !== false ? 'bg-gray-200 text-gray-600 hover:bg-red-100 hover:text-red-600' : 'bg-green-500 text-white hover:bg-green-600'
+                  }`}
+                >
+                  {item.published !== false ? 'Hide' : 'Publish'}
+                </button>
+              </div>
+
+              <div className="relative flex h-32 items-center justify-center overflow-hidden bg-gray-100">
+                {item.image
+                  ? <img src={item.image} alt={item.title} className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                  : <span className="text-xs font-bold uppercase tracking-widest text-gray-400">No cover</span>
+                }
+                {item.featured && <span className="absolute left-2 top-2 rounded-full bg-red-600 px-2 py-1 text-[10px] font-bold uppercase text-white">Featured</span>}
+              </div>
+
+              <div className="p-4">
+                <p className="truncate text-[11px] font-bold uppercase tracking-widest text-red-600">{item.category || 'Other'}</p>
+                <h3 className="mt-1 line-clamp-2 min-h-10 text-sm font-extrabold leading-snug">{item.title}</h3>
+                <p className="mt-2 line-clamp-2 min-h-8 text-xs text-gray-500">{item.description}</p>
+                <div className="mt-3 flex flex-wrap gap-1.5 text-[10px] font-bold text-gray-500">
+                  <span className="rounded-full bg-gray-100 px-2 py-1">{galleryCount}/5 page images</span>
+                  {item.link && <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-600">Live link</span>}
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Btn small variant="outline" onClick={() => onEdit(item)}>Edit</Btn>
+                  <Btn small variant="danger" onClick={() => onDelete(item._id)}>Delete</Btn>
+                  {item.link && (
+                    <a href={item.link} target="_blank" rel="noopener noreferrer"
+                      className="rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-600 transition hover:bg-blue-100">
+                      Live
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        {filteredItems.length === 0 && (
+          <div className="col-span-full rounded-2xl bg-white p-12 text-center text-gray-300">
+            <p className="font-semibold text-gray-400">No portfolio projects match this view.</p>
+          </div>
+        )}
+      </div>
+
+      {filteredItems.length > pageSize && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 pt-5">
+          <p className="text-sm font-bold text-gray-500">Page {currentPage} of {totalPages}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => setPage(current => Math.max(1, current - 1))} disabled={currentPage === 1} className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold transition hover:border-black disabled:cursor-not-allowed disabled:opacity-40">Previous</button>
+            {Array.from({ length: totalPages }, (_, index) => index + 1).map(pageNumber => (
+              <button
+                key={pageNumber}
+                type="button"
+                onClick={() => setPage(pageNumber)}
+                className={`h-9 w-9 rounded-xl text-sm font-extrabold transition ${pageNumber === currentPage ? 'bg-black text-white' : 'border border-gray-200 text-gray-600 hover:border-black'}`}
+              >
+                {pageNumber}
+              </button>
+            ))}
+            <button type="button" onClick={() => setPage(current => Math.min(totalPages, current + 1))} disabled={currentPage === totalPages} className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold transition hover:border-black disabled:cursor-not-allowed disabled:opacity-40">Next</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StatsTab({ stats }) {
   if (!stats) return <div className="bg-white rounded-2xl p-12 text-center text-gray-400">Loading stats...</div>;
   const s = stats;
@@ -1459,7 +1662,7 @@ function ReminderForm({ data, leads, clients, projects, onClose, onSave, onError
   );
 }
 
-function PortfolioForm({ data, onClose, onSave, onError }) {
+function LegacyPortfolioForm({ data, onClose, onSave, onError }) {
   const [f, setF] = useState({ title:'', category:'Website Design', description:'', image:'', link:'', published:true, featured:false, ...data, tags:Array.isArray(data?.tags)?data.tags.join(', '):data?.tags||'' });
   const [imgMode, setImgMode] = useState('url');
   const [saving,  setSaving]  = useState(false);
@@ -1500,6 +1703,253 @@ function PortfolioForm({ data, onClose, onSave, onError }) {
           <label className="flex items-center gap-3 cursor-pointer rounded-xl border border-gray-100 bg-gray-50 p-3"><button onClick={()=>set('featured',!f.featured)} className={`w-12 h-6 rounded-full transition relative shrink-0 ${f.featured?'bg-red-600':'bg-gray-200'}`}><span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${f.featured?'left-6':'left-0.5'}`}/></button><span className="text-sm font-bold">Featured highlight</span></label>
         </div>
         <div className="flex gap-3 pt-2"><Btn onClick={save} disabled={!f.title||!f.description||saving}>{saving?'Saving...':'Save'}</Btn><Btn variant="outline" onClick={onClose}>Cancel</Btn></div>
+      </div>
+    </Modal>
+  );
+}
+
+const PORTFOLIO_GALLERY_LIMIT = 5;
+
+function emptyPortfolioGalleryItem(index) {
+  return { title: '', description: '', image: '', alt: '', order: index };
+}
+
+function normalizePortfolioGalleryForForm(gallery = []) {
+  const source = Array.isArray(gallery)
+    ? [...gallery].sort((a, b) => Number(a?.order || 0) - Number(b?.order || 0))
+    : [];
+  return Array.from({ length: PORTFOLIO_GALLERY_LIMIT }, (_, index) => ({
+    ...emptyPortfolioGalleryItem(index),
+    ...(source[index] || {}),
+    order: index,
+  }));
+}
+
+function PortfolioForm({ data, onClose, onSave, onError }) {
+  const [f, setF] = useState(() => ({
+    title: '',
+    category: 'Website Design',
+    description: '',
+    image: '',
+    link: '',
+    published: true,
+    featured: false,
+    ...data,
+    tags: Array.isArray(data?.tags) ? data.tags.join(', ') : data?.tags || '',
+    gallery: normalizePortfolioGalleryForForm(data?.gallery),
+  }));
+  const [imgMode, setImgMode] = useState(data?.image ? 'url' : 'upload');
+  const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingGalleryIndex, setUploadingGalleryIndex] = useState(null);
+  const fileRef = useRef(null);
+  const galleryFileRefs = useRef([]);
+
+  const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const setGalleryItem = (index, patch) => {
+    setF((current) => {
+      const gallery = normalizePortfolioGalleryForForm(current.gallery);
+      gallery[index] = { ...gallery[index], ...patch, order: index };
+      return { ...current, gallery };
+    });
+  };
+
+  const uploadFile = async (file, folder) => {
+    if (!file) return '';
+    if (file.size > 8 * 1024 * 1024) throw new Error('Image too large - max 8MB');
+    const uploaded = await api.uploadImage(file, folder);
+    return uploaded.data?.secure_url || uploaded.data?.url || '';
+  };
+
+  const handleCoverFile = async e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImage(true);
+    try {
+      const url = await uploadFile(file, 'thebrandhelper/portfolio');
+      if (url) set('image', url);
+    } catch(e) { onError(e.message); }
+    finally { setUploadingImage(false); e.target.value = ''; }
+  };
+
+  const handleGalleryFile = async (index, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingGalleryIndex(index);
+    try {
+      const url = await uploadFile(file, 'thebrandhelper/portfolio/pages');
+      if (url) {
+        setF((current) => {
+          const gallery = normalizePortfolioGalleryForForm(current.gallery);
+          gallery[index] = { ...gallery[index], image: url, order: index };
+          return { ...current, image: current.image || url, gallery };
+        });
+      }
+    } catch(e) { onError(e.message); }
+    finally { setUploadingGalleryIndex(null); e.target.value = ''; }
+  };
+
+  const save = async () => {
+    if (!f.title || !f.description) return;
+    setSaving(true);
+    try {
+      const gallery = normalizePortfolioGalleryForForm(f.gallery)
+        .map((item, index) => ({
+          title: String(item.title || '').trim(),
+          description: String(item.description || '').trim(),
+          image: String(item.image || '').trim(),
+          alt: String(item.alt || item.title || '').trim(),
+          order: index,
+        }))
+        .filter(item => item.image || item.title || item.description);
+      const payload = {
+        ...f,
+        tags: String(f.tags || '').split(',').map(t => t.trim()).filter(Boolean),
+        gallery,
+      };
+      if (data?._id) await api.updatePortfolio(data._id, payload);
+      else await api.createPortfolio(payload);
+      onSave();
+    } catch(e) { onError(e.message); }
+    finally { setSaving(false); }
+  };
+
+  const galleryCount = f.gallery.filter(item => item.image).length;
+
+  return (
+    <Modal title={data ? 'Edit Portfolio Item' : 'Add Portfolio Item'} onClose={onClose} wide>
+      <div className="flex flex-col gap-5">
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
+            <Lbl req>Title</Lbl>
+            <input className={inp} value={f.title} onChange={e => set('title', e.target.value)} placeholder="e.g. Catering website redesign" />
+          </div>
+          <div>
+            <Lbl>Category</Lbl>
+            <select className={sel} value={f.category} onChange={e => set('category', e.target.value)}>
+              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <Lbl req>Description</Lbl>
+          <textarea className={`${inp} resize-none`} rows={5} value={f.description} onChange={e => set('description', e.target.value)} placeholder="Project goal, what was built, client value, and key features..." />
+        </div>
+
+        <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-extrabold">Cover image</p>
+              <p className="text-xs font-semibold text-gray-400">Used on admin cards and public portfolio cards.</p>
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setImgMode('url')} className={`rounded-lg border px-4 py-2 text-xs font-bold transition ${imgMode === 'url' ? 'border-black bg-black text-white' : 'border-gray-200 bg-white text-gray-500'}`}>URL</button>
+              <button type="button" onClick={() => setImgMode('upload')} className={`rounded-lg border px-4 py-2 text-xs font-bold transition ${imgMode === 'upload' ? 'border-black bg-black text-white' : 'border-gray-200 bg-white text-gray-500'}`}>Upload</button>
+            </div>
+          </div>
+          {imgMode === 'url' ? (
+            <input className={inp} value={f.image} onChange={e => set('image', e.target.value)} placeholder="https://..." />
+          ) : (
+            <button type="button" onClick={() => !uploadingImage && fileRef.current?.click()} className="w-full rounded-xl border-2 border-dashed border-gray-200 bg-white p-6 text-center transition hover:border-red-400">
+              <span className={`text-sm font-bold ${uploadingImage ? 'text-blue-600' : f.image ? 'text-green-600' : 'text-gray-500'}`}>
+                {uploadingImage ? 'Uploading to Cloudinary...' : f.image ? 'Cover image uploaded' : 'Upload cover image'}
+              </span>
+            </button>
+          )}
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleCoverFile} />
+          {f.image && (
+            <div className="mt-3 h-36 overflow-hidden rounded-xl bg-gray-100">
+              <img src={f.image} alt="Cover preview" className="h-full w-full object-cover" decoding="async" onError={e => { e.currentTarget.style.display = 'none'; }} />
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-gray-100 bg-white p-4">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-extrabold">Page images</p>
+              <p className="text-xs font-semibold text-gray-400">{galleryCount}/{PORTFOLIO_GALLERY_LIMIT} screenshots added.</p>
+            </div>
+            <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-500">Up to 5</span>
+          </div>
+
+          <div className="grid gap-4">
+            {f.gallery.map((item, index) => (
+              <div key={index} className="grid gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-3 lg:grid-cols-[210px_1fr]">
+                <div>
+                  <div className="flex h-36 items-center justify-center overflow-hidden rounded-xl bg-white">
+                    {item.image ? (
+                      <img src={item.image} alt={item.alt || item.title || `Page ${index + 1}`} className="h-full w-full object-cover" loading="lazy" decoding="async" onError={e => { e.currentTarget.style.display = 'none'; }} />
+                    ) : (
+                      <span className="text-xs font-bold uppercase tracking-widest text-gray-300">Page {index + 1}</span>
+                    )}
+                  </div>
+                  <div className="mt-2 flex gap-2">
+                    <button type="button" onClick={() => galleryFileRefs.current[index]?.click()} disabled={uploadingGalleryIndex === index} className="flex-1 rounded-lg bg-black px-3 py-2 text-xs font-bold text-white transition hover:bg-red-600 disabled:opacity-50">
+                      {uploadingGalleryIndex === index ? 'Uploading...' : 'Upload'}
+                    </button>
+                    <button type="button" onClick={() => setGalleryItem(index, { image: '' })} className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-500 transition hover:border-red-200 hover:text-red-600">Clear</button>
+                  </div>
+                  <input
+                    ref={el => { galleryFileRefs.current[index] = el; }}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => handleGalleryFile(index, e)}
+                  />
+                </div>
+                <div className="grid gap-3">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div>
+                      <Lbl>Page label</Lbl>
+                      <input className={inp} value={item.title} onChange={e => setGalleryItem(index, { title: e.target.value, alt: e.target.value })} placeholder={index === 0 ? 'Home page' : index === 1 ? 'About page' : `Page ${index + 1}`} />
+                    </div>
+                    <div>
+                      <Lbl>Image URL</Lbl>
+                      <input className={inp} value={item.image} onChange={e => setGalleryItem(index, { image: e.target.value })} placeholder="https://..." />
+                    </div>
+                  </div>
+                  <div>
+                    <Lbl>Image description</Lbl>
+                    <textarea className={`${inp} resize-none`} rows={3} value={item.description} onChange={e => setGalleryItem(index, { description: e.target.value })} placeholder="What this page/screen shows..." />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
+            <Lbl>Live Link</Lbl>
+            <input className={inp} value={f.link} onChange={e => set('link', e.target.value)} placeholder="https://..." />
+          </div>
+          <div>
+            <Lbl>Tags (comma separated)</Lbl>
+            <input className={inp} value={f.tags} onChange={e => set('tags', e.target.value)} placeholder="React, Ecommerce, AI" />
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3">
+            <button type="button" onClick={() => set('published', !f.published)} className={`relative h-6 w-12 shrink-0 rounded-full transition ${f.published ? 'bg-green-500' : 'bg-gray-200'}`}>
+              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${f.published ? 'left-6' : 'left-0.5'}`} />
+            </button>
+            <span className="text-sm font-bold">Published on Portfolio page</span>
+          </label>
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3">
+            <button type="button" onClick={() => set('featured', !f.featured)} className={`relative h-6 w-12 shrink-0 rounded-full transition ${f.featured ? 'bg-red-600' : 'bg-gray-200'}`}>
+              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${f.featured ? 'left-6' : 'left-0.5'}`} />
+            </button>
+            <span className="text-sm font-bold">Featured highlight</span>
+          </label>
+        </div>
+
+        <div className="flex gap-3 pt-2">
+          <Btn onClick={save} disabled={!f.title || !f.description || saving}>{saving ? 'Saving...' : 'Save Portfolio'}</Btn>
+          <Btn variant="outline" onClick={onClose}>Cancel</Btn>
+        </div>
       </div>
     </Modal>
   );

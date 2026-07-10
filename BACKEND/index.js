@@ -927,6 +927,22 @@ async function cleanPortfolioPayload(body = {}) {
   ['_id', '__v', 'createdAt', 'updatedAt'].forEach((field) => { delete payload[field]; });
   if (payload.tags !== undefined) payload.tags = toArray(payload.tags);
   if (payload.image !== undefined) payload.image = await normalizeImageField(payload.image, 'thebrandhelper/portfolio');
+  const rawGallery = payload.gallery || payload.page_images || payload.images || [];
+  if (payload.gallery !== undefined || payload.page_images !== undefined || payload.images !== undefined) {
+    const gallery = Array.isArray(rawGallery) ? rawGallery : [];
+    payload.gallery = await Promise.all(gallery.slice(0, 5).map(async (entry = {}, index) => ({
+      title: String(entry.title || '').trim(),
+      description: String(entry.description || '').trim(),
+      image: await normalizeImageField(entry.image, 'thebrandhelper/portfolio/pages'),
+      alt: String(entry.alt || entry.title || '').trim(),
+      order: Number.isFinite(Number(entry.order)) ? Number(entry.order) : index,
+    })));
+    payload.gallery = payload.gallery
+      .filter((entry) => entry.image || entry.title || entry.description)
+      .sort((a, b) => a.order - b.order);
+  }
+  delete payload.page_images;
+  delete payload.images;
   return payload;
 }
 
@@ -936,12 +952,29 @@ const LEGACY_PORTFOLIO_IMAGES = {
 };
 
 function normalizePortfolioItem(item = {}) {
-  const image = String(item.image || '').trim();
+  const normalizePortfolioImage = (value = '') => {
+    const image = String(value || '').trim();
+    if (image.startsWith('data:image/')) return '/images/c2-drone-consult.jpg';
+    return LEGACY_PORTFOLIO_IMAGES[image] || image;
+  };
+  const gallery = Array.isArray(item.gallery)
+    ? item.gallery
+      .map((entry = {}, index) => ({
+        title: String(entry.title || '').trim(),
+        description: String(entry.description || '').trim(),
+        image: normalizePortfolioImage(entry.image),
+        alt: String(entry.alt || entry.title || item.title || '').trim(),
+        order: Number.isFinite(Number(entry.order)) ? Number(entry.order) : index,
+      }))
+      .filter((entry) => entry.image || entry.title || entry.description)
+      .sort((a, b) => a.order - b.order)
+      .slice(0, 5)
+    : [];
+  const image = normalizePortfolioImage(item.image) || gallery.find((entry) => entry.image)?.image || '';
   return {
     ...item,
-    image: image.startsWith('data:image/')
-      ? '/images/c2-drone-consult.jpg'
-      : LEGACY_PORTFOLIO_IMAGES[image] || image,
+    image,
+    gallery,
   };
 }
 
