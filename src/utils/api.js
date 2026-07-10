@@ -125,7 +125,8 @@ export async function apiRequest(path, options = {}) {
   if (!res.ok) {
     let message = responseMessage(data, `API ${res.status}`);
     if (res.status === 401 && options.headers?.['X-Admin-Token'] !== undefined) {
-      message = 'Admin session expired or was rejected - log in again';
+      clearAdminSession();
+      message = 'Admin session expired or was rejected. Please sign in again.';
     } else if (res.status === 401 && options.headers?.['X-Admin-Secret'] !== undefined) {
       message = SECRET
         ? 'Admin secret was rejected - check VITE_ADMIN_SECRET matches the backend ADMIN_SECRET'
@@ -148,6 +149,13 @@ async function req(path, options = {}) {
 }
 
 export const ADMIN_TOKEN_KEY = 'tbh_admin_token';
+const ADMIN_SESSION_KEYS = ['tbh_admin_session_v2', 'tbh_admin_session'];
+
+export function clearAdminSession() {
+  if (typeof window === 'undefined') return;
+  sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+  ADMIN_SESSION_KEYS.forEach((key) => sessionStorage.removeItem(key));
+}
 
 function getAdminToken() {
   if (typeof window === 'undefined') return '';

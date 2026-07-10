@@ -27,15 +27,26 @@ const LOCKOUT_KEY   = "tbh_lockout_until";
 // -- Session helpers (sessionStorage only  -  clears on tab close) ---------------
 const isSession  = () => sessionStorage.getItem(SESSION_KEY) === "1" && Boolean(sessionStorage.getItem(ADMIN_TOKEN_KEY));
 const startSession = (token) => {
+  const cleanToken = String(token || "").trim();
+  if (!cleanToken) return false;
   sessionStorage.setItem(SESSION_KEY, "1");
   sessionStorage.removeItem(LEGACY_SESSION_KEY);
-  if (token) sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
+  sessionStorage.setItem(ADMIN_TOKEN_KEY, cleanToken);
+  return true;
 };
 const endSession   = () => {
   sessionStorage.removeItem(SESSION_KEY);
   sessionStorage.removeItem(LEGACY_SESSION_KEY);
   sessionStorage.removeItem(ADMIN_TOKEN_KEY);
 };
+
+function sessionTokenFromResponse(res) {
+  return res?.token || res?.data?.token || "";
+}
+
+function startSessionFromResponse(res) {
+  return startSession(sessionTokenFromResponse(res));
+}
 
 // -- Lockout helpers (sessionStorage  -  resets when browser closes) -------------
 function getAttempts()   { return parseInt(sessionStorage.getItem(ATTEMPT_KEY) || "0"); }
@@ -224,7 +235,11 @@ function SetupScreen({ onDone }) {
       ]);
       const res = await apiPost("/api/auth/setup", { pin_hash, master_hash });
       if (!res.success) { setError(res.error || "Setup failed"); setSaving(false); return; }
-      startSession(res.token);
+      if (!startSessionFromResponse(res)) {
+        setError("Setup saved, but the admin session token was not returned. Sign in again.");
+        setSaving(false);
+        return;
+      }
       onDone();
     } catch (error) {
       setError(connectionErrorMessage(error));
@@ -457,7 +472,11 @@ function LoginScreen({ onUnlock, onResetAuth, initialIssue }) {
           // Master PIN  -  go to reset flow
           setResetStep(1); setPin(""); setChecking(false); return;
         }
-        startSession(res.token);
+        if (!startSessionFromResponse(res)) {
+          setError("Login succeeded, but the admin session token was not returned. Try again.");
+          setChecking(false);
+          return;
+        }
         onUnlock();
       } else {
         addAttempt();
@@ -485,7 +504,11 @@ function LoginScreen({ onUnlock, onResetAuth, initialIssue }) {
       });
       if (res.success) {
         clearAttempts();
-        startSession(res.token);
+        if (!startSessionFromResponse(res)) {
+          setError("Login succeeded, but the admin session token was not returned. Try again.");
+          setChecking(false);
+          return;
+        }
         onUnlock();
       } else {
         addAttempt();
@@ -510,7 +533,16 @@ function LoginScreen({ onUnlock, onResetAuth, initialIssue }) {
   }
 
   if (resetStep > 0) {
-    return <ResetPinFlow onDone={(token) => { startSession(token); onUnlock(); }} onCancel={() => { setResetStep(0); setMode("pin"); setPin(""); }} />;
+    return <ResetPinFlow onDone={(res) => {
+      if (startSessionFromResponse(res)) {
+        onUnlock();
+        return;
+      }
+      setResetStep(0);
+      setMode("pin");
+      setPin("");
+      setError("PIN reset, but the admin session token was not returned. Sign in again.");
+    }} onCancel={() => { setResetStep(0); setMode("pin"); setPin(""); }} />;
   }
 
   return (
@@ -650,7 +682,7 @@ function ResetPinFlow({ onDone, onCancel }) {
       });
       if (!res.success) { setError(res.error || "Reset failed"); setSaving(false); return; }
       clearAttempts();
-      onDone(res.token);
+      onDone(res);
     } catch (error) {
       setError(connectionErrorMessage(error));
       setApiIssue(isReportableApiIssue(error) ? error : null);

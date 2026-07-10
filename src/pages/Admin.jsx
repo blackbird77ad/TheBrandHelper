@@ -159,6 +159,17 @@ function AdminInner({ onLogout }) {
   const didInitialLoad = useRef(false);
 
   const closeModal = () => setModal(null);
+  const handleAdminError = useCallback((error) => {
+    const message = typeof error === 'string' ? error : error?.message || 'Request failed';
+    const status = Number(error?.status);
+    if (status === 401 || /Unauthori[sz]ed|Unauthorised|Admin session expired|Admin secret/i.test(message)) {
+      api.clearAdminSession();
+      setError('Admin session expired. Please sign in again.');
+      onLogout();
+      return;
+    }
+    setError(message);
+  }, [onLogout]);
 
   const load = useCallback(async (which) => {
     setLoading(true);
@@ -182,9 +193,9 @@ function AdminInner({ onLogout }) {
         }));
       }
       await Promise.all(tasks);
-    } catch (e) { setError(e.message); }
+    } catch (e) { handleAdminError(e); }
     finally { setLoading(false); }
-  }, []);
+  }, [handleAdminError]);
 
   useEffect(() => {
     load('all').finally(() => { didInitialLoad.current = true; });
@@ -195,7 +206,7 @@ function AdminInner({ onLogout }) {
     if (map[tab]) load(map[tab]);
   }, [tab, load]);
 
-  const E = (msg) => setError(msg);
+  const E = handleAdminError;
 
   const RAW_TABS = [
     { key:'pipeline',  icon:'⚡', label:'Pipeline'  },
@@ -1270,6 +1281,7 @@ function ProjectView({ data, onClose, onUpdate, onError }) {
     try { const r=await api.getProject(data._id); setProject(r.data); setMilestones(r.data.milestones||[]); setMeetings(r.data.meetings||[]); setNotes(r.data.notes||[]); }
     catch(e) { onError(e.message); }
   }, [data._id, onError]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(()=>{ refresh(); },[refresh]);
   const addMs  = async () => { if(!newMs) return; try { await api.addMilestone(data._id,{title:newMs}); setNewMs(''); refresh(); } catch(e){onError(e.message);} };
   const toggleMs = async id => { try { await api.toggleMilestone(id); refresh(); onUpdate(); } catch(e){onError(e.message);} };
