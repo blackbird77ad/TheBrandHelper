@@ -14,7 +14,6 @@
 import React, { useState, useEffect } from "react";
 import bcrypt from "bcryptjs";
 import { FiEye, FiEyeOff } from "react-icons/fi";
-import ApiIssueReport from "./ApiIssueReport";
 import { ADMIN_TOKEN_KEY, API_BASE, ApiRequestError, apiRequest, describeApiError, isReportableApiIssue } from "../utils/api";
 
 const SESSION_KEY   = "tbh_admin_session_v2";
@@ -51,6 +50,16 @@ function isLockedOut()   {
 function lockOut()       { sessionStorage.setItem(LOCKOUT_KEY, String(Date.now() + LOCKOUT_MS)); }
 function getLockoutMins(){ return Math.ceil((parseInt(sessionStorage.getItem(LOCKOUT_KEY)||"0") - Date.now()) / 60000); }
 
+function isLocalIpAdminPage() {
+  return typeof window !== "undefined" && window.location.hostname === "127.0.0.1";
+}
+
+function getLocalhostAdminHref() {
+  if (typeof window === "undefined") return "http://localhost:5173/admin";
+  const port = window.location.port ? `:${window.location.port}` : "";
+  return `${window.location.protocol}//localhost${port}${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
 async function apiGet(path) {
   return apiRequest(path);
 }
@@ -75,17 +84,51 @@ async function apiPostWithSecret(path, secret, body = {}) {
 function connectionErrorMessage(error) {
   const details = describeApiError(error);
   if (/Database unavailable/i.test(details.message)) {
-    return `Database unavailable (${details.status}). See report details below.`;
+    return "Database unavailable. Try again in a moment.";
   }
   if (isReportableApiIssue(error)) {
-    if (error.isNetwork) return `Could not reach the admin API at ${API_BASE}. See report details below.`;
-    return `Admin API error (${details.status}). See report details below.`;
+    if (error.isNetwork && isLocalIpAdminPage()) return "Local sign-in is blocked. Open with localhost and try again.";
+    if (error.isNetwork) return "Could not connect to the admin server. Try again in a moment.";
+    return `Admin server error (${details.status}). Try again in a moment.`;
   }
   return details.message || "Request failed";
 }
 
 function AdminSupportFallback({ error, context }) {
-  return <ApiIssueReport error={error} context={context} className="mt-3" />;
+  if (!isReportableApiIssue(error)) return null;
+
+  const details = describeApiError(error);
+  const isLocalIp = isLocalIpAdminPage();
+
+  return (
+    <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-left text-xs text-amber-900">
+      <p className="font-extrabold">
+        {isLocalIp ? "Use localhost for local sign-in." : "Admin server did not answer."}
+      </p>
+      <p className="mt-1 leading-relaxed text-amber-800">
+        {isLocalIp
+          ? "Open the admin page with localhost instead of 127.0.0.1, then sign in again."
+          : "Try again. If it keeps happening, send the technical details to the site owner."}
+      </p>
+      {isLocalIp && (
+        <a
+          href={getLocalhostAdminHref()}
+          className="mt-2 inline-flex rounded-full bg-black px-3 py-1.5 text-[11px] font-extrabold text-white transition hover:bg-red-600"
+        >
+          Open localhost admin
+        </a>
+      )}
+      <details className="mt-2">
+        <summary className="cursor-pointer font-bold text-amber-950">Technical details</summary>
+        <div className="mt-2 space-y-1 rounded-xl bg-white/70 p-2 text-[11px] text-amber-900">
+          <p><span className="font-bold">Area:</span> {context}</p>
+          <p><span className="font-bold">Status:</span> {details.status}</p>
+          <p><span className="font-bold">Code:</span> {details.code}</p>
+          <p className="break-words"><span className="font-bold">API:</span> {details.url || API_BASE}</p>
+        </div>
+      </details>
+    </div>
+  );
 }
 // -- Tiny UI pieces ------------------------------------------------------------
 function BrandHeader({ sub }) {
@@ -554,20 +597,23 @@ function LoginScreen({ onUnlock, onResetAuth, initialIssue }) {
             )}
           </>
         )}
-        <button
-          type="button"
-          onClick={() => { setResetRequest(true); setPin(""); setError(""); setApiIssue(null); }}
-          className="mt-5 w-full text-center text-xs font-bold text-gray-400 transition hover:text-black"
-        >
-          Email a reset request
-        </button>
-        <button
-          type="button"
-          onClick={() => { setEmergency(true); setPin(""); setError(""); setApiIssue(null); }}
-          className="mt-3 w-full text-center text-xs font-bold text-gray-400 transition hover:text-red-600"
-        >
-          Forgot both PINs? Use server reset
-        </button>
+        <div className="mt-5 flex items-center justify-center gap-3 text-[11px] font-bold">
+          <button
+            type="button"
+            onClick={() => { setResetRequest(true); setPin(""); setError(""); setApiIssue(null); }}
+            className="text-gray-400 transition hover:text-black"
+          >
+            Email reset
+          </button>
+          <span className="text-gray-200">|</span>
+          <button
+            type="button"
+            onClick={() => { setEmergency(true); setPin(""); setError(""); setApiIssue(null); }}
+            className="text-gray-400 transition hover:text-red-600"
+          >
+            Server reset
+          </button>
+        </div>
       </div>
     </div>
   );

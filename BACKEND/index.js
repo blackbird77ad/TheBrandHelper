@@ -46,8 +46,6 @@ const ADMIN_NOTIFY_EMAILS = (
   .split(',')
   .map(email => email.trim())
   .filter(Boolean);
-const ALLOW_LOCAL_ORIGINS = (process.env.ALLOW_LOCAL_ORIGINS || '').trim().toLowerCase() === 'true';
-
 // -- CORS ----------------------------------------------------------------------
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
@@ -68,7 +66,7 @@ app.use(cors({
     if (!origin) return cb(null, true);
     const cleanOrigin = origin.replace(/\/$/, '');
     if (allowedOrigins.includes(cleanOrigin)) return cb(null, true);
-    if ((process.env.NODE_ENV !== 'production' || ALLOW_LOCAL_ORIGINS) && isAllowedLocalOrigin(cleanOrigin)) return cb(null, true);
+    if (isAllowedLocalOrigin(cleanOrigin)) return cb(null, true);
     cb(new Error(`CORS: ${origin} not allowed`));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
