@@ -330,6 +330,7 @@ const DEFAULT_FORM = {
   businessName: '',
   email: '',
   phone: '',
+  paymentConsent: false,
   businessGoal: '',
   businessType: 'fashion_brand',
   projectType: 'ecommerce_store',
@@ -354,6 +355,10 @@ const DEFAULT_FORM = {
 
 function formatMoney(value) {
   return '$' + Math.round(value).toLocaleString();
+}
+
+function isValidEmail(value = '') {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value).trim());
 }
 
 function unique(list) {
@@ -624,6 +629,7 @@ function buildSummary(form, estimate, narration) {
     `Business: ${form.businessName || 'Not provided'}`,
     `Email: ${form.email || 'Not provided'}`,
     `Phone: ${form.phone || 'Not provided'}`,
+    `Payment Agreement: ${form.paymentConsent ? 'Accepted upfront payment and final balance terms' : 'Not accepted'}`,
     '',
     'PROJECT SUMMARY',
     `Business Type: ${business.label}`,
@@ -901,6 +907,7 @@ function BlueprintBuilder() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [serverIssue, setServerIssue] = useState(null);
+  const [submitError, setSubmitError] = useState('');
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -952,9 +959,17 @@ function BlueprintBuilder() {
   const activeProject = getProject(form.projectType);
   const activePreviewDevice = PREVIEW_DEVICES.find((item) => item.key === previewDevice) || PREVIEW_DEVICES[0];
   const shareLink = `${window.location.origin}/blueprint?blueprint=${encodeURIComponent(toBase64(JSON.stringify(form)))}`;
+  const missingClientDetails = [
+    !form.clientName.trim() ? 'name' : '',
+    !isValidEmail(form.email) ? 'valid email' : '',
+    !form.phone.trim() ? 'phone / WhatsApp' : '',
+    !form.paymentConsent ? 'payment agreement' : '',
+  ].filter(Boolean);
+  const canSubmitBlueprint = missingClientDetails.length === 0;
 
   const setField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+    if (submitError) setSubmitError('');
   };
 
   const toggleArrayValue = (key, value) => {
@@ -1041,31 +1056,41 @@ function BlueprintBuilder() {
     setPreviewAssets({ logoPreview: '', inspirationPreviews: [] });
     setSubmitted(false);
     setServerIssue(null);
+    setSubmitError('');
     setRestoredMessage('Saved progress cleared. Starter blueprint loaded.');
   };
 
   const handleSubmit = async () => {
+    if (!canSubmitBlueprint) {
+      setSubmitError(`Before submitting, add ${missingClientDetails.join(', ')}.`);
+      return;
+    }
     setSubmitting(true);
     setServerIssue(null);
+    setSubmitError('');
 
     const payload = {
       to_email: 'davida@thebrandhelper.com',
       to_name: 'The BrandHelper Team',
-      from_name: form.clientName || form.businessName || 'Blueprint Lead',
-      reply_to: form.email || 'noreply@thebrandhelper.com',
+      from_name: form.clientName,
+      reply_to: form.email,
       subject: `New Interactive Blueprint  -  ${form.businessName || activeBusiness.label}`,
       form_type: 'Interactive Blueprint Builder',
-      client_name: form.clientName || form.businessName || 'Blueprint Lead',
+      source: 'website',
+      source_detail: 'Blueprint Builder',
+      client_name: form.clientName,
       business_name: form.businessName || '',
       industry: activeBusiness.label,
-      email: form.email || '',
-      phone: form.phone || '',
+      email: form.email,
+      phone: form.phone,
       service: activeProject.label,
       tier: estimate.complexity,
       budget: `${formatMoney(estimate.min)}-${formatMoney(estimate.max)}`,
       timeline: estimate.timeline,
       message: `${NEGOTIATION_OPTIONS.find((item) => item.key === form.negotiationMode)?.label || form.negotiationMode} · Share link: ${shareLink}`,
       full_brief: summary,
+      payment_consent: form.paymentConsent,
+      payment_consent_text: `Client accepts the required upfront payment of ${formatMoney(estimate.deposit)} before work starts and agrees to fulfil the final balance when the project is completed.`,
       submitted_at: new Date().toLocaleString('en-GB', { timeZone: 'Africa/Accra' }),
     };
 
@@ -1100,7 +1125,7 @@ function BlueprintBuilder() {
     form.interactions.length > 0,
     form.features.length > 0,
     Boolean(form.deliveryPace && form.negotiationMode),
-    Boolean(form.clientName || form.businessName || form.email || form.phone || submitted),
+    submitted || canSubmitBlueprint,
   ];
   const canAdvance = stepChecks[step];
   const completedSteps = stepChecks.filter(Boolean).length;
@@ -1672,8 +1697,9 @@ function BlueprintBuilder() {
                         onChange={(event) => setField('clientName', event.target.value)}
                         aria-label="Your name"
                         autoComplete="name"
+                        required
                         className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
-                        placeholder="Your name"
+                        placeholder="Your name *"
                       />
                       <input
                         value={form.businessName}
@@ -1688,8 +1714,9 @@ function BlueprintBuilder() {
                         onChange={(event) => setField('email', event.target.value)}
                         aria-label="Email address"
                         autoComplete="email"
+                        required
                         className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
-                        placeholder="Email address"
+                        placeholder="Email address *"
                         type="email"
                       />
                       <input
@@ -1697,9 +1724,21 @@ function BlueprintBuilder() {
                         onChange={(event) => setField('phone', event.target.value)}
                         aria-label="Phone or WhatsApp"
                         autoComplete="tel"
+                        required
                         className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-white/30"
-                        placeholder="Phone / WhatsApp"
+                        placeholder="Phone / WhatsApp *"
                       />
+                      <label className="flex cursor-pointer gap-3 rounded-lg border border-white/10 bg-white/5 p-4 text-left">
+                        <input
+                          type="checkbox"
+                          checked={form.paymentConsent}
+                          onChange={(event) => setField('paymentConsent', event.target.checked)}
+                          className="mt-1 h-4 w-4 rounded border-white/20 accent-red-600"
+                        />
+                        <span className="text-xs leading-relaxed text-gray-300">
+                          I understand that the required upfront payment of {formatMoney(estimate.deposit)} is needed before work begins, and I agree to fulfil the final payment when the project is completed.
+                        </span>
+                      </label>
                     </div>
                   </div>
                   <div className="rounded-lg border border-white/10 bg-white/5 p-5">
@@ -1739,21 +1778,28 @@ function BlueprintBuilder() {
                   </div>
 
                   {!submitted ? (
-                    <div className="mt-6 flex flex-wrap gap-3">
-                      <button
-                        type="button"
-                        onClick={handleSubmit}
-                        disabled={submitting}
-                        className="rounded-lg bg-red-600 px-5 py-2.5 text-sm font-extrabold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {submitting ? 'Submitting Blueprint...' : 'Submit Blueprint to The Brand Helper'}
-                      </button>
-                      <a href={REQUIREMENTS_CTA_URL} className="rounded-lg border border-white/15 px-4 py-2.5 text-sm font-extrabold text-white transition hover:border-white/35">
-                        Send Requirements Instead
-                      </a>
-                      <a href={CALCULATOR_CTA_URL} className="rounded-lg border border-white/15 px-4 py-2.5 text-sm font-extrabold text-white transition hover:border-white/35">
-                        Open Pricing Calculator
-                      </a>
+                    <div className="mt-6">
+                      {(submitError || !canSubmitBlueprint) && (
+                        <p className="mb-3 rounded-lg border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-xs font-bold leading-relaxed text-amber-100">
+                          {submitError || `Required before submit: ${missingClientDetails.join(', ')}.`}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          onClick={handleSubmit}
+                          disabled={submitting || !canSubmitBlueprint}
+                          className="rounded-lg bg-red-600 px-5 py-2.5 text-sm font-extrabold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {submitting ? 'Submitting Blueprint...' : 'Submit Blueprint to The Brand Helper'}
+                        </button>
+                        <a href={REQUIREMENTS_CTA_URL} className="rounded-lg border border-white/15 px-4 py-2.5 text-sm font-extrabold text-white transition hover:border-white/35">
+                          Send Requirements Instead
+                        </a>
+                        <a href={CALCULATOR_CTA_URL} className="rounded-lg border border-white/15 px-4 py-2.5 text-sm font-extrabold text-white transition hover:border-white/35">
+                          Open Pricing Calculator
+                        </a>
+                      </div>
                     </div>
                   ) : (
                     <div className="mt-6 rounded-lg border border-green-400/20 bg-green-400/10 p-5">

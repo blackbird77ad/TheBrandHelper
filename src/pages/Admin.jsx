@@ -648,7 +648,7 @@ function PipelineTab({ leads, onMove, onView, onAdd }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // LEADS TAB
 // ══════════════════════════════════════════════════════════════════════════════
-function LeadsTab({ leads, onView, onAdd, onEdit, onDelete, onConvert }) {
+function LegacyLeadsTab({ leads, onView, onAdd, onEdit, onDelete, onConvert }) {
   const [search, setSearch] = useState('');
   const filtered = leads.filter(l =>
     `${l.client_name} ${l.business_name} ${l.email} ${l.phone}`.toLowerCase().includes(search.toLowerCase())
@@ -696,6 +696,184 @@ function LeadsTab({ leads, onView, onAdd, onEdit, onDelete, onConvert }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // CLIENTS TAB
 // ══════════════════════════════════════════════════════════════════════════════
+function leadOriginLabel(lead = {}) {
+  return lead.source_detail || lead.form_type || lead.source || 'Unknown';
+}
+
+function LeadsTab({ leads, onView, onAdd, onEdit, onDelete, onConvert }) {
+  const pageSize = 10;
+  const [search, setSearch] = useState('');
+  const [originFilter, setOriginFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
+  const [page, setPage] = useState(1);
+
+  const originCounts = useMemo(() => leads.reduce((acc, lead) => {
+    const origin = leadOriginLabel(lead);
+    acc[origin] = (acc[origin] || 0) + 1;
+    return acc;
+  }, {}), [leads]);
+
+  const origins = useMemo(() => ['all', ...Object.keys(originCounts).sort()], [originCounts]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const list = leads.filter((lead) => {
+      const origin = leadOriginLabel(lead);
+      const haystack = [
+        lead.client_name,
+        lead.business_name,
+        lead.email,
+        lead.phone,
+        lead.service,
+        lead.budget,
+        lead.timeline,
+        lead.form_type,
+        lead.source,
+        lead.source_detail,
+        lead.message,
+        lead.full_brief,
+      ].join(' ').toLowerCase();
+      const originOk = originFilter === 'all' || origin === originFilter;
+      const statusOk = statusFilter === 'all' || lead.status === statusFilter;
+      return originOk && statusOk && (!q || haystack.includes(q));
+    });
+
+    return list.sort((a, b) => {
+      if (sortBy === 'oldest') return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+      if (sortBy === 'name') return String(a.client_name || a.business_name || '').localeCompare(String(b.client_name || b.business_name || ''));
+      if (sortBy === 'origin') return leadOriginLabel(a).localeCompare(leadOriginLabel(b));
+      if (sortBy === 'status') return String(a.status || '').localeCompare(String(b.status || ''));
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    });
+  }, [leads, originFilter, search, sortBy, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageLeads = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const start = filtered.length ? (currentPage - 1) * pageSize + 1 : 0;
+  const end = Math.min(currentPage * pageSize, filtered.length);
+  const resetPage = (callback) => {
+    callback();
+    setPage(1);
+  };
+
+  return (
+    <div>
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-extrabold">Leads ({leads.length})</h2>
+          <p className="mt-0.5 text-xs text-gray-400">Grouped by where the request came from on the website.</p>
+        </div>
+        <Btn onClick={onAdd}>+ Add Lead</Btn>
+      </div>
+
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {Object.entries(originCounts).sort(([a], [b]) => a.localeCompare(b)).slice(0, 8).map(([origin, count]) => (
+          <button
+            type="button"
+            key={origin}
+            onClick={() => resetPage(() => setOriginFilter(origin))}
+            className={`rounded-2xl border p-4 text-left transition hover:border-black ${originFilter === origin ? 'border-black bg-black text-white' : 'border-gray-100 bg-white text-black'}`}
+          >
+            <p className="truncate text-xs font-bold uppercase tracking-widest opacity-70">{origin}</p>
+            <p className="mt-2 text-2xl font-extrabold">{count}</p>
+          </button>
+        ))}
+      </div>
+
+      <div className="mb-5 grid gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm md:grid-cols-[1.4fr_0.8fr_0.8fr_0.8fr]">
+        <div>
+          <Lbl>Search leads</Lbl>
+          <input className={inp} placeholder="Search name, email, phone, service, brief..." value={search} onChange={e => resetPage(() => setSearch(e.target.value))} />
+        </div>
+        <div>
+          <Lbl>Origin</Lbl>
+          <select className={sel} value={originFilter} onChange={e => resetPage(() => setOriginFilter(e.target.value))}>
+            {origins.map(origin => <option key={origin} value={origin}>{origin === 'all' ? 'All origins' : origin}</option>)}
+          </select>
+        </div>
+        <div>
+          <Lbl>Status</Lbl>
+          <select className={sel} value={statusFilter} onChange={e => resetPage(() => setStatusFilter(e.target.value))}>
+            <option value="all">All statuses</option>
+            {PIPELINE_COLS.map(col => <option key={col.key} value={col.key}>{col.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <Lbl>Sort</Lbl>
+          <select className={sel} value={sortBy} onChange={e => resetPage(() => setSortBy(e.target.value))}>
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="name">Name A-Z</option>
+            <option value="origin">Origin A-Z</option>
+            <option value="status">Status A-Z</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 text-xs font-bold text-gray-500">
+        <p>Showing {start}-{end} of {filtered.length} matched leads, 10 per page.</p>
+        {(originFilter !== 'all' || statusFilter !== 'all' || search) && (
+          <button type="button" onClick={() => { setSearch(''); setOriginFilter('all'); setStatusFilter('all'); setSortBy('newest'); setPage(1); }} className="rounded-lg border border-gray-200 px-3 py-1.5 text-gray-600 transition hover:border-black">
+            Clear filters
+          </button>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3">
+        {pageLeads.map(lead => {
+          const origin = leadOriginLabel(lead);
+          return (
+            <div key={lead._id}
+              className="flex cursor-pointer flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm transition hover:shadow-md sm:flex-row sm:items-center"
+              onClick={() => onView(lead)}>
+              <div className="min-w-0 flex-1">
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <Badge status={lead.status} />
+                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-500">{origin}</span>
+                  <span className="text-xs text-gray-300">{fmtDate(lead.createdAt)}</span>
+                  {lead.payment_consent && <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700">Payment agreed</span>}
+                </div>
+                <p className="text-sm font-semibold">{lead.client_name || 'Unknown'}{lead.business_name ? `  -  ${lead.business_name}` : ''}</p>
+                <p className="text-xs text-gray-400">{lead.email || 'No email'}{lead.phone ? ` - ${lead.phone}` : ''}</p>
+                {lead.budget && <p className="mt-0.5 text-xs font-bold text-green-600">{lead.budget} - {lead.service || lead.form_type}</p>}
+              </div>
+              <div className="flex shrink-0 flex-wrap gap-2" onClick={e => e.stopPropagation()}>
+                {lead.email && <a href={`mailto:${lead.email}`} className="rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-600 transition hover:bg-blue-100">Email</a>}
+                {lead.phone && <a href={`https://wa.me/${lead.phone.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-green-50 px-3 py-1.5 text-xs font-bold text-green-600 transition hover:bg-green-100">WhatsApp</a>}
+                {lead.status !== 'won' && <Btn small variant="success" onClick={() => onConvert(lead._id)}>Convert</Btn>}
+                <Btn small variant="outline" onClick={() => onEdit(lead)}>Edit</Btn>
+                <Btn small variant="danger" onClick={() => onDelete(lead._id)}>Del</Btn>
+              </div>
+            </div>
+          );
+        })}
+        {filtered.length === 0 && (
+          <div className="rounded-2xl bg-white p-12 text-center text-gray-300">
+            <p className="font-semibold text-gray-400">No leads match this view.</p>
+          </div>
+        )}
+      </div>
+
+      {filtered.length > pageSize && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 pt-5">
+          <p className="text-sm font-bold text-gray-500">Page {currentPage} of {totalPages}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => setPage(current => Math.max(1, current - 1))} disabled={currentPage === 1} className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold transition hover:border-black disabled:cursor-not-allowed disabled:opacity-40">Previous</button>
+            {Array.from({ length: totalPages }, (_, index) => index + 1).map(pageNumber => (
+              <button key={pageNumber} type="button" onClick={() => setPage(pageNumber)} className={`h-9 w-9 rounded-xl text-sm font-extrabold transition ${pageNumber === currentPage ? 'bg-black text-white' : 'border border-gray-200 text-gray-600 hover:border-black'}`}>
+                {pageNumber}
+              </button>
+            ))}
+            <button type="button" onClick={() => setPage(current => Math.min(totalPages, current + 1))} disabled={currentPage === totalPages} className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold transition hover:border-black disabled:cursor-not-allowed disabled:opacity-40">Next</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ClientsTab({ clients, onView, onAdd, onEdit, onDelete }) {
   return (
     <div>
@@ -1204,7 +1382,7 @@ function StatsTab({ stats }) {
 // ══════════════════════════════════════════════════════════════════════════════
 
 function LeadForm({ data, onClose, onSave, onError }) {
-  const [f, setF] = useState({ client_name:'', business_name:'', email:'', phone:'', industry:'', location:'', service:'', budget:'', timeline:'', message:'', source:'manual', status:'new', notes:'', follow_up_date:'', ...data });
+  const [f, setF] = useState({ client_name:'', business_name:'', email:'', phone:'', industry:'', location:'', service:'', budget:'', timeline:'', message:'', source:'manual', source_detail:'Manual Entry', status:'new', notes:'', follow_up_date:'', payment_consent:false, payment_consent_text:'', ...data });
   const [saving, setSaving] = useState(false);
   const set = (k,v) => setF(p=>({...p,[k]:v}));
   const save = async () => {
@@ -1228,12 +1406,14 @@ function LeadForm({ data, onClose, onSave, onError }) {
           <div><Lbl>Source</Lbl><select className={sel} value={f.source} onChange={e=>set('source',e.target.value)}>{LEAD_SOURCES.map(s=><option key={s} value={s}>{s}</option>)}</select></div>
           <div><Lbl>Status</Lbl><select className={sel} value={f.status} onChange={e=>set('status',e.target.value)}>{PIPELINE_COLS.map(c=><option key={c.key} value={c.key}>{c.label}</option>)}</select></div>
         </div>
+        <div><Lbl>Origin Group</Lbl><input className={inp} value={f.source_detail} onChange={e=>set('source_detail',e.target.value)} placeholder="Quick Inquiry, Blueprint Builder, Calculator..."/></div>
         <div className="grid grid-cols-2 gap-3">
           <div><Lbl>Service</Lbl><input className={inp} value={f.service} onChange={e=>set('service',e.target.value)} placeholder="Website Design"/></div>
           <div><Lbl>Budget</Lbl><input className={inp} value={f.budget} onChange={e=>set('budget',e.target.value)} placeholder="$300-$500"/></div>
         </div>
         <div><Lbl>Message</Lbl><textarea className={`${inp} resize-none`} rows={3} value={f.message} onChange={e=>set('message',e.target.value)} placeholder="What they need..."/></div>
         <div><Lbl>Internal Notes</Lbl><textarea className={`${inp} resize-none`} rows={2} value={f.notes} onChange={e=>set('notes',e.target.value)}/></div>
+        <label className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3"><input type="checkbox" checked={Boolean(f.payment_consent)} onChange={e=>set('payment_consent',e.target.checked)} className="h-4 w-4 accent-green-600"/><span className="text-sm font-bold">Payment terms accepted</span></label>
         <div><Lbl>Follow-up Date</Lbl><input className={inp} type="date" value={f.follow_up_date?f.follow_up_date.split('T')[0]:''} onChange={e=>set('follow_up_date',e.target.value)}/></div>
         <div className="flex gap-3 pt-2"><Btn onClick={save} disabled={!f.client_name||saving}>{saving?'Saving...':'Save Lead'}</Btn><Btn variant="outline" onClick={onClose}>Cancel</Btn></div>
       </div>
@@ -1258,8 +1438,12 @@ function LeadView({ data, onClose, onConvert, onError }) {
           <div><p className="text-xl font-extrabold">{data.client_name}</p>{data.business_name&&<p className="text-gray-500">{data.business_name}</p>}<div className="flex gap-2 mt-2 flex-wrap"><Badge status={data.status}/><span className="text-xs text-gray-400">{data.source} · {fmtDate(data.createdAt)}</span></div></div>
           {data.status !== 'won' && <Btn variant="success" onClick={() => onConvert(data._id)}>🎉 Convert to Client</Btn>}
         </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-600">Origin: {leadOriginLabel(data)}</span>
+          {data.payment_consent && <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">Payment terms accepted</span>}
+        </div>
         <div className="grid grid-cols-2 gap-3 text-sm">
-          {[['Email',data.email],['Phone',data.phone],['Budget',data.budget],['Timeline',data.timeline],['Service',data.service],['Industry',data.industry]].map(([k,v])=>v?(<div key={k}><p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{k}</p><p className="font-medium">{v}</p></div>):null)}
+          {[['Email',data.email],['Phone',data.phone],['Budget',data.budget],['Timeline',data.timeline],['Service',data.service],['Industry',data.industry],['Payment Terms',data.payment_consent ? (data.payment_consent_text || 'Accepted') : '']].map(([k,v])=>v?(<div key={k}><p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{k}</p><p className="font-medium">{v}</p></div>):null)}
         </div>
         {data.full_brief&&<div><p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Full Brief</p><pre className="bg-gray-50 rounded-xl p-4 text-xs whitespace-pre-wrap font-mono max-h-48 overflow-y-auto">{data.full_brief}</pre></div>}
         <div>

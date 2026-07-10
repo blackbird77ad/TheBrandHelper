@@ -46,6 +46,7 @@ async function connect() {
 const leadSchema = new mongoose.Schema({
   // Source
   source:        { type: String, enum: ['website', 'manual', 'referral', 'social', 'other'], default: 'website' },
+  source_detail: { type: String, default: '' },
   form_type:     { type: String, default: 'Unknown' },
 
   // Contact
@@ -63,6 +64,8 @@ const leadSchema = new mongoose.Schema({
   timeline:      { type: String, default: '' },
   message:       { type: String, default: '' },
   full_brief:    { type: String, default: '' },
+  payment_consent: { type: Boolean, default: false },
+  payment_consent_text: { type: String, default: '' },
 
   // Pipeline status
   status: {

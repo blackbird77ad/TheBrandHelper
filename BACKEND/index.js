@@ -387,12 +387,40 @@ app.post('/api/admin/email/test', auth, async (req, res) => {
 });
 
 // Create lead from form (public) OR manually (admin)
+const LEAD_SOURCES = new Set(['website', 'manual', 'referral', 'social', 'other']);
+
+function cleanLeadSource(source, fallback = 'website') {
+  const value = String(source || '').trim().toLowerCase();
+  return LEAD_SOURCES.has(value) ? value : fallback;
+}
+
+function isBlueprintLead(body = {}) {
+  return /blueprint/i.test(`${body.form_type || ''} ${body.source_detail || ''}`);
+}
+
+function hasAcceptedPaymentTerms(body = {}) {
+  return body.payment_consent === true || body.payment_consent === 'true' || body.payment_terms_accepted === true || body.payment_terms_accepted === 'true';
+}
+
 app.post('/api/leads', async (req, res) => {
   try {
-    const isAdmin = req.headers['x-admin-secret'] === SECRET;
+    const isAdmin = req.headers['x-admin-secret'] === SECRET || verifyAdminToken(req.headers['x-admin-token']);
     const body    = req.body;
+    if (!isAdmin && isBlueprintLead(body)) {
+      const missing = [];
+      if (!String(body.client_name || '').trim()) missing.push('name');
+      if (!String(body.email || '').trim()) missing.push('email');
+      if (!String(body.phone || '').trim()) missing.push('phone');
+      if (!hasAcceptedPaymentTerms(body)) missing.push('payment agreement');
+      if (missing.length) {
+        return fail(res, 400, `Blueprint submission requires ${missing.join(', ')}`);
+      }
+    }
+    const source = isAdmin ? cleanLeadSource(body.source, 'manual') : cleanLeadSource(body.source, 'website');
+    const sourceDetail = String(body.source_detail || body.form_type || (source === 'website' ? 'Website' : source)).trim();
     const lead    = await Lead.create({
-      source:        isAdmin ? (body.source || 'manual') : 'website',
+      source,
+      source_detail: sourceDetail,
       form_type:     body.form_type     || (isAdmin ? 'Manual Entry' : 'Unknown'),
       client_name:   body.client_name   || '',
       business_name: body.business_name || '',
@@ -406,6 +434,8 @@ app.post('/api/leads', async (req, res) => {
       timeline:      body.timeline      || '',
       message:       body.message       || '',
       full_brief:    body.full_brief    || '',
+      payment_consent: hasAcceptedPaymentTerms(body),
+      payment_consent_text: body.payment_consent_text || '',
       notes:         body.notes         || '',
       follow_up_date: body.follow_up_date || null,
       submitted_at:  body.submitted_at  || new Date().toISOString(),
@@ -416,12 +446,14 @@ app.post('/api/leads', async (req, res) => {
       `${isAdmin ? 'CRM lead created' : 'New website lead'}: ${lead.form_type || 'Lead'}`,
       recordLines('Lead details', [
         ['Name', lead.client_name],
+        ['Origin', lead.source_detail || lead.form_type || lead.source],
         ['Business', lead.business_name],
         ['Email', lead.email],
         ['Phone', lead.phone],
         ['Service', lead.service],
         ['Budget', lead.budget],
         ['Timeline', lead.timeline],
+        ['Payment agreement', lead.payment_consent ? 'Accepted' : 'Not recorded'],
         ['Message', lead.message],
       ]),
       { replyTo: lead.email }
