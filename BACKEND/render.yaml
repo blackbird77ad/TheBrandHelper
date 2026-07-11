@@ -22,6 +22,8 @@ services:
         value: "0"
       - key: MONGODB_MAX_IDLE_TIME_MS
         value: "30000"
+      - key: DB_WRITE_TIMEOUT_MS
+        value: "15000"
       - key: ALLOWED_ORIGINS
         value: https://thebrandhelper.com,https://www.thebrandhelper.com
       - key: ALLOW_LOCAL_ORIGINS

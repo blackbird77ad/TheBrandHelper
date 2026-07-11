@@ -9,6 +9,7 @@ import {
   FiChevronRight,
   FiClock,
   FiExternalLink,
+  FiImage,
   FiMail,
   FiMessageCircle,
   FiUsers,
@@ -16,7 +17,7 @@ import {
 } from "react-icons/fi";
 import { getPortfolio } from "../utils/api";
 import heroImg from "../photos/portfolio-hero-optimized.jpg";
-import founderImg from "../photos/davida-profile-headshot.jpg";
+import founderImg from "../photos/davida-profile-optimized.jpg";
 import readyBuiltImg from "../photos/Browse ready-built and almost-ready digital products..webp";
 import planningImg from "../photos/customer-care-quote-forms-side-by-side.webp";
 import teamImg from "../photos/Admin dashboard or SaaS Concept.webp";
@@ -24,7 +25,7 @@ import teamImg from "../photos/Admin dashboard or SaaS Concept.webp";
 const WHATSAPP = "https://wa.me/233501657205";
 const EMAIL = "mailto:davida@thebrandhelper.com";
 const CALENDLY = "https://calendly.com/blackbird77ad/free-consultation";
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 12;
 
 const preferredCategories = [
   "All",
@@ -100,6 +101,39 @@ function splitDescription(text = "") {
   return blocks.length ? blocks : ["Project details are being prepared."];
 }
 
+function getProjectMedia(project = {}) {
+  const seen = new Set();
+  const media = [];
+  const addMedia = (entry = {}, fallbackTitle = "Project image") => {
+    const image = String(entry.image || "").trim();
+    if (!image || seen.has(image)) return;
+    seen.add(image);
+    media.push({
+      image,
+      title: entry.title || fallbackTitle,
+      description: entry.description || "",
+      alt: entry.alt || entry.title || project.title || fallbackTitle,
+    });
+  };
+
+  addMedia(
+    {
+      image: project.image,
+      title: `${project.title || "Project"} cover`,
+      alt: project.title || "Project cover",
+    },
+    "Project cover",
+  );
+
+  if (Array.isArray(project.gallery)) {
+    project.gallery.forEach((entry, index) => {
+      addMedia(entry, entry?.title || `Project screen ${index + 1}`);
+    });
+  }
+
+  return media;
+}
+
 function ProjectImage({ project, className = "", eager = false }) {
   const [failed, setFailed] = useState(false);
 
@@ -129,13 +163,13 @@ function ProjectImage({ project, className = "", eager = false }) {
   );
 }
 
-function GalleryImage({ item }) {
+function MediaImage({ item, className = "", fallbackClassName = "" }) {
   const [failed, setFailed] = useState(false);
 
   if (!item.image || failed) {
     return (
-      <div className="flex h-44 items-center justify-center bg-gray-100 text-xs font-bold uppercase tracking-widest text-gray-400">
-        Project page
+      <div className={`flex items-center justify-center bg-gray-100 text-xs font-bold uppercase tracking-widest text-gray-400 ${fallbackClassName || className}`}>
+        Project image
       </div>
     );
   }
@@ -144,11 +178,59 @@ function GalleryImage({ item }) {
     <img
       src={item.image}
       alt={item.alt || item.title}
-      className="h-44 w-full object-cover"
+      className={className}
       loading="lazy"
       decoding="async"
       onError={() => setFailed(true)}
     />
+  );
+}
+
+function PortfolioCardPreview({ project, featured = false, eager = false }) {
+  const media = getProjectMedia(project);
+  const heightClass = featured ? "h-40 md:h-44" : "h-44";
+
+  if (media.length <= 1) {
+    return (
+      <div className={`${heightClass} overflow-hidden bg-gray-100`}>
+        <ProjectImage
+          project={project}
+          eager={eager}
+          className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className={`portfolio-card-media ${heightClass} bg-gray-100`}>
+      <div
+        className="portfolio-card-media-track"
+        style={{
+          "--portfolio-track-width": `${media.length * 100}%`,
+          "--portfolio-frame-width": `${100 / media.length}%`,
+          "--portfolio-slide-offset": `-${((media.length - 1) / media.length) * 100}%`,
+          "--portfolio-slide-duration": `${Math.min(3200, 950 + media.length * 420)}ms`,
+        }}
+      >
+        {media.map((item, mediaIndex) => (
+          <div key={`${item.image}-${mediaIndex}`} className="portfolio-card-media-frame">
+            <MediaImage item={item} className="h-full w-full object-cover" fallbackClassName="h-full w-full" />
+          </div>
+        ))}
+      </div>
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 bg-gradient-to-t from-black/70 via-black/10 to-transparent p-3 text-white">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-widest">
+          <FiImage className="h-3.5 w-3.5" aria-hidden="true" />
+          {media.length} views
+        </span>
+        <div className="flex gap-1">
+          {media.slice(0, 5).map((item, dotIndex) => (
+            <span key={`${item.image}-dot-${dotIndex}`} className="h-1.5 w-1.5 rounded-full bg-white/80" />
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -195,13 +277,7 @@ function PortfolioCard({ project, index, featured = false, onSelect }) {
         }
       }}
     >
-      <div className={`${featured ? "h-36 md:h-40" : "h-40"} overflow-hidden bg-gray-100`}>
-        <ProjectImage
-          project={project}
-          eager={featured && index === 0}
-          className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
-        />
-      </div>
+      <PortfolioCardPreview project={project} featured={featured} eager={featured && index === 0} />
       <div className="flex flex-1 flex-col p-5">
         <div className="mb-2 flex items-center justify-between gap-3">
           <span className="text-xs font-bold uppercase tracking-widest text-red-700">{project.category}</span>
@@ -246,6 +322,8 @@ export default function Portfolio() {
   const [filter, setFilter] = useState("All");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const libraryRef = React.useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -290,7 +368,50 @@ export default function Portfolio() {
     return [...marked, ...topUp].slice(0, 3);
   }, [projects]);
 
+  const scrollToLibrary = useCallback((behavior = "smooth") => {
+    window.requestAnimationFrame(() => {
+      libraryRef.current?.scrollIntoView({ behavior, block: "start" });
+    });
+  }, []);
+
+  const changePage = useCallback((nextPage) => {
+    setPage((current) => {
+      const requested = typeof nextPage === "function" ? nextPage(current) : nextPage;
+      return Math.min(totalPages, Math.max(1, requested));
+    });
+    scrollToLibrary();
+  }, [scrollToLibrary, totalPages]);
+
+  const openProject = useCallback((project) => {
+    setSelected(project);
+    setSelectedImageIndex(0);
+  }, []);
+
   const closeModal = useCallback(() => setSelected(null), []);
+  const selectedMedia = useMemo(() => selected ? getProjectMedia(selected) : [], [selected]);
+  const activeMedia = selectedMedia[selectedImageIndex] || selectedMedia[0] || null;
+
+  useEffect(() => {
+    if (!selected) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        closeModal();
+      } else if (event.key === "ArrowRight" && selectedMedia.length > 1) {
+        setSelectedImageIndex((current) => (current + 1) % selectedMedia.length);
+      } else if (event.key === "ArrowLeft" && selectedMedia.length > 1) {
+        setSelectedImageIndex((current) => (current - 1 + selectedMedia.length) % selectedMedia.length);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [closeModal, selected, selectedMedia.length]);
 
   const portfolioSchema = {
     "@context": "https://schema.org",
@@ -370,19 +491,19 @@ export default function Portfolio() {
             </div>
             <div className="grid gap-5 md:grid-cols-3">
               {featuredProjects.map((project, index) => (
-                <PortfolioCard key={getProjectId(project, index)} project={project} index={index} featured onSelect={setSelected} />
+                <PortfolioCard key={getProjectId(project, index)} project={project} index={index} featured onSelect={openProject} />
               ))}
             </div>
           </div>
         </section>
       )}
 
-      <section className="bg-white px-6 py-14 md:py-16">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+      <section ref={libraryRef} id="project-library" className="scroll-mt-20 bg-white px-6 py-10 md:py-12">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-red-700">Project library</p>
-              <h2 className="mt-2 text-3xl font-extrabold md:text-4xl">Browse the work as it grows.</h2>
+              <h2 className="mt-2 text-2xl font-extrabold md:text-3xl">Browse the work as it grows.</h2>
             </div>
             <p className="max-w-xl text-sm leading-relaxed text-gray-600">
               Filter by the type of work you need, open a card for details, and choose the next step that fits your project.
@@ -390,7 +511,7 @@ export default function Portfolio() {
           </div>
 
           {projects.length > 0 && (
-            <div className="mb-8 flex gap-2 overflow-x-auto pb-2">
+            <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
               {categories.map((category) => (
                 <button
                   key={category}
@@ -398,6 +519,7 @@ export default function Portfolio() {
                   onClick={() => {
                     setFilter(category);
                     setPage(1);
+                    scrollToLibrary();
                   }}
                   aria-pressed={filter === category}
                   className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm font-bold transition ${
@@ -413,8 +535,8 @@ export default function Portfolio() {
           )}
 
           {loading ? (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3, 4, 5, 6].map((item) => (
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {Array.from({ length: PAGE_SIZE }, (_, item) => (
                 <div key={item} className="overflow-hidden rounded-lg border border-gray-200">
                   <div className="h-40 animate-pulse bg-gray-100" />
                   <div className="space-y-3 p-5">
@@ -438,13 +560,13 @@ export default function Portfolio() {
             </div>
           ) : (
             <>
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {visibleProjects.map((project, index) => (
                   <PortfolioCard
                     key={getProjectId(project, index)}
                     project={project}
                     index={(currentPage - 1) * PAGE_SIZE + index}
-                    onSelect={setSelected}
+                    onSelect={openProject}
                   />
                 ))}
               </div>
@@ -456,7 +578,7 @@ export default function Portfolio() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                    onClick={() => changePage((current) => current - 1)}
                     disabled={currentPage === 1}
                     className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-gray-200 text-black transition hover:border-black disabled:cursor-not-allowed disabled:opacity-35"
                     aria-label="Previous portfolio page"
@@ -466,7 +588,7 @@ export default function Portfolio() {
                   <span className="px-3 text-sm font-extrabold">{currentPage} / {totalPages}</span>
                   <button
                     type="button"
-                    onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                    onClick={() => changePage((current) => current + 1)}
                     disabled={currentPage === totalPages}
                     className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-gray-200 text-black transition hover:border-black disabled:cursor-not-allowed disabled:opacity-35"
                     aria-label="Next portfolio page"
@@ -508,33 +630,107 @@ export default function Portfolio() {
       </section>
 
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-4 sm:items-center" onClick={closeModal}>
+        <div className="fixed inset-0 z-[260] flex items-center justify-center bg-black/85 px-2 py-3 sm:p-4" onClick={closeModal}>
           <div
-            className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white shadow-2xl"
+            className="relative flex max-h-[94vh] w-[95vw] max-w-[1440px] flex-col overflow-hidden rounded-lg bg-white shadow-2xl"
             role="dialog"
             aria-modal="true"
             aria-labelledby="portfolio-modal-title"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="grid lg:grid-cols-[0.92fr_1.08fr]">
-              <div className="min-h-72 bg-gray-100 lg:min-h-full">
-                <ProjectImage project={selected} className="h-full min-h-72 w-full object-cover" />
+            <div className="flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
+              <div className="min-w-0">
+                <span className="text-xs font-bold uppercase tracking-widest text-red-700">{selected.category}</span>
+                <h2 id="portfolio-modal-title" className="mt-1 max-w-4xl text-xl font-extrabold leading-tight text-black sm:text-2xl md:text-3xl">
+                  {selected.title}
+                </h2>
               </div>
-              <div className="p-6 md:p-8">
-                <div className="mb-4 flex items-start justify-between gap-4">
-                  <div>
-                    <span className="text-xs font-bold uppercase tracking-widest text-red-700">{selected.category}</span>
-                    <h2 id="portfolio-modal-title" className="mt-2 text-2xl font-extrabold leading-tight md:text-3xl">{selected.title}</h2>
-                  </div>
-                  <button type="button" onClick={closeModal} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-gray-200 text-black transition hover:border-black" aria-label="Close project details">
-                    <FiX className="h-5 w-5" aria-hidden="true" />
-                  </button>
+              <button
+                type="button"
+                onClick={closeModal}
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-black text-white shadow-lg transition hover:bg-red-700"
+                aria-label="Close project details"
+              >
+                <FiX className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto lg:grid lg:h-[calc(94vh-88px)] lg:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.65fr)] lg:overflow-hidden">
+              <section className="flex min-h-0 flex-col bg-black p-2 sm:p-4">
+                <div className="relative flex h-[52vh] min-h-[290px] flex-1 items-center justify-center overflow-hidden rounded-md bg-neutral-950 lg:h-auto lg:min-h-0">
+                  {activeMedia ? (
+                    <MediaImage
+                      item={activeMedia}
+                      className="h-full w-full object-contain"
+                      fallbackClassName="h-full w-full bg-neutral-900 text-white"
+                    />
+                  ) : (
+                    <ProjectImage project={selected} className="h-full w-full object-contain" />
+                  )}
+
+                  {selectedMedia.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedImageIndex((current) => (current - 1 + selectedMedia.length) % selectedMedia.length)}
+                        className="absolute left-3 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-black shadow-lg transition hover:bg-white"
+                        aria-label="Previous project image"
+                      >
+                        <FiChevronLeft className="h-5 w-5" aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedImageIndex((current) => (current + 1) % selectedMedia.length)}
+                        className="absolute right-3 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-black shadow-lg transition hover:bg-white"
+                        aria-label="Next project image"
+                      >
+                        <FiChevronRight className="h-5 w-5" aria-hidden="true" />
+                      </button>
+                    </>
+                  )}
+
+                  {selectedMedia.length > 0 && (
+                    <div className="absolute bottom-3 right-3 rounded-full bg-black/70 px-3 py-1.5 text-xs font-extrabold uppercase tracking-widest text-white">
+                      {selectedImageIndex + 1} / {selectedMedia.length}
+                    </div>
+                  )}
                 </div>
 
-                <div className="space-y-3 text-sm leading-relaxed text-gray-700">
+                {selectedMedia.length > 1 && (
+                  <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                    {selectedMedia.map((item, mediaIndex) => (
+                      <button
+                        key={`${item.image}-${mediaIndex}`}
+                        type="button"
+                        onClick={() => setSelectedImageIndex(mediaIndex)}
+                        aria-label={`View ${item.title || `project image ${mediaIndex + 1}`}`}
+                        className={`h-16 w-24 shrink-0 overflow-hidden rounded-md border-2 bg-neutral-900 transition sm:h-20 sm:w-32 ${
+                          selectedImageIndex === mediaIndex ? "border-red-500" : "border-white/15 hover:border-white/70"
+                        }`}
+                      >
+                        <MediaImage item={item} className="h-full w-full object-cover" fallbackClassName="h-full w-full bg-neutral-900 text-white" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <aside className="overflow-y-auto p-5 sm:p-6 lg:max-h-full">
+                {activeMedia && (
+                  <div className="mb-5 rounded-md border border-gray-200 bg-gray-50 p-4">
+                    <p className="text-xs font-bold uppercase tracking-widest text-gray-500">Viewing</p>
+                    <p className="mt-1 text-sm font-extrabold text-black">{activeMedia.title || selected.title}</p>
+                    {activeMedia.description && <p className="mt-2 text-sm leading-relaxed text-gray-600">{activeMedia.description}</p>}
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-red-700">Project overview</p>
+                  <div className="mt-3 space-y-3 text-sm leading-relaxed text-gray-700 sm:text-base">
                   {splitDescription(selected.description).map((block) => (
                     <p key={block}>{block}</p>
                   ))}
+                  </div>
                 </div>
 
                 {selected.tags?.length > 0 && (
@@ -546,17 +742,22 @@ export default function Portfolio() {
                 )}
 
                 {selected.gallery?.length > 0 && (
-                  <div className="mt-7">
-                    <h3 className="text-sm font-extrabold uppercase tracking-widest text-black">Project pages</h3>
-                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <div className="mt-7 rounded-md border border-gray-200 p-4">
+                    <h3 className="text-sm font-extrabold uppercase tracking-widest text-black">Project screens</h3>
+                    <div className="mt-3 space-y-3">
                       {selected.gallery.map((item, galleryIndex) => (
-                        <figure key={`${item.title}-${galleryIndex}`} className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-                          <GalleryImage item={item} />
-                          <figcaption className="p-3">
-                            <p className="text-sm font-extrabold text-black">{item.title}</p>
-                            {item.description && <p className="mt-1 text-xs leading-relaxed text-gray-600">{item.description}</p>}
-                          </figcaption>
-                        </figure>
+                        <button
+                          key={`${item.title}-${galleryIndex}`}
+                          type="button"
+                          onClick={() => {
+                            const mediaIndex = selectedMedia.findIndex((mediaItem) => mediaItem.image === item.image);
+                            if (mediaIndex >= 0) setSelectedImageIndex(mediaIndex);
+                          }}
+                          className="block w-full rounded-md border border-gray-100 bg-gray-50 p-3 text-left transition hover:border-black hover:bg-white"
+                        >
+                          <p className="text-sm font-extrabold text-black">{item.title || `Project screen ${galleryIndex + 1}`}</p>
+                          {item.description && <p className="mt-1 text-xs leading-relaxed text-gray-600">{item.description}</p>}
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -570,7 +771,7 @@ export default function Portfolio() {
                   <ActionLink to="/contact/calc" variant="outline" icon={FiClock}>Estimate cost</ActionLink>
                   <ActionLink href={CALENDLY} variant="outline" icon={FiCalendar}>Book a call</ActionLink>
                 </div>
-              </div>
+              </aside>
             </div>
           </div>
         </div>
@@ -598,7 +799,7 @@ export default function Portfolio() {
               <img
                 src={founderImg}
                 alt="Davida Amponsah Prempeh"
-                className="aspect-square w-full rounded-md object-cover"
+                className="aspect-[7/10] w-full rounded-md object-cover object-top"
                 loading="lazy"
                 decoding="async"
               />

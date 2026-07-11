@@ -91,7 +91,7 @@ const Lbl = ({ children, req }) => (
   </label>
 );
 
-const Btn = ({ onClick, children, variant='primary', disabled, small }) => {
+const Btn = ({ onClick, children, variant='primary', disabled, small, type = 'button' }) => {
   const base = `font-bold transition rounded-xl ${small ? 'px-3 py-1.5 text-xs' : 'px-5 py-2.5 text-sm'}`;
   const v = {
     primary: 'bg-black text-white hover:bg-red-600',
@@ -100,7 +100,7 @@ const Btn = ({ onClick, children, variant='primary', disabled, small }) => {
     success: 'bg-green-500 text-white hover:bg-green-600',
   };
   return (
-    <button onClick={onClick} disabled={disabled}
+    <button type={type} onClick={onClick} disabled={disabled}
       className={`${base} ${v[variant]} disabled:opacity-40 disabled:cursor-not-allowed`}>
       {children}
     </button>
@@ -143,6 +143,7 @@ const cleanQuotePayload = (quote) => {
 function AdminInner({ onLogout }) {
   const [tab,     setTab]     = useState('pipeline');
   const [error,   setError]   = useState('');
+  const [notice,  setNotice]  = useState('');
   const [loading, setLoading] = useState(false);
 
   const [leads,     setLeads]     = useState([]);
@@ -159,6 +160,10 @@ function AdminInner({ onLogout }) {
   const didInitialLoad = useRef(false);
 
   const closeModal = () => setModal(null);
+  const showNotice = useCallback((message) => {
+    setNotice(message);
+    window.setTimeout(() => setNotice(''), 5000);
+  }, []);
   const handleAdminError = useCallback((error) => {
     const message = typeof error === 'string' ? error : error?.message || 'Request failed';
     const status = Number(error?.status);
@@ -302,6 +307,14 @@ function AdminInner({ onLogout }) {
           </div>
         </div>
       )}
+      {notice && (
+        <div className="bg-green-50 border-b border-green-200 px-4 py-2">
+          <div className="max-w-7xl mx-auto flex justify-between gap-3">
+            <p className="text-green-700 text-sm font-bold">{notice}</p>
+            <button type="button" onClick={() => setNotice('')} className="text-green-500 font-bold text-xs">Dismiss</button>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       {modal && (
@@ -315,7 +328,7 @@ function AdminInner({ onLogout }) {
           {modal.type === 'quote_form'    && <QuoteForm    data={modal.data} leads={leads} clients={clients} onClose={closeModal} onSave={() => { load('quotes');    closeModal(); }} onError={E} />}
           {modal.type === 'quote_view'    && <QuoteView    data={modal.data} onClose={closeModal} onSent={() => load('quotes')} onError={E} />}
           {modal.type === 'reminder_form' && <ReminderForm data={modal.data} leads={leads} clients={clients} projects={projects} onClose={closeModal} onSave={() => { load('reminders'); closeModal(); }} onError={E} />}
-          {modal.type === 'portfolio_form'&& <PortfolioForm data={modal.data} onClose={closeModal} onSave={() => { load('portfolio'); closeModal(); }} onError={E} />}
+          {modal.type === 'portfolio_form'&& <PortfolioForm data={modal.data} onClose={closeModal} onSave={() => { load('portfolio'); showNotice(`Portfolio ${modal.data?._id ? 'updated' : 'added'} successfully.`); closeModal(); }} onError={E} />}
           {modal.type === 'phase2_product_form' && <Phase2ProductForm data={modal.data} onClose={closeModal} onSave={() => { load('phase2'); closeModal(); }} onError={E} />}
         </>
       )}
@@ -1877,7 +1890,7 @@ function LegacyPortfolioForm({ data, onClose, onSave, onError }) {
         <div>
           <Lbl>Image</Lbl>
           <div className="flex gap-2 mb-3"><button onClick={()=>setImgMode('url')} className={`px-4 py-2 rounded-lg text-xs font-bold transition border ${imgMode==='url'?'bg-black text-white border-black':'border-gray-200 text-gray-500'}`}>Link URL</button><button onClick={()=>setImgMode('upload')} className={`px-4 py-2 rounded-lg text-xs font-bold transition border ${imgMode==='upload'?'bg-black text-white border-black':'border-gray-200 text-gray-500'}`}>Upload File</button></div>
-          {imgMode==='url'?<input className={inp} value={f.image} onChange={e=>set('image',e.target.value)} placeholder="https://..."/>:<div onClick={()=>!uploadingImage&&fileRef.current?.click()} className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-red-400 transition">{uploadingImage?<p className="text-sm text-blue-600 font-bold">Uploading to Cloudinary...</p>:f.image?<p className="text-sm text-green-600 font-bold">Image uploaded</p>:<><p className="text-2xl mb-1">📁</p><p className="text-sm text-gray-500">Click to upload (max 8MB)</p></>}</div>}
+          {imgMode==='url'?<input className={inp} value={f.image} onChange={e=>set('image',e.target.value)} placeholder="https://..."/>:<div onClick={()=>!uploadingImage&&fileRef.current?.click()} className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-red-400 transition">{uploadingImage?<p className="text-sm text-blue-600 font-bold">Uploading image...</p>:f.image?<p className="text-sm text-green-600 font-bold">Image uploaded</p>:<><p className="text-2xl mb-1">📁</p><p className="text-sm text-gray-500">Click to upload (max 8MB)</p></>}</div>}
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile}/>
           {f.image&&<div className="h-28 rounded-xl overflow-hidden bg-gray-100 mt-2"><img src={f.image} alt="preview" className="w-full h-full object-cover" decoding="async" onError={e=>e.target.style.display='none'}/></div>}
         </div>
@@ -1893,6 +1906,8 @@ function LegacyPortfolioForm({ data, onClose, onSave, onError }) {
 }
 
 const PORTFOLIO_GALLERY_LIMIT = 5;
+const PORTFOLIO_DRAFT_PREFIX = 'tbh_portfolio_draft_v1';
+const PORTFOLIO_DRAFT_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
 
 function emptyPortfolioGalleryItem(index) {
   return { title: '', description: '', image: '', alt: '', order: index };
@@ -1909,8 +1924,12 @@ function normalizePortfolioGalleryForForm(gallery = []) {
   }));
 }
 
-function PortfolioForm({ data, onClose, onSave, onError }) {
-  const [f, setF] = useState(() => ({
+function portfolioDraftKey(data) {
+  return `${PORTFOLIO_DRAFT_PREFIX}:${data?._id || 'new'}`;
+}
+
+function portfolioFormDefaults(data) {
+  return {
     title: '',
     category: 'Website Design',
     description: '',
@@ -1921,21 +1940,120 @@ function PortfolioForm({ data, onClose, onSave, onError }) {
     ...data,
     tags: Array.isArray(data?.tags) ? data.tags.join(', ') : data?.tags || '',
     gallery: normalizePortfolioGalleryForForm(data?.gallery),
+  };
+}
+
+function formatDraftTime(timestamp) {
+  if (!timestamp) return '';
+  try {
+    return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return '';
+  }
+}
+
+function readPortfolioDraft(key) {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    const draft = JSON.parse(raw);
+    if (!draft?.form || !draft?.savedAt) return null;
+    if (Date.now() - Number(draft.savedAt) > PORTFOLIO_DRAFT_MAX_AGE_MS) {
+      window.localStorage.removeItem(key);
+      return null;
+    }
+    return draft;
+  } catch {
+    return null;
+  }
+}
+
+function writePortfolioDraft(key, draft) {
+  if (typeof window === 'undefined') return false;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(draft));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function clearPortfolioDraft(key) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // Ignore storage cleanup failures.
+  }
+}
+
+function PortfolioForm({ data, onClose, onSave, onError }) {
+  const draftKey = useMemo(() => portfolioDraftKey(data), [data]);
+  const savedDraft = useMemo(() => readPortfolioDraft(draftKey), [draftKey]);
+  const [f, setF] = useState(() => ({
+    ...portfolioFormDefaults(data),
+    ...(savedDraft?.form || {}),
+    gallery: normalizePortfolioGalleryForForm(savedDraft?.form?.gallery || data?.gallery),
   }));
-  const [imgMode, setImgMode] = useState(data?.image ? 'url' : 'upload');
+  const [imgMode, setImgMode] = useState(savedDraft?.imgMode || (data?.image ? 'url' : 'upload'));
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [autosaveStatus, setAutosaveStatus] = useState(() => (
+    savedDraft ? `Draft restored${formatDraftTime(savedDraft.savedAt) ? ` from ${formatDraftTime(savedDraft.savedAt)}` : ''}.` : 'Autosave ready.'
+  ));
+  const [hasDraft, setHasDraft] = useState(Boolean(savedDraft));
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingGalleryIndex, setUploadingGalleryIndex] = useState(null);
   const fileRef = useRef(null);
   const galleryFileRefs = useRef([]);
+  const draftDirtyRef = useRef(false);
 
-  const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const markDraftDirty = () => {
+    draftDirtyRef.current = true;
+  };
+
+  const set = (k, v) => {
+    markDraftDirty();
+    setF(p => ({ ...p, [k]: v }));
+  };
+  const setImageMode = (mode) => {
+    markDraftDirty();
+    setImgMode(mode);
+  };
   const setGalleryItem = (index, patch) => {
+    markDraftDirty();
     setF((current) => {
       const gallery = normalizePortfolioGalleryForForm(current.gallery);
       gallery[index] = { ...gallery[index], ...patch, order: index };
       return { ...current, gallery };
     });
+  };
+
+  useEffect(() => {
+    if (!draftDirtyRef.current) return undefined;
+    setAutosaveStatus('Autosaving draft...');
+    const timeout = window.setTimeout(() => {
+      const savedAt = Date.now();
+      const saved = writePortfolioDraft(draftKey, { savedAt, form: f, imgMode });
+      if (saved) {
+        setHasDraft(true);
+        setAutosaveStatus(`Draft autosaved at ${formatDraftTime(savedAt)}.`);
+      } else {
+        setAutosaveStatus('Autosave could not save this draft.');
+      }
+    }, 600);
+    return () => window.clearTimeout(timeout);
+  }, [draftKey, f, imgMode]);
+
+  const discardDraft = () => {
+    clearPortfolioDraft(draftKey);
+    draftDirtyRef.current = false;
+    setF(portfolioFormDefaults(data));
+    setImgMode(data?.image ? 'url' : 'upload');
+    setHasDraft(false);
+    setAutosaveStatus('Draft cleared.');
+    setFormError('');
   };
 
   const uploadFile = async (file, folder) => {
@@ -1948,33 +2066,50 @@ function PortfolioForm({ data, onClose, onSave, onError }) {
   const handleCoverFile = async e => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setFormError('');
     setUploadingImage(true);
     try {
       const url = await uploadFile(file, 'thebrandhelper/portfolio');
       if (url) set('image', url);
-    } catch(e) { onError(e.message); }
+    } catch(e) {
+      const message = e?.message || 'Could not upload cover image';
+      setFormError(message);
+      onError(e);
+    }
     finally { setUploadingImage(false); e.target.value = ''; }
   };
 
   const handleGalleryFile = async (index, e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setFormError('');
     setUploadingGalleryIndex(index);
     try {
       const url = await uploadFile(file, 'thebrandhelper/portfolio/pages');
       if (url) {
+        markDraftDirty();
         setF((current) => {
           const gallery = normalizePortfolioGalleryForForm(current.gallery);
           gallery[index] = { ...gallery[index], image: url, order: index };
           return { ...current, image: current.image || url, gallery };
         });
       }
-    } catch(e) { onError(e.message); }
+    } catch(e) {
+      const message = e?.message || 'Could not upload page image';
+      setFormError(message);
+      onError(e);
+    }
     finally { setUploadingGalleryIndex(null); e.target.value = ''; }
   };
 
   const save = async () => {
-    if (!f.title || !f.description) return;
+    setFormError('');
+    const title = String(f.title || '').trim();
+    const description = String(f.description || '').trim();
+    if (!title || !description) {
+      setFormError('Add a title and description before saving this portfolio item.');
+      return;
+    }
     setSaving(true);
     try {
       const gallery = normalizePortfolioGalleryForForm(f.gallery)
@@ -1987,18 +2122,33 @@ function PortfolioForm({ data, onClose, onSave, onError }) {
         }))
         .filter(item => item.image || item.title || item.description);
       const payload = {
-        ...f,
+        title,
+        description,
+        category: String(f.category || 'Other').trim() || 'Other',
+        image: String(f.image || '').trim(),
+        link: String(f.link || '').trim(),
+        published: f.published !== false,
+        featured: Boolean(f.featured),
         tags: String(f.tags || '').split(',').map(t => t.trim()).filter(Boolean),
         gallery,
       };
       if (data?._id) await api.updatePortfolio(data._id, payload);
       else await api.createPortfolio(payload);
+      clearPortfolioDraft(draftKey);
+      draftDirtyRef.current = false;
+      setHasDraft(false);
+      setAutosaveStatus('Saved. Draft cleared.');
       onSave();
-    } catch(e) { onError(e.message); }
+    } catch(e) {
+      const message = e?.message || 'Could not save portfolio item';
+      setFormError(message);
+      onError(e);
+    }
     finally { setSaving(false); }
   };
 
   const galleryCount = f.gallery.filter(item => item.image).length;
+  const uploadInProgress = uploadingImage || uploadingGalleryIndex !== null;
 
   return (
     <Modal title={data ? 'Edit Portfolio Item' : 'Add Portfolio Item'} onClose={onClose} wide>
@@ -2028,8 +2178,8 @@ function PortfolioForm({ data, onClose, onSave, onError }) {
               <p className="text-xs font-semibold text-gray-400">Used on admin cards and public portfolio cards.</p>
             </div>
             <div className="flex gap-2">
-              <button type="button" onClick={() => setImgMode('url')} className={`rounded-lg border px-4 py-2 text-xs font-bold transition ${imgMode === 'url' ? 'border-black bg-black text-white' : 'border-gray-200 bg-white text-gray-500'}`}>URL</button>
-              <button type="button" onClick={() => setImgMode('upload')} className={`rounded-lg border px-4 py-2 text-xs font-bold transition ${imgMode === 'upload' ? 'border-black bg-black text-white' : 'border-gray-200 bg-white text-gray-500'}`}>Upload</button>
+              <button type="button" onClick={() => setImageMode('url')} className={`rounded-lg border px-4 py-2 text-xs font-bold transition ${imgMode === 'url' ? 'border-black bg-black text-white' : 'border-gray-200 bg-white text-gray-500'}`}>URL</button>
+              <button type="button" onClick={() => setImageMode('upload')} className={`rounded-lg border px-4 py-2 text-xs font-bold transition ${imgMode === 'upload' ? 'border-black bg-black text-white' : 'border-gray-200 bg-white text-gray-500'}`}>Upload</button>
             </div>
           </div>
           {imgMode === 'url' ? (
@@ -2037,7 +2187,7 @@ function PortfolioForm({ data, onClose, onSave, onError }) {
           ) : (
             <button type="button" onClick={() => !uploadingImage && fileRef.current?.click()} className="w-full rounded-xl border-2 border-dashed border-gray-200 bg-white p-6 text-center transition hover:border-red-400">
               <span className={`text-sm font-bold ${uploadingImage ? 'text-blue-600' : f.image ? 'text-green-600' : 'text-gray-500'}`}>
-                {uploadingImage ? 'Uploading to Cloudinary...' : f.image ? 'Cover image uploaded' : 'Upload cover image'}
+                {uploadingImage ? 'Uploading image...' : f.image ? 'Cover image uploaded' : 'Upload cover image'}
               </span>
             </button>
           )}
@@ -2131,9 +2281,22 @@ function PortfolioForm({ data, onClose, onSave, onError }) {
         </div>
 
         <div className="flex gap-3 pt-2">
-          <Btn onClick={save} disabled={!f.title || !f.description || saving}>{saving ? 'Saving...' : 'Save Portfolio'}</Btn>
+          <Btn onClick={save} disabled={!f.title || !f.description || saving || uploadInProgress}>{saving ? 'Saving...' : uploadInProgress ? 'Uploading...' : 'Save Portfolio'}</Btn>
           <Btn variant="outline" onClick={onClose}>Cancel</Btn>
         </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-xs font-bold text-gray-500">
+          <span>{autosaveStatus}</span>
+          {hasDraft && (
+            <button type="button" onClick={discardDraft} className="text-red-600 transition hover:text-black">
+              Discard draft
+            </button>
+          )}
+        </div>
+        {formError && (
+          <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-700" role="alert">
+            {formError}
+          </p>
+        )}
       </div>
     </Modal>
   );

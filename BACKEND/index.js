@@ -3,6 +3,8 @@
  * Models: Lead, Client, Project, Milestone, Meeting, Note, Quote, Reminder, Portfolio
  */
 
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 require('dotenv').config();
 
 const express = require('express');
@@ -101,6 +103,13 @@ const fail = (res, status, e, extra = {}) => res.status(status).json({
   ...extra,
 });
 const err = (res, e, status = 500)    => fail(res, status, e);
+const httpError = (status, message) => Object.assign(new Error(message), { status });
+const DB_WRITE_TIMEOUT_MS = Number(process.env.DB_WRITE_TIMEOUT_MS || 15000);
+const WRITE_OPTIONS = {
+  w: 1,
+  wtimeout: DB_WRITE_TIMEOUT_MS,
+  writeConcern: { w: 1, wtimeoutMS: DB_WRITE_TIMEOUT_MS },
+};
 const toArray = (value) => Array.isArray(value)
   ? value
   : String(value || '').split(',').map(item => item.trim()).filter(Boolean);
@@ -243,6 +252,10 @@ function isImageDataUrl(value = '') {
   return /^data:image\/(png|jpe?g|webp|gif|avif);base64,/i.test(String(value));
 }
 
+function hasCloudinaryConfig() {
+  return Boolean(CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET);
+}
+
 function cloudinarySignature(params) {
   const payload = Object.keys(params)
     .sort()
@@ -264,15 +277,22 @@ function safeCloudinaryFolder(folder = '') {
 }
 
 async function uploadImageToCloudinary(dataUrl, options = {}) {
-  if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
-    throw new Error('Cloudinary is not configured on the backend');
-  }
   if (!isImageDataUrl(dataUrl)) throw new Error('Only base64 image uploads are supported');
 
   const base64 = String(dataUrl).split(',')[1] || '';
   const bytes = Buffer.byteLength(base64, 'base64');
   const maxBytes = Number(process.env.CLOUDINARY_MAX_UPLOAD_MB || 8) * 1024 * 1024;
   if (bytes > maxBytes) throw new Error(`Image is too large. Max ${Math.round(maxBytes / 1024 / 1024)}MB`);
+
+  if (!hasCloudinaryConfig()) {
+    return {
+      url: dataUrl,
+      secure_url: dataUrl,
+      inline: true,
+      bytes,
+      format: String(dataUrl).match(/^data:image\/([^;]+);base64,/i)?.[1] || '',
+    };
+  }
 
   const timestamp = Math.floor(Date.now() / 1000);
   const folder = safeCloudinaryFolder(options.folder);
@@ -957,6 +977,12 @@ app.delete('/api/reminders/:id',  auth, async (req, res) => {
 async function cleanPortfolioPayload(body = {}) {
   const payload = { ...body };
   ['_id', '__v', 'createdAt', 'updatedAt'].forEach((field) => { delete payload[field]; });
+  ['title', 'category', 'description', 'link'].forEach((field) => {
+    if (payload[field] !== undefined) payload[field] = String(payload[field] || '').trim();
+  });
+  if (payload.category !== undefined && !payload.category) payload.category = 'Other';
+  if (payload.published !== undefined) payload.published = payload.published !== false && payload.published !== 'false';
+  if (payload.featured !== undefined) payload.featured = payload.featured === true || payload.featured === 'true';
   if (payload.tags !== undefined) payload.tags = toArray(payload.tags);
   if (payload.image !== undefined) payload.image = await normalizeImageField(payload.image, 'thebrandhelper/portfolio');
   const rawGallery = payload.gallery || payload.page_images || payload.images || [];
@@ -978,6 +1004,23 @@ async function cleanPortfolioPayload(body = {}) {
   return payload;
 }
 
+function validatePortfolioPayload(payload = {}, { partial = false } = {}) {
+  if (!partial || payload.title !== undefined) {
+    if (!String(payload.title || '').trim()) throw httpError(400, 'Portfolio title is required');
+  }
+  if (!partial || payload.description !== undefined) {
+    if (!String(payload.description || '').trim()) throw httpError(400, 'Portfolio description is required');
+  }
+}
+
+function withTimeout(task, ms, message) {
+  let timeout;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeout = setTimeout(() => reject(httpError(504, message)), ms);
+  });
+  return Promise.race([task, timeoutPromise]).finally(() => clearTimeout(timeout));
+}
+
 const LEGACY_PORTFOLIO_IMAGES = {
   '/images/og-image.jpg.svg': '/images/belle-kreyashon.svg',
   '/images/Screenshot 2026-03-25 164016.png': '/images/faith-and-grace-catering.jpg',
@@ -986,7 +1029,6 @@ const LEGACY_PORTFOLIO_IMAGES = {
 function normalizePortfolioItem(item = {}) {
   const normalizePortfolioImage = (value = '') => {
     const image = String(value || '').trim();
-    if (image.startsWith('data:image/')) return '/images/c2-drone-consult.jpg';
     return LEGACY_PORTFOLIO_IMAGES[image] || image;
   };
   const gallery = Array.isArray(item.gallery)
@@ -1028,26 +1070,52 @@ app.get('/api/admin/portfolio', auth, async (_req, res) => {
   } catch (e) { err(res, e); }
 });
 
-app.post('/api/portfolio',         auth, async (req, res) => {
+async function createPortfolioItem(req, res) {
   try {
-    const item = await Portfolio.create(await cleanPortfolioPayload(req.body));
-    ok(res, item, 201);
-  } catch (e) { err(res, e); }
-});
+    const payload = await cleanPortfolioPayload(req.body);
+    validatePortfolioPayload(payload);
+    const item = await withTimeout(
+      new Portfolio(payload).save(WRITE_OPTIONS),
+      DB_WRITE_TIMEOUT_MS + 3000,
+      'Portfolio save timed out while writing to the database'
+    );
+    ok(res, normalizePortfolioItem(item.toObject()), 201);
+  } catch (e) { err(res, e, Number(e.status || 500)); }
+}
 
-app.put('/api/portfolio/:id',      auth, async (req, res) => {
+async function updatePortfolioItem(req, res) {
   try {
-    const item = await Portfolio.findByIdAndUpdate(req.params.id, await cleanPortfolioPayload(req.body), { new: true });
-    ok(res, item);
-  } catch (e) { err(res, e); }
-});
+    const payload = await cleanPortfolioPayload(req.body);
+    validatePortfolioPayload(payload, { partial: true });
+    const item = await withTimeout(
+      Portfolio.findByIdAndUpdate(req.params.id, payload, { new: true, runValidators: true, ...WRITE_OPTIONS }),
+      DB_WRITE_TIMEOUT_MS + 3000,
+      'Portfolio update timed out while writing to the database'
+    );
+    if (!item) return fail(res, 404, 'Portfolio item not found');
+    ok(res, normalizePortfolioItem(item.toObject()));
+  } catch (e) { err(res, e, Number(e.status || 500)); }
+}
 
-app.delete('/api/portfolio/:id',   auth, async (req, res) => {
+async function deletePortfolioItem(req, res) {
   try {
-    await Portfolio.findByIdAndDelete(req.params.id);
+    const item = await withTimeout(
+      Portfolio.findByIdAndDelete(req.params.id, WRITE_OPTIONS),
+      DB_WRITE_TIMEOUT_MS + 3000,
+      'Portfolio delete timed out while writing to the database'
+    );
+    if (!item) return fail(res, 404, 'Portfolio item not found');
     ok(res, { message: 'Deleted' });
   } catch (e) { err(res, e); }
-});
+}
+
+app.post('/api/admin/portfolio',       auth, createPortfolioItem);
+app.put('/api/admin/portfolio/:id',    auth, updatePortfolioItem);
+app.delete('/api/admin/portfolio/:id', auth, deletePortfolioItem);
+
+app.post('/api/portfolio',             auth, createPortfolioItem);
+app.put('/api/portfolio/:id',          auth, updatePortfolioItem);
+app.delete('/api/portfolio/:id',       auth, deletePortfolioItem);
 
 // ══════════════════════════════════════════════════════════════════════════════
 // STATS & ANALYTICS

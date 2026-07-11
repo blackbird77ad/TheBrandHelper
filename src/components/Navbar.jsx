@@ -5,6 +5,7 @@ import logo from "../photos/logo-tbh-wordmark-tight-optimized.jpg";
 const NAV_LINKS = [
   { label: "Home", to: "/" },
   { label: "Web Development", to: "/web-development" },
+  { label: "Blueprint", to: "/blueprint" },
   { label: "Products", to: "/digital-products" },
   { label: "Services", to: "/services" },
   { label: "AI Data", to: "/ai-data" },

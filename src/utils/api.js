@@ -11,6 +11,7 @@ const RAW_BASE = (import.meta.env.VITE_API_URL || '').trim();
 const DEFAULT_BASE = import.meta.env.PROD ? 'https://thebrandhelper.onrender.com' : 'http://localhost:4000';
 const BASE    = (RAW_BASE || DEFAULT_BASE).replace(/\/+$/, '');
 const SECRET  = (import.meta.env.VITE_ADMIN_SECRET || '').trim();
+const REQUEST_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 30000);
 
 export const API_BASE = BASE;
 export const SUPPORT_PHONE = '+233 50 165 7205';
@@ -72,6 +73,10 @@ export function isReportableApiIssue(error) {
   return Number.isFinite(status) && status >= 500;
 }
 
+function isAbortError(error) {
+  return error?.name === 'AbortError' || error?.code === 'ABORT_ERR';
+}
+
 export function buildErrorReportText(context = 'Website request', error) {
   const details = describeApiError(error);
   const page = typeof window !== 'undefined' ? window.location.href : '';
@@ -102,23 +107,43 @@ export async function apiRequest(path, options = {}) {
   let res;
   const url = `${BASE}${path}`;
   const method = options.method || 'GET';
-  const request = () => fetch(url, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-  });
+  const timeoutMs = Number(options.timeoutMs || REQUEST_TIMEOUT_MS);
+  const { timeoutMs: _timeoutMs, ...fetchOptions } = options;
+  const request = async () => {
+    const controller = new AbortController();
+    const timeout = timeoutMs > 0
+      ? setTimeout(() => controller.abort(), timeoutMs)
+      : null;
+    try {
+      return await fetch(url, {
+        ...fetchOptions,
+        signal: controller.signal,
+        headers: { 'Content-Type': 'application/json', ...(fetchOptions.headers || {}) },
+      });
+    } finally {
+      if (timeout) clearTimeout(timeout);
+    }
+  };
+  let firstError;
   try {
     res = await request();
-  } catch {
+  } catch (error) {
+    firstError = error;
     await wait(700);
     try {
       res = await request();
     } catch (error) {
-      throw new ApiRequestError(SERVER_FALLBACK_TEXT, {
+      const timedOut = isAbortError(error) || isAbortError(firstError);
+      throw new ApiRequestError(
+        timedOut ? 'The request timed out. Please try again; if it keeps happening, the API or database is taking too long to respond.' : SERVER_FALLBACK_TEXT,
+        {
         isNetwork: true,
         url,
         method,
+        code: timedOut ? 'REQUEST_TIMEOUT' : 'NETWORK_ERROR',
         cause: error,
-      });
+        }
+      );
     }
   }
   const data = await readResponseBody(res);
@@ -146,6 +171,19 @@ export async function apiRequest(path, options = {}) {
 
 async function req(path, options = {}) {
   return apiRequest(path, options);
+}
+
+function isNotFound(error) {
+  return Number(error?.status) === 404 || error?.code === 'HTTP_404';
+}
+
+async function reqWithFallback(path, fallbackPath, options = {}) {
+  try {
+    return await req(path, options);
+  } catch (error) {
+    if (!isNotFound(error)) throw error;
+    return req(fallbackPath, options);
+  }
 }
 
 export const ADMIN_TOKEN_KEY = 'tbh_admin_token';
@@ -236,9 +274,9 @@ export const deleteReminder    = (id)   => req(`/api/reminders/${id}`, { method:
 // -- PORTFOLIO -----------------------------------------------------------------
 export const getPortfolio      = ()      => req('/api/portfolio');  // public
 export const getAdminPortfolio = ()      => req('/api/admin/portfolio', { headers: A() });
-export const createPortfolio   = (body)  => req('/api/portfolio', { method: 'POST', headers: A(), body: JSON.stringify(body) });
-export const updatePortfolio   = (id, b) => req(`/api/portfolio/${id}`, { method: 'PUT', headers: A(), body: JSON.stringify(b) });
-export const deletePortfolio   = (id)    => req(`/api/portfolio/${id}`, { method: 'DELETE', headers: A() });
+export const createPortfolio   = (body)  => reqWithFallback('/api/admin/portfolio', '/api/portfolio', { method: 'POST', headers: A(), body: JSON.stringify(body) });
+export const updatePortfolio   = (id, b) => reqWithFallback(`/api/admin/portfolio/${id}`, `/api/portfolio/${id}`, { method: 'PUT', headers: A(), body: JSON.stringify(b) });
+export const deletePortfolio   = (id)    => reqWithFallback(`/api/admin/portfolio/${id}`, `/api/portfolio/${id}`, { method: 'DELETE', headers: A() });
 export const uploadImage       = async (file, folder = 'thebrandhelper/uploads') => req('/api/admin/uploads/image', {
   method: 'POST',
   headers: A(),

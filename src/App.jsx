@@ -30,11 +30,17 @@ function PageFallback({ isAdmin }) {
   );
 }
 
-function Layout() {
+function scrollToPageTop() {
+  window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+}
+
+function ScrollToTop({ targetRef }) {
   const location = useLocation();
-  const { pathname } = location;
-  const isAdmin = pathname === "/admin";
-  const mainRef = React.useRef(null);
+  const { pathname, search } = location;
+  const previousRouteRef = React.useRef("");
+  const skipDeferredScrollRef = React.useRef(false);
 
   React.useEffect(() => {
     if ("scrollRestoration" in window.history) {
@@ -43,14 +49,37 @@ function Layout() {
   }, []);
 
   React.useLayoutEffect(() => {
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-    mainRef.current?.focus({ preventScroll: true });
-  }, [location.key, location.pathname, location.search, location.hash]);
+    const route = `${pathname}${search}`;
+    const isSameRouteHashJump = previousRouteRef.current === route && Boolean(location.hash);
+    skipDeferredScrollRef.current = isSameRouteHashJump;
+    previousRouteRef.current = route;
+    if (isSameRouteHashJump) return;
+    scrollToPageTop();
+    targetRef.current?.focus({ preventScroll: true });
+  }, [location.hash, location.key, pathname, search, targetRef]);
+
+  React.useEffect(() => {
+    if (skipDeferredScrollRef.current) return undefined;
+    const frame = window.requestAnimationFrame(scrollToPageTop);
+    const timeout = window.setTimeout(scrollToPageTop, 120);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timeout);
+    };
+  }, [location.hash, location.key, pathname, search]);
+
+  return null;
+}
+
+function Layout() {
+  const location = useLocation();
+  const { pathname } = location;
+  const isAdmin = pathname === "/admin";
+  const mainRef = React.useRef(null);
 
   return (
     <>
+      <ScrollToTop targetRef={mainRef} />
       {!isAdmin && (
         <a href="#main-content" className="skip-link">
           Skip to main content
