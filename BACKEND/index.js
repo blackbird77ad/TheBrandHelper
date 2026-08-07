@@ -226,6 +226,7 @@ async function notifyAdmins(subject, lines, options = {}) {
     to: options.to || ADMIN_NOTIFY_EMAILS,
     subject,
     text: compactLines(lines).join('\n'),
+    html: options.html,
     replyTo: options.replyTo,
   });
 }
@@ -240,11 +241,228 @@ async function acknowledgeLead(lead) {
       '',
       'Thank you for contacting The BrandHelper. We have received your request and a team member will follow up with you.',
       '',
+      lead.reference_number ? `Reference: ${lead.reference_number}` : '',
       lead.service ? `Interest: ${lead.service}` : '',
       lead.message ? `Message: ${lead.message}` : '',
       '',
       'The BrandHelper Team',
     ]).join('\n'),
+  });
+}
+
+function isPricingCalculatorLead(lead = {}) {
+  return /website pricing calculator/i.test(`${lead.form_type || ''} ${lead.source_detail || ''}`);
+}
+
+function isProjectRequirementsLead(lead = {}) {
+  return /project requirements brief/i.test(`${lead.form_type || ''} ${lead.source_detail || ''}`);
+}
+
+function emailRows(fields) {
+  return fields
+    .filter(([, value]) => String(value || '').trim())
+    .map(([label, value]) => `
+      <tr>
+        <td style="padding:10px 12px;border-bottom:1px solid #eeeeee;color:#6b7280;font-size:13px;font-weight:700;width:38%;">${escapeHtml(label)}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #eeeeee;color:#111827;font-size:13px;font-weight:700;">${escapeHtml(value)}</td>
+      </tr>
+    `)
+    .join('');
+}
+
+function calculatorEmailHtml({ title, intro, lead }) {
+  const brief = lead.full_brief || lead.message || 'No project brief was included.';
+  return `
+    <!doctype html>
+    <html>
+      <body style="margin:0;background:#f3f4f6;padding:24px;font-family:Arial,sans-serif;color:#111827;">
+        <div style="max-width:760px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+          <div style="background:#111111;color:#ffffff;padding:24px;">
+            <div style="font-size:12px;text-transform:uppercase;letter-spacing:0.14em;font-weight:800;color:#f87171;">The BrandHelper</div>
+            <h1 style="margin:8px 0 0;font-size:24px;line-height:1.2;">${escapeHtml(title)}</h1>
+            <p style="margin:12px 0 0;color:#d1d5db;font-size:14px;line-height:1.6;">${escapeHtml(intro)}</p>
+          </div>
+
+          <div style="padding:24px;">
+            <h2 style="margin:0 0 12px;font-size:16px;">Contact and estimate</h2>
+            <table role="presentation" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;border:1px solid #eeeeee;border-radius:8px;overflow:hidden;">
+              ${emailRows([
+                ['Name', lead.client_name],
+                ['Reference', lead.reference_number],
+                ['Company', lead.business_name],
+                ['Email', lead.email],
+                ['Phone', lead.phone],
+                ['Country', lead.location],
+                ['Business type', lead.industry],
+                ['Service', lead.service],
+                ['Package', lead.tier],
+                ['Budget', lead.budget],
+                ['Timeline', lead.timeline],
+                ['Notes', lead.notes],
+                ['Submitted', lead.submitted_at],
+              ])}
+            </table>
+
+            <h2 style="margin:24px 0 12px;font-size:16px;">Complete project brief and pricing breakdown</h2>
+            <pre style="margin:0;white-space:pre-wrap;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:16px;font-family:Arial,sans-serif;font-size:13px;line-height:1.6;color:#111827;">${escapeHtml(brief)}</pre>
+
+            <div style="margin-top:24px;padding:16px;border-radius:8px;background:#fff7ed;border:1px solid #fed7aa;">
+              <p style="margin:0 0 10px;font-size:14px;line-height:1.6;color:#9a3412;">Next step: reply to this email, continue on WhatsApp, or book a consultation so we can confirm the exact scope and final quote.</p>
+              <p style="margin:0;font-size:14px;">
+                <a href="https://calendly.com/blackbird77ad/free-consultation" style="color:#dc2626;font-weight:800;">Book a consultation</a>
+                &nbsp;|&nbsp;
+                <a href="https://wa.me/233501657205" style="color:#16a34a;font-weight:800;">Continue on WhatsApp</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+}
+
+async function notifyCalculatorLeadAdmins(lead, isAdmin) {
+  const isStandalone = /standalone/i.test(`${lead.source_detail || ''} ${lead.service || ''} ${lead.tier || ''}`);
+  const title = `${isAdmin ? 'CRM calculator lead created' : isStandalone ? 'New standalone digital service submission' : 'New website pricing calculator submission'}`;
+  const text = compactLines([
+    title,
+    '',
+    ...recordLines('Lead details', [
+      ['Reference', lead.reference_number],
+      ['Name', lead.client_name],
+      ['Business', lead.business_name],
+      ['Email', lead.email],
+      ['Phone', lead.phone],
+      ['Country', lead.location],
+      ['Business type', lead.industry],
+      ['Service', lead.service],
+      ['Package', lead.tier],
+      ['Budget', lead.budget],
+      ['Timeline', lead.timeline],
+      ['Message', lead.message],
+    ]),
+    '',
+    'Complete project brief and pricing breakdown',
+    '',
+    lead.full_brief,
+  ]).join('\n');
+
+  return sendEmail({
+    to: ADMIN_NOTIFY_EMAILS,
+    subject: `${title}: ${lead.client_name || lead.business_name || 'Website estimate'}`,
+    text,
+    html: calculatorEmailHtml({
+      title,
+      intro: 'A client completed the Website Pricing Calculator. The full project brief and pricing breakdown are included below.',
+      lead,
+    }),
+    replyTo: lead.email,
+  });
+}
+
+async function acknowledgeCalculatorLead(lead) {
+  if (!lead?.email) return { sent: false, skipped: true };
+  const isStandalone = /standalone/i.test(`${lead.source_detail || ''} ${lead.service || ''} ${lead.tier || ''}`);
+  const text = compactLines([
+    `Hello ${lead.client_name || lead.business_name || 'there'},`,
+    '',
+    isStandalone
+      ? 'Thank you for completing The BrandHelper standalone digital service estimator. We received your service request.'
+      : 'Thank you for completing The BrandHelper website pricing calculator. We received your estimate and project brief.',
+      '',
+      lead.reference_number ? `Reference: ${lead.reference_number}` : '',
+      lead.budget ? `Estimated launch range: ${lead.budget}` : '',
+    lead.timeline ? `Estimated timeline: ${lead.timeline}` : '',
+    '',
+    'A copy of your estimate is included below.',
+    '',
+    lead.full_brief,
+    '',
+    'Next step: book a consultation at https://calendly.com/blackbird77ad/free-consultation or continue on WhatsApp at https://wa.me/233501657205.',
+    '',
+    'The BrandHelper Team',
+  ]).join('\n');
+
+  return sendEmail({
+    to: lead.email,
+    subject: isStandalone ? 'Your standalone service estimate - The BrandHelper' : 'Your website estimate - The BrandHelper',
+    text,
+    html: calculatorEmailHtml({
+      title: isStandalone ? 'Your standalone service estimate' : 'Your website estimate',
+      intro: 'We received your calculator submission. A copy of your planning estimate is included for your records.',
+      lead,
+    }),
+    replyTo: ADMIN_NOTIFY_EMAILS[0],
+  });
+}
+
+async function notifyProjectRequirementsLeadAdmins(lead, isAdmin) {
+  const title = `${isAdmin ? 'CRM project brief created' : 'New project requirements brief'}`;
+  const text = compactLines([
+    title,
+    '',
+    ...recordLines('Project brief details', [
+      ['Reference', lead.reference_number],
+      ['Name', lead.client_name],
+      ['Business', lead.business_name],
+      ['Email', lead.email],
+      ['Phone', lead.phone],
+      ['Country', lead.location],
+      ['Industry', lead.industry],
+      ['Budget', lead.budget],
+      ['Timeline', lead.timeline],
+      ['Notes', lead.notes],
+      ['Message', lead.message],
+    ]),
+    '',
+    'Complete project requirements brief',
+    '',
+    lead.full_brief,
+  ]).join('\n');
+
+  return sendEmail({
+    to: ADMIN_NOTIFY_EMAILS,
+    subject: `${title}: ${lead.business_name || lead.client_name || 'Website project'}`,
+    text,
+    html: calculatorEmailHtml({
+      title,
+      intro: 'A client completed the final Project Requirements form. The full discovery brief is included below.',
+      lead,
+    }),
+    replyTo: lead.email,
+  });
+}
+
+async function acknowledgeProjectRequirementsLead(lead) {
+  if (!lead?.email) return { sent: false, skipped: true };
+  const text = compactLines([
+    `Hello ${lead.client_name || lead.business_name || 'there'},`,
+    '',
+      'Thank you for completing The BrandHelper Project Requirements form. We received your project brief.',
+      '',
+      lead.reference_number ? `Reference: ${lead.reference_number}` : '',
+      lead.budget ? `Budget: ${lead.budget}` : '',
+    lead.timeline ? `Timeline: ${lead.timeline}` : '',
+    '',
+    'A copy of your brief is included below.',
+    '',
+    lead.full_brief,
+    '',
+    'Next step: book a discovery call at https://calendly.com/blackbird77ad/free-consultation or continue on WhatsApp at https://wa.me/233501657205.',
+    '',
+    'The BrandHelper Team',
+  ]).join('\n');
+
+  return sendEmail({
+    to: lead.email,
+    subject: 'We received your project brief - The BrandHelper',
+    text,
+    html: calculatorEmailHtml({
+      title: 'We received your project brief',
+      intro: 'Thank you for completing the final discovery questionnaire. A copy of your project brief is included for your records.',
+      lead,
+    }),
+    replyTo: ADMIN_NOTIFY_EMAILS[0],
   });
 }
 
@@ -422,6 +640,17 @@ function hasAcceptedPaymentTerms(body = {}) {
   return body.payment_consent === true || body.payment_consent === 'true' || body.payment_terms_accepted === true || body.payment_terms_accepted === 'true';
 }
 
+function makeLeadReference(prefix = 'TBH-LEAD') {
+  const now = new Date();
+  const stamp = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+  ].join('');
+  const suffix = Math.random().toString(36).slice(2, 7).toUpperCase();
+  return `${prefix}-${stamp}-${suffix}`;
+}
+
 app.post('/api/leads', async (req, res) => {
   try {
     const isAdmin = req.headers['x-admin-secret'] === SECRET || verifyAdminToken(req.headers['x-admin-token']);
@@ -438,10 +667,13 @@ app.post('/api/leads', async (req, res) => {
     }
     const source = isAdmin ? cleanLeadSource(body.source, 'manual') : cleanLeadSource(body.source, 'website');
     const sourceDetail = String(body.source_detail || body.form_type || (source === 'website' ? 'Website' : source)).trim();
+    const referenceNumber = String(body.reference_number || body.reference || '').trim() || makeLeadReference(isPricingCalculatorLead(body) ? 'TBH-WEB' : 'TBH-LEAD');
+    const submittedAt = body.submitted_at || new Date().toISOString();
     const lead    = await Lead.create({
       source,
       source_detail: sourceDetail,
       form_type:     body.form_type     || (isAdmin ? 'Manual Entry' : 'Unknown'),
+      reference_number: referenceNumber,
       client_name:   body.client_name   || '',
       business_name: body.business_name || '',
       email:         body.email         || '',
@@ -454,31 +686,59 @@ app.post('/api/leads', async (req, res) => {
       timeline:      body.timeline      || '',
       message:       body.message       || '',
       full_brief:    body.full_brief    || '',
+      metadata:      body.metadata && typeof body.metadata === 'object' ? body.metadata : {},
+      file_attachments: Array.isArray(body.file_attachments) ? body.file_attachments : [],
       payment_consent: hasAcceptedPaymentTerms(body),
       payment_consent_text: body.payment_consent_text || '',
       notes:         body.notes         || '',
       follow_up_date: body.follow_up_date || null,
-      submitted_at:  body.submitted_at  || new Date().toISOString(),
+      submitted_at:  submittedAt,
       status:        isAdmin ? (body.status || 'new') : 'new',
+      activity_history: [{
+        type: 'created',
+        actor: isAdmin ? 'admin' : 'website',
+        text: `${isAdmin ? 'Admin' : 'Website'} lead created from ${sourceDetail}`,
+        created_at: submittedAt,
+      }],
     });
     ok(res, lead, 201);
-    queueEmail('Lead admin notification', () => notifyAdmins(
-      `${isAdmin ? 'CRM lead created' : 'New website lead'}: ${lead.form_type || 'Lead'}`,
-      recordLines('Lead details', [
-        ['Name', lead.client_name],
-        ['Origin', lead.source_detail || lead.form_type || lead.source],
-        ['Business', lead.business_name],
-        ['Email', lead.email],
-        ['Phone', lead.phone],
-        ['Service', lead.service],
-        ['Budget', lead.budget],
-        ['Timeline', lead.timeline],
-        ['Payment agreement', lead.payment_consent ? 'Accepted' : 'Not recorded'],
-        ['Message', lead.message],
-      ]),
-      { replyTo: lead.email }
-    ));
-    if (!isAdmin) queueEmail('Lead acknowledgement', () => acknowledgeLead(lead));
+    if (isPricingCalculatorLead(lead)) {
+      queueEmail('Calculator admin notification', () => notifyCalculatorLeadAdmins(lead, isAdmin));
+    } else if (isProjectRequirementsLead(lead)) {
+      queueEmail('Project requirements admin notification', () => notifyProjectRequirementsLeadAdmins(lead, isAdmin));
+    } else {
+      queueEmail('Lead admin notification', () => notifyAdmins(
+        `${isAdmin ? 'CRM lead created' : 'New website lead'}: ${lead.form_type || 'Lead'}`,
+        recordLines('Lead details', [
+          ['Reference', lead.reference_number],
+          ['Name', lead.client_name],
+          ['Origin', lead.source_detail || lead.form_type || lead.source],
+          ['Business', lead.business_name],
+          ['Email', lead.email],
+          ['Phone', lead.phone],
+          ['Service', lead.service],
+          ['Budget', lead.budget],
+          ['Timeline', lead.timeline],
+          ['Payment agreement', lead.payment_consent ? 'Accepted' : 'Not recorded'],
+          ['Message', lead.message],
+        ]),
+        { replyTo: lead.email }
+      ));
+    }
+    if (!isAdmin) {
+      queueEmail(
+        isPricingCalculatorLead(lead)
+          ? 'Calculator acknowledgement'
+          : isProjectRequirementsLead(lead)
+            ? 'Project requirements acknowledgement'
+            : 'Lead acknowledgement',
+        () => isPricingCalculatorLead(lead)
+          ? acknowledgeCalculatorLead(lead)
+          : isProjectRequirementsLead(lead)
+            ? acknowledgeProjectRequirementsLead(lead)
+            : acknowledgeLead(lead)
+      );
+    }
   } catch (e) { err(res, e); }
 });
 
@@ -520,6 +780,16 @@ app.put('/api/leads/:id',    auth, async (req, res) => {
         ]),
         { replyTo: lead.email }
       ));
+    }
+    if (before && before.status !== lead.status) {
+      lead.activity_history = Array.isArray(lead.activity_history) ? lead.activity_history : [];
+      lead.activity_history.push({
+        type: 'status',
+        actor: 'admin',
+        text: `Status changed from ${before.status || 'unknown'} to ${lead.status || 'unknown'}`,
+        created_at: new Date().toISOString(),
+      });
+      await lead.save();
     }
     ok(res, lead);
   } catch (e) { err(res, e); }

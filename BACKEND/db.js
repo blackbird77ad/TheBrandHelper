@@ -42,12 +42,28 @@ async function connect() {
   console.log('✅ MongoDB connected');
 }
 
+const leadAttachmentSchema = new mongoose.Schema({
+  name: { type: String, default: '' },
+  url: { type: String, default: '' },
+  type: { type: String, default: '' },
+  size: { type: Number, default: 0 },
+  uploaded_at: { type: String, default: '' },
+}, { _id: false });
+
+const leadActivitySchema = new mongoose.Schema({
+  type: { type: String, default: 'note' },
+  text: { type: String, default: '' },
+  actor: { type: String, default: 'system' },
+  created_at: { type: String, default: '' },
+}, { _id: false });
+
 // -- LEAD ---------------------------------------------------------------------
 const leadSchema = new mongoose.Schema({
   // Source
   source:        { type: String, enum: ['website', 'manual', 'referral', 'social', 'other'], default: 'website' },
   source_detail: { type: String, default: '' },
   form_type:     { type: String, default: 'Unknown' },
+  reference_number: { type: String, default: '', index: true },
 
   // Contact
   client_name:   { type: String, default: '' },
@@ -64,13 +80,15 @@ const leadSchema = new mongoose.Schema({
   timeline:      { type: String, default: '' },
   message:       { type: String, default: '' },
   full_brief:    { type: String, default: '' },
+  metadata:      { type: mongoose.Schema.Types.Mixed, default: {} },
+  file_attachments: { type: [leadAttachmentSchema], default: [] },
   payment_consent: { type: Boolean, default: false },
   payment_consent_text: { type: String, default: '' },
 
   // Pipeline status
   status: {
     type: String,
-    enum: ['new', 'contacted', 'quoted', 'negotiating', 'won', 'lost'],
+    enum: ['new', 'reviewing', 'proposal_sent', 'won', 'lost', 'archived', 'contacted', 'quoted', 'negotiating'],
     default: 'new',
   },
 
@@ -78,6 +96,7 @@ const leadSchema = new mongoose.Schema({
   notes:          { type: String, default: '' },
   follow_up_date: { type: Date, default: null },
   follow_up_sent: { type: Boolean, default: false },
+  activity_history: { type: [leadActivitySchema], default: [] },
 
   // Link to client if converted
   converted_to_client: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', default: null },

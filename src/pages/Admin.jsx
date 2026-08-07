@@ -20,11 +20,11 @@ import * as api from "../utils/api";
 // -- Constants -----------------------------------------------------------------
 const PIPELINE_COLS = [
   { key: 'new',         label: 'New',         color: 'bg-blue-500'   },
-  { key: 'contacted',   label: 'Contacted',   color: 'bg-yellow-500' },
-  { key: 'quoted',      label: 'Quoted',      color: 'bg-purple-500' },
-  { key: 'negotiating', label: 'Negotiating', color: 'bg-orange-500' },
-  { key: 'won',         label: 'Won ✓',       color: 'bg-green-500'  },
+  { key: 'reviewing',   label: 'Reviewing',   color: 'bg-yellow-500' },
+  { key: 'proposal_sent', label: 'Proposal Sent', color: 'bg-purple-500' },
+  { key: 'won',         label: 'Won',         color: 'bg-green-500'  },
   { key: 'lost',        label: 'Lost',        color: 'bg-red-400'    },
+  { key: 'archived',    label: 'Archived',    color: 'bg-gray-400'   },
 ];
 
 const PROJECT_STATUSES = ['not_started','in_progress','review','revision','delivered','completed','paused','cancelled'];
@@ -41,6 +41,8 @@ const PHASE2_REQUEST_STATUSES = ['new','contacted','qualified','samples_requeste
 
 const STATUS_COLOR = {
   new:         'bg-blue-100 text-blue-700',
+  reviewing:   'bg-yellow-100 text-yellow-700',
+  proposal_sent: 'bg-purple-100 text-purple-700',
   contacted:   'bg-yellow-100 text-yellow-700',
   quoted:      'bg-purple-100 text-purple-700',
   negotiating: 'bg-orange-100 text-orange-700',
@@ -636,6 +638,7 @@ function PipelineTab({ leads, onMove, onView, onAdd }) {
                     onClick={() => onView(lead)}>
                     <p className="text-sm font-bold truncate">{lead.client_name || 'Unknown'}</p>
                     <p className="text-xs text-gray-400 truncate">{lead.business_name || lead.service || ' - '}</p>
+                    {lead.reference_number && <p className="mt-1 text-xs font-bold text-gray-500 truncate">{lead.reference_number}</p>}
                     {lead.budget && <p className="text-xs text-green-600 font-bold mt-1">{lead.budget}</p>}
                     <div className="flex gap-1 mt-2 flex-wrap">
                       {PIPELINE_COLS.filter(c => c.key !== col.key).slice(0,2).map(c => (
@@ -735,6 +738,7 @@ function LeadsTab({ leads, onView, onAdd, onEdit, onDelete, onConvert }) {
       const origin = leadOriginLabel(lead);
       const haystack = [
         lead.client_name,
+        lead.reference_number,
         lead.business_name,
         lead.email,
         lead.phone,
@@ -746,6 +750,7 @@ function LeadsTab({ leads, onView, onAdd, onEdit, onDelete, onConvert }) {
         lead.source_detail,
         lead.message,
         lead.full_brief,
+        JSON.stringify(lead.metadata || {}),
       ].join(' ').toLowerCase();
       const originOk = originFilter === 'all' || origin === originFilter;
       const statusOk = statusFilter === 'all' || lead.status === statusFilter;
@@ -844,6 +849,7 @@ function LeadsTab({ leads, onView, onAdd, onEdit, onDelete, onConvert }) {
               <div className="min-w-0 flex-1">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
                   <Badge status={lead.status} />
+                  {lead.reference_number && <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-bold text-red-700">{lead.reference_number}</span>}
                   <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-500">{origin}</span>
                   <span className="text-xs text-gray-300">{fmtDate(lead.createdAt)}</span>
                   {lead.payment_consent && <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700">Payment agreed</span>}
@@ -1395,9 +1401,13 @@ function StatsTab({ stats }) {
 // ══════════════════════════════════════════════════════════════════════════════
 
 function LeadForm({ data, onClose, onSave, onError }) {
-  const [f, setF] = useState({ client_name:'', business_name:'', email:'', phone:'', industry:'', location:'', service:'', budget:'', timeline:'', message:'', source:'manual', source_detail:'Manual Entry', status:'new', notes:'', follow_up_date:'', payment_consent:false, payment_consent_text:'', ...data });
+  const [f, setF] = useState({ reference_number:'', client_name:'', business_name:'', email:'', phone:'', industry:'', location:'', service:'', budget:'', timeline:'', message:'', source:'manual', source_detail:'Manual Entry', status:'new', notes:'', follow_up_date:'', file_attachments:[], payment_consent:false, payment_consent_text:'', ...data });
   const [saving, setSaving] = useState(false);
   const set = (k,v) => setF(p=>({...p,[k]:v}));
+  const attachments = Array.isArray(f.file_attachments) ? f.file_attachments : [];
+  const setAttachment = (index, patch) => set('file_attachments', attachments.map((item, i) => i === index ? { ...item, ...patch } : item));
+  const addAttachment = () => set('file_attachments', [...attachments, { name: '', url: '', type: 'link', uploaded_at: new Date().toISOString() }]);
+  const removeAttachment = (index) => set('file_attachments', attachments.filter((_, i) => i !== index));
   const save = async () => {
     if (!f.client_name) return;
     setSaving(true);
@@ -1420,11 +1430,28 @@ function LeadForm({ data, onClose, onSave, onError }) {
           <div><Lbl>Status</Lbl><select className={sel} value={f.status} onChange={e=>set('status',e.target.value)}>{PIPELINE_COLS.map(c=><option key={c.key} value={c.key}>{c.label}</option>)}</select></div>
         </div>
         <div><Lbl>Origin Group</Lbl><input className={inp} value={f.source_detail} onChange={e=>set('source_detail',e.target.value)} placeholder="Quick Inquiry, Blueprint Builder, Calculator..."/></div>
+        <div><Lbl>Reference Number</Lbl><input className={inp} value={f.reference_number || ''} onChange={e=>set('reference_number',e.target.value)} placeholder="TBH-WEB-YYYYMMDD-XXXXX"/></div>
         <div className="grid grid-cols-2 gap-3">
           <div><Lbl>Service</Lbl><input className={inp} value={f.service} onChange={e=>set('service',e.target.value)} placeholder="Website Design"/></div>
           <div><Lbl>Budget</Lbl><input className={inp} value={f.budget} onChange={e=>set('budget',e.target.value)} placeholder="$300-$500"/></div>
         </div>
         <div><Lbl>Message</Lbl><textarea className={`${inp} resize-none`} rows={3} value={f.message} onChange={e=>set('message',e.target.value)} placeholder="What they need..."/></div>
+        <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <Lbl>File Attachments</Lbl>
+            <Btn small variant="outline" onClick={addAttachment}>+ Add Link</Btn>
+          </div>
+          <div className="grid gap-2">
+            {attachments.map((item, index) => (
+              <div key={index} className="grid gap-2 md:grid-cols-[0.8fr_1fr_auto]">
+                <input className={inp} value={item.name || ''} onChange={e=>setAttachment(index, { name: e.target.value })} placeholder="Proposal, brief, folder..." />
+                <input className={inp} value={item.url || ''} onChange={e=>setAttachment(index, { url: e.target.value })} placeholder="https://..." />
+                <Btn small variant="danger" onClick={() => removeAttachment(index)}>Remove</Btn>
+              </div>
+            ))}
+            {attachments.length === 0 && <p className="text-xs font-semibold text-gray-400">Attach proposal files, shared folders, client docs, or related links.</p>}
+          </div>
+        </div>
         <div><Lbl>Internal Notes</Lbl><textarea className={`${inp} resize-none`} rows={2} value={f.notes} onChange={e=>set('notes',e.target.value)}/></div>
         <label className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3"><input type="checkbox" checked={Boolean(f.payment_consent)} onChange={e=>set('payment_consent',e.target.checked)} className="h-4 w-4 accent-green-600"/><span className="text-sm font-bold">Payment terms accepted</span></label>
         <div><Lbl>Follow-up Date</Lbl><input className={inp} type="date" value={f.follow_up_date?f.follow_up_date.split('T')[0]:''} onChange={e=>set('follow_up_date',e.target.value)}/></div>
@@ -1438,6 +1465,9 @@ function LeadView({ data, onClose, onConvert, onError }) {
   const [notes, setNotes] = useState([]);
   const [note,  setNote]  = useState('');
   const [type,  setType]  = useState('note');
+  const fileAttachments = Array.isArray(data.file_attachments) ? data.file_attachments : [];
+  const activityHistory = Array.isArray(data.activity_history) ? data.activity_history : [];
+  const metadataText = data.metadata && Object.keys(data.metadata || {}).length ? JSON.stringify(data.metadata, null, 2) : '';
   useEffect(() => { api.getNotes({ lead_id: data._id }).then(r=>setNotes(r.data)).catch(()=>{}); }, [data._id]);
   const addNote = async () => {
     if (!note) return;
@@ -1452,6 +1482,7 @@ function LeadView({ data, onClose, onConvert, onError }) {
           {data.status !== 'won' && <Btn variant="success" onClick={() => onConvert(data._id)}>🎉 Convert to Client</Btn>}
         </div>
         <div className="flex flex-wrap gap-2">
+          {data.reference_number && <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700">Reference: {data.reference_number}</span>}
           <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-600">Origin: {leadOriginLabel(data)}</span>
           {data.payment_consent && <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">Payment terms accepted</span>}
         </div>
@@ -1459,6 +1490,39 @@ function LeadView({ data, onClose, onConvert, onError }) {
           {[['Email',data.email],['Phone',data.phone],['Budget',data.budget],['Timeline',data.timeline],['Service',data.service],['Industry',data.industry],['Payment Terms',data.payment_consent ? (data.payment_consent_text || 'Accepted') : '']].map(([k,v])=>v?(<div key={k}><p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{k}</p><p className="font-medium">{v}</p></div>):null)}
         </div>
         {data.full_brief&&<div><p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Full Brief</p><pre className="bg-gray-50 rounded-xl p-4 text-xs whitespace-pre-wrap font-mono max-h-48 overflow-y-auto">{data.full_brief}</pre></div>}
+        {fileAttachments.length > 0 && (
+          <div>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">File Attachments</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {fileAttachments.map((file, index) => (
+                <a key={`${file.url || file.name}-${index}`} href={file.url} target="_blank" rel="noopener noreferrer" className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm font-bold text-gray-700 transition hover:border-black">
+                  {file.name || file.url || `Attachment ${index + 1}`}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+        {metadataText && (
+          <div>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Submission Metadata</p>
+            <pre className="bg-gray-50 rounded-xl p-4 text-xs whitespace-pre-wrap font-mono max-h-40 overflow-y-auto">{metadataText}</pre>
+          </div>
+        )}
+        {activityHistory.length > 0 && (
+          <div>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">System History</p>
+            <div className="flex flex-col gap-2 max-h-36 overflow-y-auto">
+              {activityHistory.map((item, index) => (
+                <div key={`${item.created_at}-${index}`} className="rounded-xl bg-gray-50 px-4 py-2 text-xs text-gray-600">
+                  <span className="font-extrabold text-gray-900">{item.type || 'activity'}</span>
+                  <span className="mx-1 text-gray-300">/</span>
+                  <span>{item.text || 'Activity recorded'}</span>
+                  <span className="ml-2 text-gray-400">{fmtDate(item.created_at)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div>
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Activity Log</p>
           <div className="flex gap-2 mb-3">
